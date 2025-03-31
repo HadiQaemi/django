@@ -1,0 +1,1311 @@
+INFO 2025-03-25 18:20:28,841 autoreload 29540 25236 Watching for file changes with StatReloader
+INFO 2025-03-25 19:20:52,221 autoreload 8940 13860 Watching for file changes with StatReloader
+INFO 2025-03-25 19:42:19,687 autoreload 5628 15140 Watching for file changes with StatReloader
+INFO 2025-03-25 19:46:33,059 autoreload 24820 10640 Watching for file changes with StatReloader
+INFO 2025-03-25 19:57:12,515 autoreload 24820 10640 D:\codes\Django_reborn_api\config\wsgi.py changed, reloading.
+INFO 2025-03-25 19:57:14,748 autoreload 6068 3188 Watching for file changes with StatReloader
+INFO 2025-03-25 19:58:06,093 autoreload 6068 3188 D:\codes\Django_reborn_api\manage.py changed, reloading.
+INFO 2025-03-25 19:58:08,421 autoreload 12868 9448 Watching for file changes with StatReloader
+WARNING 2025-03-25 19:58:16,187 log 12868 14004 Not Found: /
+WARNING 2025-03-25 19:58:16,188 basehttp 12868 14004 "GET / HTTP/1.1" 404 16147
+INFO 2025-03-25 19:58:16,225 basehttp 12868 14004 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 200 21683
+INFO 2025-03-25 19:58:16,238 basehttp 12868 2600 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 200 43
+INFO 2025-03-25 19:58:16,239 basehttp 12868 14004 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 200 14819
+INFO 2025-03-25 19:58:16,261 basehttp 12868 14004 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 200 4692
+WARNING 2025-03-25 19:58:16,686 log 12868 14004 Not Found: /favicon.ico
+WARNING 2025-03-25 19:58:16,687 basehttp 12868 14004 "GET /favicon.ico HTTP/1.1" 404 16210
+WARNING 2025-03-25 19:58:31,148 log 12868 16628 Not Found: /
+WARNING 2025-03-25 19:58:31,149 basehttp 12868 16628 "GET / HTTP/1.1" 404 16147
+INFO 2025-03-25 19:58:31,171 basehttp 12868 16628 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 200 21683
+INFO 2025-03-25 19:58:31,171 basehttp 12868 4320 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 200 14819
+INFO 2025-03-25 19:58:31,186 basehttp 12868 4320 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 200 43
+INFO 2025-03-25 19:58:31,207 basehttp 12868 4320 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 200 4692
+ERROR 2025-03-25 19:58:31,979 exception_handler 12868 14004 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 19:58:31,987 exception_handler 12868 14004 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 19:58:32,012 log 12868 14004 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 19:58:32,013 basehttp 12868 14004 "GET /api/swagger/ HTTP/1.1" 500 76
+ERROR 2025-03-25 19:58:33,471 exception_handler 12868 14004 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 19:58:33,477 exception_handler 12868 14004 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 19:58:33,510 log 12868 14004 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 19:58:33,511 basehttp 12868 14004 "GET /api/swagger/ HTTP/1.1" 500 76
+ERROR 2025-03-25 19:58:35,565 exception_handler 12868 14004 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 19:58:35,571 exception_handler 12868 14004 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 19:58:35,600 log 12868 14004 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 19:58:35,601 basehttp 12868 14004 "GET /api/swagger/ HTTP/1.1" 500 76
+WARNING 2025-03-25 19:58:59,346 log 12868 4320 Not Found: /favicon.ico
+WARNING 2025-03-25 19:58:59,346 basehttp 12868 4320 "GET /favicon.ico HTTP/1.1" 404 16209
+WARNING 2025-03-25 20:00:04,095 log 12868 14004 Forbidden: /api/v1/
+WARNING 2025-03-25 20:00:04,096 basehttp 12868 14004 "GET /api/v1/ HTTP/1.1" 403 22931
+INFO 2025-03-25 20:00:04,118 basehttp 12868 2600 "GET /static/rest_framework/css/bootstrap-tweaks.css HTTP/1.1" 200 3426
+INFO 2025-03-25 20:00:04,120 basehttp 12868 18920 "GET /static/rest_framework/css/prettify.css HTTP/1.1" 200 817
+INFO 2025-03-25 20:00:04,120 basehttp 12868 14340 "GET /static/rest_framework/css/default.css HTTP/1.1" 200 1152
+INFO 2025-03-25 20:00:04,122 basehttp 12868 2504 "GET /static/rest_framework/js/ajax-form.js HTTP/1.1" 200 3796
+INFO 2025-03-25 20:00:04,122 basehttp 12868 6252 "GET /static/rest_framework/js/jquery-3.7.1.min.js HTTP/1.1" 200 87533
+INFO 2025-03-25 20:00:04,123 basehttp 12868 14004 "GET /static/rest_framework/css/bootstrap.min.css HTTP/1.1" 200 121457
+INFO 2025-03-25 20:00:04,124 basehttp 12868 2600 "GET /static/rest_framework/js/csrf.js HTTP/1.1" 200 1793
+INFO 2025-03-25 20:00:04,129 basehttp 12868 14340 "GET /static/rest_framework/js/bootstrap.min.js HTTP/1.1" 200 39680
+INFO 2025-03-25 20:00:04,130 basehttp 12868 6252 "GET /static/rest_framework/js/default.js HTTP/1.1" 200 1268
+INFO 2025-03-25 20:00:04,130 basehttp 12868 14004 "GET /static/rest_framework/js/load-ajax-form.js HTTP/1.1" 200 59
+INFO 2025-03-25 20:00:04,130 basehttp 12868 18920 "GET /static/rest_framework/js/prettify-min.js HTTP/1.1" 200 13632
+INFO 2025-03-25 20:00:04,168 basehttp 12868 2504 "GET /static/rest_framework/img/grid.png HTTP/1.1" 200 1458
+INFO 2025-03-25 20:00:36,299 autoreload 12868 9448 D:\codes\Django_reborn_api\config\urls.py changed, reloading.
+INFO 2025-03-25 20:00:38,799 autoreload 1660 20684 Watching for file changes with StatReloader
+ERROR 2025-03-25 20:00:44,779 exception_handler 1660 15188 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 20:00:44,784 exception_handler 1660 15188 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 20:00:44,822 log 1660 15188 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 20:00:44,823 basehttp 1660 15188 "GET /api/swagger/ HTTP/1.1" 500 76
+INFO 2025-03-25 20:01:04,198 autoreload 1660 20684 D:\codes\Django_reborn_api\venv\Lib\site-packages\sqlparse\formatter.py changed, reloading.
+INFO 2025-03-25 21:42:01,375 autoreload 24068 17776 Watching for file changes with StatReloader
+ERROR 2025-03-25 21:42:11,902 exception_handler 24068 21052 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 21:42:11,907 exception_handler 24068 21052 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 21:42:11,933 log 24068 21052 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 21:42:11,933 basehttp 24068 21052 "GET /api/swagger/ HTTP/1.1" 500 76
+WARNING 2025-03-25 21:42:26,356 log 24068 21052 Not Found: /
+WARNING 2025-03-25 21:42:26,357 basehttp 24068 21052 "GET / HTTP/1.1" 404 16125
+INFO 2025-03-25 21:42:26,372 basehttp 24068 15920 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 304 0
+INFO 2025-03-25 21:42:26,372 basehttp 24068 21052 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 304 0
+INFO 2025-03-25 21:42:26,374 basehttp 24068 5272 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 304 0
+INFO 2025-03-25 21:42:26,393 basehttp 24068 5272 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 304 0
+ERROR 2025-03-25 21:42:40,526 exception_handler 24068 5272 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 21:42:40,531 exception_handler 24068 5272 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 21:42:40,555 log 24068 5272 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 21:42:40,556 basehttp 24068 5272 "GET /api/swagger/ HTTP/1.1" 500 76
+INFO 2025-03-25 21:43:06,342 container 24068 5272 Using MongoDB repositories
+ERROR 2025-03-25 21:43:06,394 exception_handler 24068 5272 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 21:43:06,399 exception_handler 24068 5272 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 21:43:06,428 log 24068 5272 Internal Server Error: /api/v1/papers/
+ERROR 2025-03-25 21:43:06,429 basehttp 24068 5272 "GET /api/v1/papers/ HTTP/1.1" 500 76
+ERROR 2025-03-25 21:47:10,938 exception_handler 24068 27056 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 21:47:10,940 exception_handler 24068 27056 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 21:47:10,959 log 24068 27056 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 21:47:10,959 basehttp 24068 27056 "GET /api/swagger/ HTTP/1.1" 500 76
+ERROR 2025-03-25 21:47:23,013 exception_handler 24068 27056 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 21:47:23,015 exception_handler 24068 27056 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 21:47:23,036 log 24068 27056 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 21:47:23,036 basehttp 24068 27056 "GET /api/swagger/ HTTP/1.1" 500 76
+INFO 2025-03-25 21:51:31,760 autoreload 6856 21652 Watching for file changes with StatReloader
+ERROR 2025-03-25 21:51:37,515 exception_handler 6856 20220 Unhandled exception: Module "redis.connection" does not define a "HiredisParser" attribute/class
+ERROR 2025-03-25 21:51:37,520 exception_handler 6856 20220 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'redis.connection' has no attribute 'HiredisParser'. Did you mean: '_HiredisParser'?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 253, in get
+    client = self.get_client(write=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 105, in get_client
+    self._clients[index] = self.connect(index)
+                           ^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 118, in connect
+    return self.connection_factory.connect(self._server[index])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 70, in connect
+    params = self.make_connection_params(url)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 42, in make_connection_params
+    "parser_class": self.get_parser_cls(),
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\pool.py", line 99, in get_parser_cls
+    return import_string(cls)
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "redis.connection" does not define a "HiredisParser" attribute/class
+
+ERROR 2025-03-25 21:51:37,547 log 6856 20220 Internal Server Error: /api/swagger/
+ERROR 2025-03-25 21:51:37,548 basehttp 6856 20220 "GET /api/swagger/ HTTP/1.1" 500 76
+INFO 2025-03-25 21:52:39,565 autoreload 6856 21652 D:\codes\Django_reborn_api\config\settings\base.py changed, reloading.
+INFO 2025-03-25 21:52:41,505 autoreload 27400 28076 Watching for file changes with StatReloader
+INFO 2025-03-25 21:52:54,841 basehttp 27400 14652 "GET /api/swagger/ HTTP/1.1" 200 14855
+INFO 2025-03-25 21:52:54,862 basehttp 27400 14652 "GET /static/drf-yasg/style.css HTTP/1.1" 200 1047
+INFO 2025-03-25 21:52:54,868 basehttp 27400 26224 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 200 2093
+INFO 2025-03-25 21:52:54,869 basehttp 27400 14652 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 200 15480
+INFO 2025-03-25 21:52:54,872 basehttp 27400 15228 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css HTTP/1.1" 200 145206
+INFO 2025-03-25 21:52:54,873 basehttp 27400 24044 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 200 56904
+INFO 2025-03-25 21:52:54,875 basehttp 27400 14156 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 200 322863
+INFO 2025-03-25 21:52:54,877 basehttp 27400 26024 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 200 1046583
+INFO 2025-03-25 21:52:55,041 container 27400 26024 Using MongoDB repositories
+INFO 2025-03-25 21:52:55,073 basehttp 27400 14156 "GET /static/drf-yasg/swagger-ui-dist/favicon-32x32.png HTTP/1.1" 200 628
+INFO 2025-03-25 21:52:57,099 keyword_engine 27400 26024 Connected to Elasticsearch successfully.
+INFO 2025-03-25 21:52:57,815 basehttp 27400 26024 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-25 21:52:58,033 basehttp 27400 26024 "GET /__debug__/history_sidebar/?store_id=3e555f9d982d404aa2837bb9afca9bff HTTP/1.1" 200 9832
+INFO 2025-03-25 21:53:21,782 basehttp 27400 26024 "GET /api/v1/all_paper/ HTTP/1.1" 200 111
+INFO 2025-03-25 21:53:21,995 basehttp 27400 26024 "GET /__debug__/history_sidebar/?store_id=85ca6341a3034537a55287abde683934 HTTP/1.1" 200 9822
+WARNING 2025-03-26 09:00:42,814 log 27400 3020 Not Found: /
+WARNING 2025-03-26 09:00:42,817 basehttp 27400 3020 "GET / HTTP/1.1" 404 16125
+INFO 2025-03-26 09:00:42,858 basehttp 27400 26600 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 304 0
+INFO 2025-03-26 09:00:42,859 basehttp 27400 3020 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 304 0
+INFO 2025-03-26 09:00:42,860 basehttp 27400 27412 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 304 0
+INFO 2025-03-26 09:00:42,884 basehttp 27400 27412 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 304 0
+WARNING 2025-03-26 09:00:48,581 log 27400 27412 Not Found: /
+WARNING 2025-03-26 09:00:48,582 basehttp 27400 27412 "GET / HTTP/1.1" 404 16125
+INFO 2025-03-26 09:00:53,032 basehttp 27400 27412 "GET /api/swagger/ HTTP/1.1" 200 14854
+INFO 2025-03-26 09:00:53,062 basehttp 27400 27412 "GET /static/drf-yasg/style.css HTTP/1.1" 200 1047
+INFO 2025-03-26 09:00:53,068 basehttp 27400 25064 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 200 2093
+INFO 2025-03-26 09:00:53,069 basehttp 27400 27412 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 200 15480
+INFO 2025-03-26 09:00:53,072 basehttp 27400 30232 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 200 56904
+INFO 2025-03-26 09:00:53,072 basehttp 27400 3020 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css HTTP/1.1" 200 145206
+INFO 2025-03-26 09:00:53,075 basehttp 27400 32204 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 200 322863
+INFO 2025-03-26 09:00:53,080 basehttp 27400 26600 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 200 1046583
+INFO 2025-03-26 09:00:53,246 basehttp 27400 32204 "GET /static/drf-yasg/swagger-ui-dist/favicon-32x32.png HTTP/1.1" 200 628
+INFO 2025-03-26 09:00:53,419 basehttp 27400 26600 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-26 09:00:53,634 basehttp 27400 26600 "GET /__debug__/history_sidebar/?store_id=ecba42ad02544706a683dab7a4f4563b HTTP/1.1" 200 9831
+INFO 2025-03-26 09:01:07,808 basehttp 27400 26600 "GET /__debug__/render_panel/?store_id=22ab45ba194f437888629c14e3ca6e35&panel_id=HistoryPanel HTTP/1.1" 200 11769
+INFO 2025-03-26 09:01:07,814 basehttp 27400 26600 "GET /static/debug_toolbar/js/history.js HTTP/1.1" 200 3369
+INFO 2025-03-26 09:01:17,762 basehttp 27400 26600 "GET /__debug__/render_panel/?store_id=22ab45ba194f437888629c14e3ca6e35&panel_id=SQLPanel HTTP/1.1" 200 115
+INFO 2025-03-26 09:05:50,118 basehttp 27400 26600 "GET /api/v1/papers/ HTTP/1.1" 200 111
+INFO 2025-03-26 09:05:50,328 basehttp 27400 26600 "GET /__debug__/history_sidebar/?store_id=b8c6d9a215e340138fe65d338389834b HTTP/1.1" 200 9820
+INFO 2025-03-26 09:06:04,993 basehttp 27400 26600 "GET /api/v1/papers/ HTTP/1.1" 200 26187
+INFO 2025-03-26 09:06:05,025 basehttp 27400 26600 "GET /static/rest_framework/css/bootstrap.min.css HTTP/1.1" 200 121457
+INFO 2025-03-26 09:06:05,038 basehttp 27400 2080 "GET /static/rest_framework/css/bootstrap-tweaks.css HTTP/1.1" 200 3426
+INFO 2025-03-26 09:06:05,042 basehttp 27400 22408 "GET /static/rest_framework/css/default.css HTTP/1.1" 200 1152
+INFO 2025-03-26 09:06:05,042 basehttp 27400 29340 "GET /static/rest_framework/css/prettify.css HTTP/1.1" 200 817
+INFO 2025-03-26 09:06:05,043 basehttp 27400 26600 "GET /static/rest_framework/js/csrf.js HTTP/1.1" 200 1793
+INFO 2025-03-26 09:06:05,043 basehttp 27400 29776 "GET /static/rest_framework/js/ajax-form.js HTTP/1.1" 200 3796
+INFO 2025-03-26 09:06:05,045 basehttp 27400 22496 "GET /static/rest_framework/js/jquery-3.7.1.min.js HTTP/1.1" 200 87533
+INFO 2025-03-26 09:06:05,051 basehttp 27400 22408 "GET /static/rest_framework/js/load-ajax-form.js HTTP/1.1" 200 59
+INFO 2025-03-26 09:06:05,051 basehttp 27400 29340 "GET /static/rest_framework/js/prettify-min.js HTTP/1.1" 200 13632
+INFO 2025-03-26 09:06:05,052 basehttp 27400 26600 "GET /static/rest_framework/js/default.js HTTP/1.1" 200 1268
+INFO 2025-03-26 09:06:05,053 basehttp 27400 2080 "GET /static/rest_framework/js/bootstrap.min.js HTTP/1.1" 200 39680
+INFO 2025-03-26 09:06:05,086 basehttp 27400 22496 "GET /static/rest_framework/img/grid.png HTTP/1.1" 200 1458
+INFO 2025-03-29 18:00:16,848 autoreload 22012 34692 Watching for file changes with StatReloader
+WARNING 2025-03-29 18:11:37,680 log 22012 32944 Not Found: /
+WARNING 2025-03-29 18:11:37,681 basehttp 22012 32944 "GET / HTTP/1.1" 404 16125
+INFO 2025-03-29 18:11:37,718 basehttp 22012 32944 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 200 21683
+INFO 2025-03-29 18:11:37,724 basehttp 22012 14492 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 200 14819
+INFO 2025-03-29 18:11:37,801 basehttp 22012 14492 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 200 43
+INFO 2025-03-29 18:11:37,823 basehttp 22012 14492 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 200 4692
+WARNING 2025-03-29 18:11:37,878 log 22012 14492 Not Found: /favicon.ico
+WARNING 2025-03-29 18:11:37,879 basehttp 22012 14492 "GET /favicon.ico HTTP/1.1" 404 16187
+ERROR 2025-03-29 18:11:47,805 exception_handler 22012 14492 Unhandled exception: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+ERROR 2025-03-29 18:11:47,834 exception_handler 22012 14492 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 260, in get
+    raise ConnectionInterrupted(connection=client) from e
+django_redis.exceptions.ConnectionInterrupted: Redis ConnectionError: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 36, in _decorator
+    raise e.__cause__
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 258, in get
+    value = client.get(key)
+            ^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\commands\core.py", line 1822, in get
+    return self.execute_command("GET", name, keys=[name])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\client.py", line 559, in execute_command
+    return self._execute_command(*args, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\client.py", line 565, in _execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\connection.py", line 1422, in get_connection
+    connection.connect()
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\connection.py", line 363, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+
+ERROR 2025-03-29 18:11:47,857 log 22012 14492 Internal Server Error: /api/swagger/
+ERROR 2025-03-29 18:11:47,858 basehttp 22012 14492 "GET /api/swagger/ HTTP/1.1" 500 76
+INFO 2025-03-29 18:11:59,950 container 22012 14492 Using MongoDB repositories
+ERROR 2025-03-29 18:12:04,104 exception_handler 22012 14492 Unhandled exception: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+ERROR 2025-03-29 18:12:04,107 exception_handler 22012 14492 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 260, in get
+    raise ConnectionInterrupted(connection=client) from e
+django_redis.exceptions.ConnectionInterrupted: Redis ConnectionError: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 36, in _decorator
+    raise e.__cause__
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 258, in get
+    value = client.get(key)
+            ^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\commands\core.py", line 1822, in get
+    return self.execute_command("GET", name, keys=[name])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\client.py", line 559, in execute_command
+    return self._execute_command(*args, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\client.py", line 565, in _execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\connection.py", line 1422, in get_connection
+    connection.connect()
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\connection.py", line 363, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+
+ERROR 2025-03-29 18:12:04,132 log 22012 14492 Internal Server Error: /api/v1/papers/
+ERROR 2025-03-29 18:12:04,133 basehttp 22012 14492 "GET /api/v1/papers/ HTTP/1.1" 500 76
+INFO 2025-03-29 18:12:21,076 basehttp 22012 14492 "GET /admin/ HTTP/1.1" 302 0
+INFO 2025-03-29 18:12:21,200 basehttp 22012 14492 "GET /admin/login/?next=/admin/ HTTP/1.1" 200 17354
+INFO 2025-03-29 18:12:21,226 basehttp 22012 32944 "GET /static/admin/css/dark_mode.css HTTP/1.1" 200 2804
+INFO 2025-03-29 18:12:21,227 basehttp 22012 29236 "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 200 2810
+INFO 2025-03-29 18:12:21,227 basehttp 22012 36296 "GET /static/admin/css/login.css HTTP/1.1" 200 951
+INFO 2025-03-29 18:12:21,228 basehttp 22012 14492 "GET /static/admin/css/base.css HTTP/1.1" 200 22092
+INFO 2025-03-29 18:12:21,231 basehttp 22012 29280 "GET /static/admin/js/theme.js HTTP/1.1" 200 1653
+INFO 2025-03-29 18:12:21,234 basehttp 22012 38908 "GET /static/admin/css/responsive.css HTTP/1.1" 200 17972
+INFO 2025-03-29 18:12:21,249 basehttp 22012 38908 "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 200 3063
+INFO 2025-03-29 18:12:29,086 basehttp 22012 38908 "POST /admin/login/?next=/admin/ HTTP/1.1" 200 17510
+INFO 2025-03-29 18:12:32,324 basehttp 22012 38908 "GET /admin/login/?next=/admin/ HTTP/1.1" 200 17353
+WARNING 2025-03-29 18:12:41,302 log 22012 38908 Forbidden: /api/v1/
+WARNING 2025-03-29 18:12:41,304 basehttp 22012 38908 "GET /api/v1/ HTTP/1.1" 403 22930
+INFO 2025-03-29 18:12:41,328 basehttp 22012 29280 "GET /static/rest_framework/css/bootstrap-tweaks.css HTTP/1.1" 200 3426
+INFO 2025-03-29 18:12:41,328 basehttp 22012 36296 "GET /static/rest_framework/css/prettify.css HTTP/1.1" 200 817
+INFO 2025-03-29 18:12:41,329 basehttp 22012 14492 "GET /static/rest_framework/css/default.css HTTP/1.1" 200 1152
+INFO 2025-03-29 18:12:41,332 basehttp 22012 32944 "GET /static/rest_framework/js/ajax-form.js HTTP/1.1" 200 3796
+INFO 2025-03-29 18:12:41,335 basehttp 22012 38908 "GET /static/rest_framework/css/bootstrap.min.css HTTP/1.1" 200 121457
+INFO 2025-03-29 18:12:41,336 basehttp 22012 14492 "GET /static/rest_framework/js/csrf.js HTTP/1.1" 200 1793
+INFO 2025-03-29 18:12:41,338 basehttp 22012 32944 "GET /static/rest_framework/js/default.js HTTP/1.1" 200 1268
+INFO 2025-03-29 18:12:41,341 basehttp 22012 38908 "GET /static/rest_framework/js/load-ajax-form.js HTTP/1.1" 200 59
+INFO 2025-03-29 18:12:41,348 basehttp 22012 36296 "GET /static/rest_framework/js/prettify-min.js HTTP/1.1" 200 13632
+INFO 2025-03-29 18:12:41,350 basehttp 22012 38908 "GET /static/rest_framework/img/grid.png HTTP/1.1" 200 1458
+INFO 2025-03-29 18:12:41,354 basehttp 22012 29280 "GET /static/rest_framework/js/bootstrap.min.js HTTP/1.1" 200 39680
+INFO 2025-03-29 18:12:41,358 basehttp 22012 29236 "GET /static/rest_framework/js/jquery-3.7.1.min.js HTTP/1.1" 200 87533
+INFO 2025-03-29 18:12:51,863 basehttp 22012 29236 "GET /api/swagger HTTP/1.1" 301 0
+ERROR 2025-03-29 18:12:55,934 exception_handler 22012 29280 Unhandled exception: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+ERROR 2025-03-29 18:12:55,937 exception_handler 22012 29280 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 29, in _decorator
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 99, in _get
+    return self.client.get(key, default=default, version=version, client=client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 260, in get
+    raise ConnectionInterrupted(connection=client) from e
+django_redis.exceptions.ConnectionInterrupted: Redis ConnectionError: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 416, in initial
+    self.check_throttles(request)
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 359, in check_throttles
+    if not throttle.allow_request(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\throttling.py", line 123, in allow_request
+    self.history = self.cache.get(self.key, [])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 42, in wrapper
+    return panel._record_call(cache, name, original_method, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\debug_toolbar\panels\cache.py", line 151, in _record_call
+    value = original_method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 92, in get
+    value = self._get(key, default, version, client)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\cache.py", line 36, in _decorator
+    raise e.__cause__
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\django_redis\client\default.py", line 258, in get
+    value = client.get(key)
+            ^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\commands\core.py", line 1822, in get
+    return self.execute_command("GET", name, keys=[name])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\client.py", line 559, in execute_command
+    return self._execute_command(*args, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\client.py", line 565, in _execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\connection.py", line 1422, in get_connection
+    connection.connect()
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\redis\connection.py", line 363, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+
+ERROR 2025-03-29 18:12:55,970 log 22012 29280 Internal Server Error: /api/swagger/
+ERROR 2025-03-29 18:12:55,971 basehttp 22012 29280 "GET /api/swagger/ HTTP/1.1" 500 76
+INFO 2025-03-29 18:13:29,378 basehttp 22012 29280 "GET /api/swagger/ HTTP/1.1" 200 14854
+INFO 2025-03-29 18:13:29,404 basehttp 22012 29280 "GET /static/drf-yasg/style.css HTTP/1.1" 200 1047
+INFO 2025-03-29 18:13:29,435 basehttp 22012 14492 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 200 2093
+INFO 2025-03-29 18:13:29,438 basehttp 22012 25544 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 200 56904
+INFO 2025-03-29 18:13:29,440 basehttp 22012 38908 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css HTTP/1.1" 200 145206
+INFO 2025-03-29 18:13:29,442 basehttp 22012 29280 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 200 15480
+INFO 2025-03-29 18:13:29,443 basehttp 22012 32944 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 200 322863
+INFO 2025-03-29 18:13:29,446 basehttp 22012 36296 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 200 1046583
+WARNING 2025-03-29 18:13:48,695 keyword_engine 22012 36296 Could not connect to Elasticsearch. Keyword search will be disabled.
+INFO 2025-03-29 18:13:51,899 basehttp 22012 36296 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-29 18:13:53,030 basehttp 22012 36296 "GET /__debug__/history_sidebar/?store_id=1d0320931e6b43bfbf57681a833e2742 HTTP/1.1" 200 9833
+INFO 2025-03-29 22:05:00,000 autoreload 21764 35856 Watching for file changes with StatReloader
+INFO 2025-03-29 22:05:09,635 basehttp 21764 19684 "GET /api/swagger/ HTTP/1.1" 200 14856
+INFO 2025-03-29 22:05:09,668 basehttp 21764 19684 "GET /static/drf-yasg/style.css HTTP/1.1" 200 1047
+INFO 2025-03-29 22:05:09,673 basehttp 21764 31776 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 200 2093
+INFO 2025-03-29 22:05:09,675 basehttp 21764 13356 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 200 21683
+INFO 2025-03-29 22:05:09,678 basehttp 21764 19684 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 200 56904
+INFO 2025-03-29 22:05:09,680 basehttp 21764 26240 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css HTTP/1.1" 200 145206
+INFO 2025-03-29 22:05:09,680 basehttp 21764 31776 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 200 15480
+INFO 2025-03-29 22:05:09,682 basehttp 21764 13356 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 200 14819
+INFO 2025-03-29 22:05:09,685 basehttp 21764 22484 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 200 322863
+INFO 2025-03-29 22:05:09,691 basehttp 21764 29616 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 200 1046583
+INFO 2025-03-29 22:05:09,846 basehttp 21764 29616 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 200 43
+INFO 2025-03-29 22:05:09,847 basehttp 21764 22484 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 200 4692
+INFO 2025-03-29 22:05:09,887 container 21764 22484 Using MongoDB repositories
+INFO 2025-03-29 22:05:09,890 basehttp 21764 29616 "GET /static/drf-yasg/swagger-ui-dist/favicon-32x32.png HTTP/1.1" 200 628
+WARNING 2025-03-29 22:05:28,550 keyword_engine 21764 22484 Could not connect to Elasticsearch. Keyword search will be disabled.
+INFO 2025-03-29 22:05:29,407 basehttp 21764 22484 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-29 22:05:30,073 basehttp 21764 22484 "GET /__debug__/history_sidebar/?store_id=89bb2f810a1c456eb449ee9723c5dc15 HTTP/1.1" 200 9833
+INFO 2025-03-29 22:05:42,308 basehttp 21764 22484 "GET /api/swagger/ HTTP/1.1" 200 14854
+INFO 2025-03-29 22:05:42,535 basehttp 21764 22484 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-29 22:05:42,749 basehttp 21764 22484 "GET /__debug__/history_sidebar/?store_id=4201990b11eb411aa56ce8b85a8a7220 HTTP/1.1" 200 9831
+INFO 2025-03-29 22:05:50,159 autoreload 27500 39268 Watching for file changes with StatReloader
+INFO 2025-03-29 22:06:08,855 basehttp 27500 17332 "GET /api/swagger/ HTTP/1.1" 200 14856
+INFO 2025-03-29 22:06:08,915 container 27500 17332 Using MongoDB repositories
+WARNING 2025-03-29 22:06:26,995 keyword_engine 27500 17332 Could not connect to Elasticsearch. Keyword search will be disabled.
+INFO 2025-03-29 22:06:27,644 basehttp 27500 17332 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-29 22:06:27,857 basehttp 27500 17332 "GET /__debug__/history_sidebar/?store_id=4ecd67a582c344638949dd5f207e28e5 HTTP/1.1" 200 9833
+INFO 2025-03-29 22:09:35,138 autoreload 34280 21236 Watching for file changes with StatReloader
+INFO 2025-03-29 22:09:54,049 basehttp 34280 22228 "GET /api/swagger/ HTTP/1.1" 200 14855
+INFO 2025-03-29 22:09:54,120 container 34280 22228 Using MongoDB repositories
+WARNING 2025-03-29 22:10:12,043 keyword_engine 34280 22228 Could not connect to Elasticsearch. Keyword search will be disabled.
+INFO 2025-03-29 22:10:12,891 basehttp 34280 22228 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-29 22:10:14,030 basehttp 34280 22228 "GET /__debug__/history_sidebar/?store_id=f704a0f6c61c457f8b8ea6a0d5ed1c30 HTTP/1.1" 200 9833
+INFO 2025-03-29 22:10:38,610 basehttp 34280 22228 "GET /api/swagger/ HTTP/1.1" 200 14854
+INFO 2025-03-29 22:10:38,865 basehttp 34280 22228 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-29 22:10:39,077 basehttp 34280 22228 "GET /__debug__/history_sidebar/?store_id=51d9f44f37c24aa6a4396621a359f42c HTTP/1.1" 200 9831
+INFO 2025-03-29 22:11:45,674 autoreload 40248 35580 Watching for file changes with StatReloader
+INFO 2025-03-29 22:12:42,413 basehttp 40248 31428 "GET /api/swagger/ HTTP/1.1" 200 14856
+INFO 2025-03-29 22:12:42,480 container 40248 31428 Using MongoDB repositories
+INFO 2025-03-29 22:12:44,260 keyword_engine 40248 31428 Connected to Elasticsearch successfully.
+INFO 2025-03-29 22:12:44,991 basehttp 40248 31428 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-29 22:12:46,025 basehttp 40248 31428 "GET /__debug__/history_sidebar/?store_id=f2463c2a845341458a938531a88a4d0f HTTP/1.1" 200 9832
+INFO 2025-03-29 23:02:09,481 autoreload 19996 32380 Watching for file changes with StatReloader
+INFO 2025-03-29 23:03:10,574 autoreload 16052 35844 Watching for file changes with StatReloader
+INFO 2025-03-29 23:04:37,170 autoreload 27164 20492 Watching for file changes with StatReloader
+INFO 2025-03-29 23:07:35,392 autoreload 27164 20492 D:\codes\Django_reborn_api\config\settings\base.py changed, reloading.
+INFO 2025-03-29 23:07:37,171 autoreload 37712 16456 Watching for file changes with StatReloader
+INFO 2025-03-29 23:07:42,690 autoreload 38192 25104 Watching for file changes with StatReloader
+INFO 2025-03-30 12:31:11,681 autoreload 38192 25104 D:\codes\Django_reborn_api\config\settings\base.py changed, reloading.
+INFO 2025-03-30 12:31:14,077 autoreload 25164 17344 Watching for file changes with StatReloader
+INFO 2025-03-30 12:31:33,521 autoreload 25164 17344 D:\codes\Django_reborn_api\config\settings\base.py changed, reloading.
+INFO 2025-03-30 12:31:35,294 autoreload 5240 14980 Watching for file changes with StatReloader
+INFO 2025-03-30 12:31:51,426 autoreload 6108 25104 Watching for file changes with StatReloader
+INFO 2025-03-30 12:39:28,519 basehttp 6108 34512 "GET /api/swagger/ HTTP/1.1" 200 14856
+INFO 2025-03-30 12:39:28,550 basehttp 6108 34512 "GET /static/drf-yasg/style.css HTTP/1.1" 200 1047
+INFO 2025-03-30 12:39:28,554 basehttp 6108 1584 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 200 2093
+INFO 2025-03-30 12:39:28,556 basehttp 6108 34468 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 200 21683
+INFO 2025-03-30 12:39:28,560 basehttp 6108 34512 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 200 56904
+INFO 2025-03-30 12:39:28,560 basehttp 6108 20128 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css HTTP/1.1" 200 145206
+INFO 2025-03-30 12:39:28,561 basehttp 6108 1584 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 200 15480
+INFO 2025-03-30 12:39:28,563 basehttp 6108 34468 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 200 14819
+INFO 2025-03-30 12:39:28,565 basehttp 6108 31120 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 200 322863
+INFO 2025-03-30 12:39:28,570 basehttp 6108 9996 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 200 1046583
+INFO 2025-03-30 12:39:28,733 basehttp 6108 9996 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 200 43
+INFO 2025-03-30 12:39:28,735 basehttp 6108 34468 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 200 4692
+INFO 2025-03-30 12:39:28,788 basehttp 6108 9996 "GET /static/drf-yasg/swagger-ui-dist/favicon-32x32.png HTTP/1.1" 304 0
+WARNING 2025-03-30 12:39:28,792 container 6108 34468 SQL repositories not available, falling back to MongoDB
+INFO 2025-03-30 12:39:30,945 keyword_engine 6108 34468 Connected to Elasticsearch successfully.
+INFO 2025-03-30 12:39:31,760 basehttp 6108 34468 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-30 12:39:31,980 basehttp 6108 34468 "GET /__debug__/history_sidebar/?store_id=32c566fd4fe64d87a366507c0f97620b HTTP/1.1" 200 9832
+INFO 2025-03-30 12:53:44,946 autoreload 6108 25104 D:\codes\Django_reborn_api\config\settings\base.py changed, reloading.
+INFO 2025-03-30 12:57:46,314 autoreload 19728 20240 Watching for file changes with StatReloader
+INFO 2025-03-30 12:59:35,616 autoreload 9976 28696 Watching for file changes with StatReloader
+INFO 2025-03-30 13:14:51,681 autoreload 33228 34512 Watching for file changes with StatReloader
+INFO 2025-03-30 13:16:35,042 autoreload 15192 5996 Watching for file changes with StatReloader
+INFO 2025-03-30 13:55:48,500 autoreload 36652 29292 Watching for file changes with StatReloader
+INFO 2025-03-30 13:56:02,211 basehttp 36652 16276 "GET /api/swagger/ HTTP/1.1" 200 14855
+INFO 2025-03-30 13:56:02,239 basehttp 36652 16276 "GET /static/drf-yasg/style.css HTTP/1.1" 200 1047
+INFO 2025-03-30 13:56:02,240 basehttp 36652 19928 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 200 21683
+INFO 2025-03-30 13:56:02,241 basehttp 36652 21180 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 200 14819
+INFO 2025-03-30 13:56:02,242 basehttp 36652 5568 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css HTTP/1.1" 200 145206
+INFO 2025-03-30 13:56:02,385 basehttp 36652 5568 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 200 4692
+INFO 2025-03-30 13:56:02,385 basehttp 36652 21180 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 200 43
+INFO 2025-03-30 13:56:02,445 container 36652 5568 Using MongoDB repositories
+INFO 2025-03-30 13:56:04,116 keyword_engine 36652 5568 Connected to Elasticsearch successfully.
+INFO 2025-03-30 13:56:04,845 basehttp 36652 5568 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20952
+INFO 2025-03-30 13:56:05,567 basehttp 36652 5568 "GET /__debug__/history_sidebar/?store_id=731758febb2d47f4998194c90960f8c7 HTTP/1.1" 200 9832
+INFO 2025-03-30 14:10:27,364 autoreload 36652 29292 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 14:10:29,480 autoreload 13856 21064 Watching for file changes with StatReloader
+INFO 2025-03-30 14:11:21,406 autoreload 13856 21064 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 14:11:23,205 autoreload 15576 8876 Watching for file changes with StatReloader
+INFO 2025-03-30 14:12:07,535 autoreload 15576 8876 D:\codes\Django_reborn_api\core\presentation\api\v1\urls.py changed, reloading.
+INFO 2025-03-30 14:12:09,307 autoreload 36820 37500 Watching for file changes with StatReloader
+INFO 2025-03-30 14:13:03,535 autoreload 36820 37500 D:\codes\Django_reborn_api\core\presentation\serializers\paper_serializers.py changed, reloading.
+INFO 2025-03-30 14:13:05,362 autoreload 37060 39100 Watching for file changes with StatReloader
+INFO 2025-03-30 15:04:41,900 autoreload 24876 9524 Watching for file changes with StatReloader
+INFO 2025-03-30 15:05:53,352 autoreload 24876 9524 D:\codes\Django_reborn_api\core\presentation\api\v1\urls.py changed, reloading.
+INFO 2025-03-30 15:05:55,172 autoreload 37316 37188 Watching for file changes with StatReloader
+INFO 2025-03-30 15:06:05,207 basehttp 37316 25392 "GET /api/swagger/ HTTP/1.1" 200 14856
+INFO 2025-03-30 15:06:05,250 basehttp 37316 25392 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css.map HTTP/1.1" 200 251096
+INFO 2025-03-30 15:06:05,373 basehttp 37316 25392 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js.map HTTP/1.1" 200 1540070
+INFO 2025-03-30 15:06:05,449 basehttp 37316 25392 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js.map HTTP/1.1" 200 517830
+INFO 2025-03-30 15:06:05,503 container 37316 25392 Using MongoDB repositories
+INFO 2025-03-30 15:06:05,506 basehttp 37316 21032 "GET /static/drf-yasg/swagger-ui-dist/favicon-32x32.png HTTP/1.1" 200 628
+INFO 2025-03-30 15:06:07,718 keyword_engine 37316 25392 Connected to Elasticsearch successfully.
+INFO 2025-03-30 15:06:08,435 basehttp 37316 25392 "GET /api/swagger/?format=openapi HTTP/1.1" 200 22850
+INFO 2025-03-30 15:06:08,649 basehttp 37316 25392 "GET /__debug__/history_sidebar/?store_id=541b27ab4cd542889a82262c538f8ee3 HTTP/1.1" 200 9832
+INFO 2025-03-30 15:08:54,422 autoreload 37316 37188 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 15:08:56,484 autoreload 14900 26092 Watching for file changes with StatReloader
+INFO 2025-03-30 15:09:02,383 container 14900 3628 Using MongoDB repositories
+WARNING 2025-03-30 15:09:02,616 log 14900 3628 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-30 15:09:02,617 basehttp 14900 3628 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 45
+INFO 2025-03-30 15:09:02,832 basehttp 14900 3628 "GET /__debug__/history_sidebar/?store_id=7e3493d263fc485e8aa4fd3e3f285986 HTTP/1.1" 200 9831
+INFO 2025-03-30 15:10:01,376 autoreload 14900 26092 D:\codes\Django_reborn_api\core\presentation\serializers\paper_serializers.py changed, reloading.
+INFO 2025-03-30 15:10:03,294 autoreload 31800 16304 Watching for file changes with StatReloader
+INFO 2025-03-30 15:22:59,905 autoreload 31800 16304 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 15:23:01,749 autoreload 6252 37652 Watching for file changes with StatReloader
+INFO 2025-03-30 15:23:50,181 autoreload 6252 37652 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 15:23:52,132 autoreload 34720 30872 Watching for file changes with StatReloader
+INFO 2025-03-30 16:07:04,419 container 34720 19892 Using MongoDB repositories
+WARNING 2025-03-30 16:07:04,793 log 34720 19892 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-30 16:07:04,794 basehttp 34720 19892 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 45
+INFO 2025-03-30 16:23:43,907 autoreload 34720 30872 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 16:23:46,433 autoreload 25500 23240 Watching for file changes with StatReloader
+INFO 2025-03-30 16:23:56,977 container 25500 38004 Using MongoDB repositories
+ERROR 2025-03-30 16:23:57,115 paper_viewsets 25500 38004 Error in add_paper: can only concatenate str (not "ReturnDict") to str
+ERROR 2025-03-30 16:23:57,131 log 25500 38004 Internal Server Error: /api/v1/papers/add_paper/
+ERROR 2025-03-30 16:23:57,132 basehttp 25500 38004 "POST /api/v1/papers/add_paper/ HTTP/1.1" 500 31
+INFO 2025-03-30 16:25:44,224 autoreload 25500 23240 D:\codes\Django_reborn_api\core\presentation\serializers\paper_serializers.py changed, reloading.
+INFO 2025-03-30 16:25:46,495 autoreload 31444 11236 Watching for file changes with StatReloader
+INFO 2025-03-30 16:27:14,000 autoreload 31444 11236 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 16:27:15,756 autoreload 35384 10140 Watching for file changes with StatReloader
+INFO 2025-03-30 16:27:35,775 autoreload 35008 2996 Watching for file changes with StatReloader
+INFO 2025-03-30 16:28:17,295 autoreload 35008 2996 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 16:28:19,037 autoreload 39176 18640 Watching for file changes with StatReloader
+INFO 2025-03-30 16:28:26,755 autoreload 39176 18640 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 16:28:28,401 autoreload 35456 27768 Watching for file changes with StatReloader
+INFO 2025-03-30 16:29:07,911 autoreload 35456 27768 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 16:29:09,560 autoreload 20452 20048 Watching for file changes with StatReloader
+INFO 2025-03-30 16:29:43,617 autoreload 20452 20048 D:\codes\Django_reborn_api\core\presentation\api\v1\urls.py changed, reloading.
+INFO 2025-03-30 16:29:45,531 autoreload 36812 33672 Watching for file changes with StatReloader
+INFO 2025-03-30 16:29:51,913 container 36812 38176 Using MongoDB repositories
+ERROR 2025-03-30 16:29:52,123 paper_viewsets 36812 38176 Error in add_paper: can only concatenate str (not "ReturnDict") to str
+ERROR 2025-03-30 16:29:52,147 log 36812 38176 Internal Server Error: /api/v1/papers/add_paper/
+ERROR 2025-03-30 16:29:52,148 basehttp 36812 38176 "POST /api/v1/papers/add_paper/ HTTP/1.1" 500 31
+ERROR 2025-03-30 16:29:53,543 paper_viewsets 36812 38176 Error in add_paper: can only concatenate str (not "ReturnDict") to str
+ERROR 2025-03-30 16:29:53,556 log 36812 38176 Internal Server Error: /api/v1/papers/add_paper/
+ERROR 2025-03-30 16:29:53,557 basehttp 36812 38176 "POST /api/v1/papers/add_paper/ HTTP/1.1" 500 31
+INFO 2025-03-30 16:30:33,749 autoreload 36812 33672 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 16:30:35,907 autoreload 31624 21884 Watching for file changes with StatReloader
+INFO 2025-03-30 16:30:41,730 container 31624 29916 Using MongoDB repositories
+ERROR 2025-03-30 16:30:41,939 exception_handler 31624 29916 Unhandled exception: can only concatenate str (not "ReturnDict") to str
+ERROR 2025-03-30 16:30:41,940 exception_handler 31624 29916 Traceback (most recent call last):
+  File "D:\codes\Django_reborn_api\venv\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py", line 729, in add_paper
+    {"error": "Hi Hadi" + serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+              ~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+TypeError: can only concatenate str (not "ReturnDict") to str
+
+ERROR 2025-03-30 16:30:41,963 log 31624 29916 Internal Server Error: /api/v1/papers/add_paper/
+ERROR 2025-03-30 16:30:41,964 basehttp 31624 29916 "POST /api/v1/papers/add_paper/ HTTP/1.1" 500 76
+INFO 2025-03-30 16:30:59,039 autoreload 31624 21884 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 16:31:01,302 autoreload 40568 19612 Watching for file changes with StatReloader
+INFO 2025-03-30 16:31:07,293 container 40568 11172 Using MongoDB repositories
+WARNING 2025-03-30 16:31:07,502 log 40568 11172 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-30 16:31:07,503 basehttp 40568 11172 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 49
+WARNING 2025-03-30 16:31:29,489 log 40568 11172 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-30 16:31:29,491 basehttp 40568 11172 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 44
+ERROR 2025-03-30 16:31:44,112 node_extractor 40568 11172 Failed to fetch HTML: HTTPSConnectionPool(host='asdasd.asda', port=443): Max retries exceeded with url: /asd (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000022EE7B8BC20>: Failed to resolve 'asdasd.asda' ([Errno 11001] getaddrinfo failed)"))
+ERROR 2025-03-30 16:31:44,112 paper_service 40568 11172 Error in extract_paper: Failed to fetch HTML: HTTPSConnectionPool(host='asdasd.asda', port=443): Max retries exceeded with url: /asd (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000022EE7B8BC20>: Failed to resolve 'asdasd.asda' ([Errno 11001] getaddrinfo failed)"))
+WARNING 2025-03-30 16:31:44,124 log 40568 11172 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-30 16:31:44,125 basehttp 40568 11172 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 316
+INFO 2025-03-30 20:48:57,576 autoreload 40568 19612 D:\codes\Django_reborn_api\config\settings\base.py changed, reloading.
+INFO 2025-03-30 20:49:00,106 autoreload 36188 36328 Watching for file changes with StatReloader
+INFO 2025-03-30 20:49:32,099 autoreload 37452 32396 Watching for file changes with StatReloader
+INFO 2025-03-30 20:50:32,056 basehttp 37452 23216 "GET /api/swagger/ HTTP/1.1" 200 14855
+INFO 2025-03-30 20:50:32,100 basehttp 37452 23216 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css.map HTTP/1.1" 200 251096
+INFO 2025-03-30 20:50:32,222 basehttp 37452 23216 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js.map HTTP/1.1" 200 1540070
+INFO 2025-03-30 20:50:32,291 basehttp 37452 23216 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js.map HTTP/1.1" 200 517830
+INFO 2025-03-30 20:50:32,333 basehttp 37452 25780 "GET /static/drf-yasg/swagger-ui-dist/favicon-32x32.png HTTP/1.1" 200 628
+INFO 2025-03-30 20:50:32,337 container 37452 23216 Using MongoDB repositories
+INFO 2025-03-30 20:50:32,411 basehttp 37452 23216 "GET /api/swagger/?format=openapi HTTP/1.1" 200 709
+INFO 2025-03-30 20:50:32,628 basehttp 37452 23216 "GET /__debug__/history_sidebar/?store_id=e57f51bdf44a4de58e0a1cbb712b0c0d HTTP/1.1" 200 9830
+INFO 2025-03-30 20:50:47,127 basehttp 37452 23216 "GET /api/swagger/ HTTP/1.1" 200 14854
+INFO 2025-03-30 20:50:47,329 basehttp 37452 23216 "GET /api/swagger/?format=openapi HTTP/1.1" 200 709
+INFO 2025-03-30 20:50:47,545 basehttp 37452 23216 "GET /__debug__/history_sidebar/?store_id=1462a93dbb24491889a535bb4cc9b1d7 HTTP/1.1" 200 9830
+INFO 2025-03-30 20:51:18,205 autoreload 37452 32396 D:\codes\Django_reborn_api\core\presentation\serializers\paper_serializers.py changed, reloading.
+INFO 2025-03-30 20:51:20,375 autoreload 39260 28768 Watching for file changes with StatReloader
+INFO 2025-03-30 20:51:31,716 autoreload 39260 28768 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 20:51:33,512 autoreload 13876 17240 Watching for file changes with StatReloader
+INFO 2025-03-30 20:51:55,741 autoreload 13876 17240 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 20:51:57,593 autoreload 35100 5748 Watching for file changes with StatReloader
+INFO 2025-03-30 20:52:04,043 basehttp 35100 5992 "GET /api/swagger/ HTTP/1.1" 200 14855
+INFO 2025-03-30 20:52:04,166 container 35100 5992 Using MongoDB repositories
+INFO 2025-03-30 20:52:04,266 basehttp 35100 5992 "GET /api/swagger/?format=openapi HTTP/1.1" 200 20360
+INFO 2025-03-30 20:52:04,480 basehttp 35100 5992 "GET /__debug__/history_sidebar/?store_id=5c73b1bb8a1b4f50964945bf288c8a62 HTTP/1.1" 200 9831
+INFO 2025-03-30 20:52:31,824 autoreload 35100 5748 D:\codes\Django_reborn_api\core\presentation\api\v1\urls.py changed, reloading.
+INFO 2025-03-30 20:52:34,200 autoreload 32636 15300 Watching for file changes with StatReloader
+INFO 2025-03-30 20:52:49,707 basehttp 32636 23088 "GET /api/swagger/ HTTP/1.1" 200 14855
+INFO 2025-03-30 20:52:49,809 container 32636 23088 Using MongoDB repositories
+INFO 2025-03-30 20:52:51,952 keyword_engine 32636 23088 Connected to Elasticsearch successfully.
+INFO 2025-03-30 20:52:54,182 basehttp 32636 23088 "GET /api/swagger/?format=openapi HTTP/1.1" 200 22850
+INFO 2025-03-30 20:52:54,397 basehttp 32636 23088 "GET /__debug__/history_sidebar/?store_id=d0c0f10bf36646419a932d10f66ef6f5 HTTP/1.1" 200 9832
+INFO 2025-03-30 20:53:07,593 basehttp 32636 23088 "GET /api/swagger/ HTTP/1.1" 200 14854
+INFO 2025-03-30 20:53:07,737 basehttp 32636 23088 "GET /api/swagger/?format=openapi HTTP/1.1" 200 22850
+INFO 2025-03-30 20:53:07,950 basehttp 32636 23088 "GET /__debug__/history_sidebar/?store_id=12738d616d8b44749cdd776d6407f2c3 HTTP/1.1" 200 9830
+ERROR 2025-03-30 21:58:32,478 paper_viewsets 32636 20292 Error in add_paper: can only concatenate str (not "ReturnDict") to str
+ERROR 2025-03-30 21:58:32,500 log 32636 20292 Internal Server Error: /api/v1/papers/add_paper/
+ERROR 2025-03-30 21:58:32,501 basehttp 32636 20292 "POST /api/v1/papers/add_paper/ HTTP/1.1" 500 31
+INFO 2025-03-30 21:58:32,713 basehttp 32636 20292 "GET /__debug__/history_sidebar/?store_id=f6158b2d5d6d4cefa6564e0000f0964b HTTP/1.1" 200 9829
+ERROR 2025-03-30 21:58:59,498 node_extractor 32636 23532 Failed to fetch HTML: HTTPSConnectionPool(host='asdasd.asda', port=443): Max retries exceeded with url: /asd (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000026CD2B0B020>: Failed to resolve 'asdasd.asda' ([Errno 11001] getaddrinfo failed)"))
+ERROR 2025-03-30 21:58:59,500 paper_service 32636 23532 Error in extract_paper: Failed to fetch HTML: HTTPSConnectionPool(host='asdasd.asda', port=443): Max retries exceeded with url: /asd (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x0000026CD2B0B020>: Failed to resolve 'asdasd.asda' ([Errno 11001] getaddrinfo failed)"))
+WARNING 2025-03-30 21:58:59,517 log 32636 23532 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-30 21:58:59,517 basehttp 32636 23532 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 316
+INFO 2025-03-30 22:01:00,103 autoreload 32636 15300 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:01:02,593 autoreload 14424 20740 Watching for file changes with StatReloader
+INFO 2025-03-30 22:03:55,382 autoreload 14424 20740 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:03:57,102 autoreload 9456 17832 Watching for file changes with StatReloader
+INFO 2025-03-30 22:04:40,460 autoreload 9456 17832 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:04:42,248 autoreload 38508 16856 Watching for file changes with StatReloader
+INFO 2025-03-30 22:04:47,022 autoreload 16572 16616 Watching for file changes with StatReloader
+INFO 2025-03-30 22:05:54,633 autoreload 36780 37656 Watching for file changes with StatReloader
+INFO 2025-03-30 22:06:26,861 basehttp 36780 9500 "GET /api/swagger/ HTTP/1.1" 200 14855
+INFO 2025-03-30 22:06:26,888 basehttp 36780 37088 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 200 2093
+INFO 2025-03-30 22:06:26,890 basehttp 36780 20160 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 200 15480
+INFO 2025-03-30 22:06:26,891 basehttp 36780 17208 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 200 56904
+INFO 2025-03-30 22:06:26,894 basehttp 36780 33868 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 200 322863
+INFO 2025-03-30 22:06:26,897 basehttp 36780 9500 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 200 1046583
+INFO 2025-03-30 22:06:27,080 container 36780 9500 Using MongoDB repositories
+INFO 2025-03-30 22:06:29,241 keyword_engine 36780 9500 Connected to Elasticsearch successfully.
+INFO 2025-03-30 22:06:30,140 basehttp 36780 9500 "GET /api/swagger/?format=openapi HTTP/1.1" 200 22850
+INFO 2025-03-30 22:06:30,354 basehttp 36780 9500 "GET /__debug__/history_sidebar/?store_id=2e14223340194781a13d9a8ea8e53417 HTTP/1.1" 200 9832
+INFO 2025-03-30 22:10:05,501 autoreload 36780 37656 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:10:10,410 autoreload 25408 16212 Watching for file changes with StatReloader
+INFO 2025-03-30 22:10:16,983 basehttp 25408 15192 "GET /api/swagger/ HTTP/1.1" 200 14856
+INFO 2025-03-30 22:10:17,180 container 25408 15192 Using MongoDB repositories
+INFO 2025-03-30 22:10:25,196 keyword_engine 25408 15192 Connected to Elasticsearch successfully.
+INFO 2025-03-30 22:10:25,806 basehttp 25408 15192 "GET /api/swagger/?format=openapi HTTP/1.1" 200 22850
+INFO 2025-03-30 22:10:26,020 basehttp 25408 15192 "GET /__debug__/history_sidebar/?store_id=e3748941e079443e97b1759769b8a7b3 HTTP/1.1" 200 9832
+INFO 2025-03-30 22:11:04,399 autoreload 25408 16212 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:11:06,714 autoreload 7044 12704 Watching for file changes with StatReloader
+INFO 2025-03-30 22:26:43,893 basehttp 7044 11260 - Broken pipe from ('127.0.0.1', 55280)
+INFO 2025-03-30 22:27:01,313 basehttp 7044 17884 "GET /api/swagger/ HTTP/1.1" 200 14854
+INFO 2025-03-30 22:27:01,358 basehttp 7044 14464 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 200 2093
+INFO 2025-03-30 22:27:01,358 basehttp 7044 21964 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 200 15480
+INFO 2025-03-30 22:27:01,359 basehttp 7044 32508 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 200 56904
+INFO 2025-03-30 22:27:01,364 basehttp 7044 25340 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 200 322863
+INFO 2025-03-30 22:27:01,366 basehttp 7044 17884 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 200 1046583
+INFO 2025-03-30 22:27:01,579 container 7044 17884 Using MongoDB repositories
+INFO 2025-03-30 22:27:03,645 keyword_engine 7044 17884 Connected to Elasticsearch successfully.
+INFO 2025-03-30 22:27:09,247 basehttp 7044 17884 "GET /api/swagger/?format=openapi HTTP/1.1" 200 22850
+INFO 2025-03-30 22:27:09,575 basehttp 7044 17884 "GET /__debug__/history_sidebar/?store_id=8a8920c7a8304bfcb8f98d9b2de3bf56 HTTP/1.1" 200 9832
+INFO 2025-03-30 22:27:58,811 autoreload 7044 12704 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:28:01,148 autoreload 15156 36108 Watching for file changes with StatReloader
+INFO 2025-03-30 22:29:48,048 basehttp 15156 16752 "GET /api/swagger/ HTTP/1.1" 200 14856
+INFO 2025-03-30 22:29:48,232 container 15156 16752 Using MongoDB repositories
+INFO 2025-03-30 22:29:50,143 keyword_engine 15156 16752 Connected to Elasticsearch successfully.
+INFO 2025-03-30 22:29:51,005 basehttp 15156 16752 "GET /api/swagger/?format=openapi HTTP/1.1" 200 22850
+INFO 2025-03-30 22:29:51,221 basehttp 15156 16752 "GET /__debug__/history_sidebar/?store_id=9abcec7365a442d39d0879356a951dda HTTP/1.1" 200 9832
+INFO 2025-03-30 22:41:43,262 autoreload 15156 36108 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:41:45,336 autoreload 7304 40688 Watching for file changes with StatReloader
+INFO 2025-03-30 22:41:52,649 basehttp 7304 20676 "GET /api/swagger/ HTTP/1.1" 200 14855
+INFO 2025-03-30 22:41:52,840 container 7304 20676 Using MongoDB repositories
+INFO 2025-03-30 22:42:00,665 keyword_engine 7304 20676 Connected to Elasticsearch successfully.
+INFO 2025-03-30 22:42:02,793 basehttp 7304 20676 "GET /api/swagger/?format=openapi HTTP/1.1" 200 23883
+INFO 2025-03-30 22:42:03,008 basehttp 7304 20676 "GET /__debug__/history_sidebar/?store_id=5df83c6c021944089821b10cbe39e18a HTTP/1.1" 200 9832
+INFO 2025-03-30 22:49:44,552 autoreload 7304 40688 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:49:46,737 autoreload 33840 39156 Watching for file changes with StatReloader
+INFO 2025-03-30 22:50:33,508 autoreload 33840 39156 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:50:35,148 autoreload 13508 29140 Watching for file changes with StatReloader
+INFO 2025-03-30 22:56:04,732 autoreload 13508 29140 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:56:06,572 autoreload 16416 35864 Watching for file changes with StatReloader
+INFO 2025-03-30 22:56:17,644 autoreload 16416 35864 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:56:19,432 autoreload 19808 36964 Watching for file changes with StatReloader
+INFO 2025-03-30 22:58:34,085 autoreload 19808 36964 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 22:58:35,858 autoreload 5752 16800 Watching for file changes with StatReloader
+INFO 2025-03-30 23:01:41,284 autoreload 5752 16800 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-30 23:01:43,072 autoreload 20452 21212 Watching for file changes with StatReloader
+INFO 2025-03-31 12:09:07,492 basehttp 20452 34008 "GET /api/swagger/ HTTP/1.1" 200 14856
+INFO 2025-03-31 12:09:07,535 basehttp 20452 34008 "GET /static/drf-yasg/style.css HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,536 basehttp 20452 20708 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,540 basehttp 20452 22252 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,545 basehttp 20452 36948 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,545 basehttp 20452 20708 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,546 basehttp 20452 34352 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,546 basehttp 20452 34008 "GET /static/debug_toolbar/css/toolbar.css HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,548 basehttp 20452 22252 "GET /static/debug_toolbar/js/toolbar.js HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,548 basehttp 20452 38824 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,660 basehttp 20452 38824 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js.map HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,661 basehttp 20452 22252 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css.map HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,703 basehttp 20452 22252 "GET /static/debug_toolbar/css/print.css HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,709 basehttp 20452 22252 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js.map HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,709 basehttp 20452 38824 "GET /static/debug_toolbar/js/utils.js HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:07,764 container 20452 38824 Using MongoDB repositories
+INFO 2025-03-31 12:09:07,767 basehttp 20452 22252 "GET /static/drf-yasg/swagger-ui-dist/favicon-32x32.png HTTP/1.1" 304 0
+INFO 2025-03-31 12:09:09,688 keyword_engine 20452 38824 Connected to Elasticsearch successfully.
+INFO 2025-03-31 12:09:10,278 basehttp 20452 38824 "GET /api/swagger/?format=openapi HTTP/1.1" 200 23900
+INFO 2025-03-31 12:09:10,493 basehttp 20452 38824 "GET /__debug__/history_sidebar/?store_id=875ad6fce0cb48e58fe3a70bf9b6f39d HTTP/1.1" 200 9832
+ERROR 2025-03-31 12:09:17,165 paper_viewsets 20452 38824 Error in add_paper: can only concatenate str (not "ReturnDict") to str
+ERROR 2025-03-31 12:09:17,176 log 20452 38824 Internal Server Error: /api/v1/papers/add_paper/
+ERROR 2025-03-31 12:09:17,176 basehttp 20452 38824 "POST /api/v1/papers/add_paper/ HTTP/1.1" 500 31
+INFO 2025-03-31 12:09:17,383 basehttp 20452 38824 "GET /__debug__/history_sidebar/?store_id=b5b45a6d95214728a317c44d8f64dc28 HTTP/1.1" 200 9829
+INFO 2025-03-31 12:10:34,343 autoreload 20452 21212 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-31 12:10:36,798 autoreload 19596 31760 Watching for file changes with StatReloader
+INFO 2025-03-31 12:10:49,228 container 19596 31136 Using MongoDB repositories
+ERROR 2025-03-31 12:10:49,473 paper_viewsets 19596 31136 Error in add_paper: can only concatenate str (not "ReturnDict") to str
+ERROR 2025-03-31 12:10:49,494 log 19596 31136 Internal Server Error: /api/v1/papers/add_paper/
+ERROR 2025-03-31 12:10:49,496 basehttp 19596 31136 "POST /api/v1/papers/add_paper/ HTTP/1.1" 500 34
+INFO 2025-03-31 12:10:56,719 autoreload 19596 31760 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-31 12:10:58,825 autoreload 33332 21128 Watching for file changes with StatReloader
+INFO 2025-03-31 12:53:22,337 autoreload 33332 21128 D:\codes\Django_reborn_api\core\presentation\serializers\paper_serializers.py changed, reloading.
+INFO 2025-03-31 12:53:24,259 autoreload 9428 10020 Watching for file changes with StatReloader
+INFO 2025-03-31 12:54:22,566 autoreload 9428 10020 D:\codes\Django_reborn_api\core\presentation\serializers\paper_serializers.py changed, reloading.
+INFO 2025-03-31 12:54:24,391 autoreload 21760 2760 Watching for file changes with StatReloader
+INFO 2025-03-31 12:54:51,933 autoreload 21760 2760 D:\codes\Django_reborn_api\core\presentation\serializers\paper_serializers.py changed, reloading.
+INFO 2025-03-31 12:54:53,861 autoreload 18932 38776 Watching for file changes with StatReloader
+INFO 2025-03-31 12:55:01,360 container 18932 3820 Using MongoDB repositories
+WARNING 2025-03-31 12:55:01,524 log 18932 3820 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-31 12:55:01,525 basehttp 18932 3820 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 93
+INFO 2025-03-31 12:55:01,736 basehttp 18932 3820 "GET /__debug__/history_sidebar/?store_id=845821055b804f8e88027b867545c6f9 HTTP/1.1" 200 9831
+WARNING 2025-03-31 12:55:27,253 log 18932 3820 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-31 12:55:27,254 basehttp 18932 3820 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 72
+INFO 2025-03-31 12:55:27,463 basehttp 18932 3820 "GET /__debug__/history_sidebar/?store_id=9ea176449e7d4ed4b5df539e8c235ff6 HTTP/1.1" 200 9829
+WARNING 2025-03-31 12:55:43,422 log 18932 3820 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-31 12:55:43,423 basehttp 18932 3820 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 72
+INFO 2025-03-31 12:55:43,639 basehttp 18932 3820 "GET /__debug__/history_sidebar/?store_id=c999bac6d8b14a698352081258ce0a19 HTTP/1.1" 200 9829
+WARNING 2025-03-31 12:55:48,001 log 18932 3820 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-31 12:55:48,002 basehttp 18932 3820 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 72
+INFO 2025-03-31 12:55:48,217 basehttp 18932 3820 "GET /__debug__/history_sidebar/?store_id=669003eeba7d404c853539a280fa4894 HTTP/1.1" 200 9829
+ERROR 2025-03-31 12:56:06,003 mongo_repos 18932 3820 Error in add_article: list index out of range
+ERROR 2025-03-31 12:56:06,005 paper_service 18932 3820 Error in extract_paper: Failed to add article: list index out of range
+WARNING 2025-03-31 12:56:06,023 log 18932 3820 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-31 12:56:06,025 basehttp 18932 3820 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 83
+INFO 2025-03-31 12:56:06,240 basehttp 18932 3820 "GET /__debug__/history_sidebar/?store_id=ed6537249a7f45998e5a1c864c2f78ae HTTP/1.1" 200 9830
+INFO 2025-03-31 12:56:38,199 autoreload 18932 38776 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-31 12:56:40,452 autoreload 25300 35876 Watching for file changes with StatReloader
+INFO 2025-03-31 12:57:01,442 autoreload 25300 35876 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-31 12:57:03,294 autoreload 22492 35516 Watching for file changes with StatReloader
+INFO 2025-03-31 12:57:19,196 container 22492 14060 Using MongoDB repositories
+ERROR 2025-03-31 12:57:20,149 mongo_repos 22492 14060 Error in add_article: list index out of range
+ERROR 2025-03-31 12:57:20,149 paper_service 22492 14060 Error in extract_paper: Failed to add article: list index out of range
+WARNING 2025-03-31 12:57:20,174 log 22492 14060 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-31 12:57:20,175 basehttp 22492 14060 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 83
+INFO 2025-03-31 13:01:45,967 autoreload 22492 35516 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-31 13:01:48,309 autoreload 21556 38616 Watching for file changes with StatReloader
+INFO 2025-03-31 13:24:48,239 autoreload 21556 38616 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-31 13:24:50,118 autoreload 31936 39992 Watching for file changes with StatReloader
+INFO 2025-03-31 13:25:01,435 autoreload 31936 39992 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-31 13:25:03,566 autoreload 7356 37216 Watching for file changes with StatReloader
+INFO 2025-03-31 13:25:10,686 container 7356 12352 Using MongoDB repositories
+ERROR 2025-03-31 13:25:11,826 mongo_repos 7356 12352 Error in add_article: list index out of range
+ERROR 2025-03-31 13:25:11,826 paper_service 7356 12352 Error in extract_paper: Failed to add article: list index out of range
+WARNING 2025-03-31 13:25:11,845 log 7356 12352 Bad Request: /api/v1/papers/add_paper/
+INFO 2025-03-31 13:25:11,846 basehttp 7356 12352 - Broken pipe from ('127.0.0.1', 59907)
+ERROR 2025-03-31 13:25:13,251 mongo_repos 7356 36296 Error in add_article: list index out of range
+ERROR 2025-03-31 13:25:13,251 paper_service 7356 36296 Error in extract_paper: Failed to add article: list index out of range
+WARNING 2025-03-31 13:25:13,266 log 7356 36296 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-31 13:25:13,267 basehttp 7356 36296 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 83
+INFO 2025-03-31 13:46:22,234 autoreload 7356 37216 D:\codes\Django_reborn_api\core\application\services\paper_service.py changed, reloading.
+INFO 2025-03-31 13:46:24,247 autoreload 17888 37240 Watching for file changes with StatReloader
+INFO 2025-03-31 13:46:34,247 container 17888 36116 Using MongoDB repositories
+ERROR 2025-03-31 13:46:37,965 mongo_repos 17888 36116 Error in add_article: list index out of range
+ERROR 2025-03-31 13:46:37,966 paper_service 17888 36116 Error in extract_paper: Failed to add article: list index out of range
+WARNING 2025-03-31 13:46:37,984 log 17888 36116 Bad Request: /api/v1/papers/add_paper/
+WARNING 2025-03-31 13:46:37,985 basehttp 17888 36116 "POST /api/v1/papers/add_paper/ HTTP/1.1" 400 83
+INFO 2025-03-31 13:47:34,988 autoreload 28008 25292 Watching for file changes with StatReloader
+INFO 2025-03-31 14:47:27,145 autoreload 28008 25292 D:\codes\Django_reborn_api\config\settings\base.py changed, reloading.
+INFO 2025-03-31 14:47:29,299 autoreload 9984 19880 Watching for file changes with StatReloader
+INFO 2025-03-31 14:47:39,912 autoreload 9984 19880 D:\codes\Django_reborn_api\core\presentation\viewsets\paper_viewsets.py changed, reloading.
+INFO 2025-03-31 14:47:41,974 autoreload 33540 29276 Watching for file changes with StatReloader

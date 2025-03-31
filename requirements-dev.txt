@@ -1,0 +1,21 @@
+# Development dependencies
+-r requirements.txt
+
+# Testing
+pytest
+pytest-django
+pytest-cov
+factory-boy
+faker
+
+# Code quality
+black
+isort
+flake8
+mypy
+bandit
+safety
+
+# Development tools
+ipython
+django-extensions

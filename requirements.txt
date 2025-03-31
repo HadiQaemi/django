@@ -1,0 +1,41 @@
+# Core
+Django
+djangorestframework
+python-dotenv
+pydantic
+
+# Database adapters
+psycopg2-binary
+mongoengine
+djongo
+
+# Search engines
+sentence-transformers
+faiss-cpu
+elasticsearch
+
+# HTTP and scraping
+requests
+beautifulsoup4
+
+# Caching and background tasks
+redis
+django-redis
+celery
+django-celery-results
+django-celery-beat
+
+# Security
+django-cors-headers
+django-ratelimit
+django-axes
+django-storages
+
+# Monitoring
+sentry-sdk
+django-prometheus
+
+# Documentation
+drf-yasg
+django-debug-toolbar
+whitenoise
