@@ -157,7 +157,8 @@ class SearchQuerySerializer(serializers.Serializer):
 
 def validate_domain(value):
     tib_pattern = r"^https?://service\.tib\.eu/ldmservice/dataset/[\w-]+$"
-    if re.match(tib_pattern, value) or re.match(tib_pattern, value):
+    local_pattern = r"^https?://localhost/data/[\w-]+/?$"
+    if re.match(tib_pattern, value) or re.match(local_pattern, value):
         return value
     raise serializers.ValidationError(
         "URL must be from service.tib.eu/ldmservice/dataset"

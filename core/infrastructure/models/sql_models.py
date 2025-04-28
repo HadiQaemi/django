@@ -1,17 +1,11 @@
-"""
-SQL models for the REBORN API.
-
-These models represent the data structure in PostgreSQL.
-"""
-
 from django.db import models
-from django.contrib.postgres.fields import ArrayField, JSONField
+from django.db.models import JSONField
+from django.contrib.postgres.fields import ArrayField
 from django.utils.translation import gettext_lazy as _
+from polymorphic.models import PolymorphicModel
 
 
 class TimeStampedModel(models.Model):
-    """Base model with created and updated timestamps."""
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -20,19 +14,18 @@ class TimeStampedModel(models.Model):
 
 
 class Author(TimeStampedModel):
-    """Author model for SQL."""
-
-    id = models.CharField(max_length=255, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, null=True)
     given_name = models.CharField(max_length=255)
     family_name = models.CharField(max_length=255)
     label = models.CharField(max_length=255, null=True, blank=True)
-    research_fields_id = ArrayField(
-        models.CharField(max_length=255), null=True, blank=True
-    )
+    orcid = models.CharField(max_length=50, null=True, blank=True)
+    json = JSONField(null=True, blank=True)
 
     class Meta:
         db_table = "authors"
         indexes = [
+            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
@@ -41,14 +34,15 @@ class Author(TimeStampedModel):
 
 
 class ResearchField(TimeStampedModel):
-    """Research field model for SQL."""
-
-    id = models.CharField(max_length=255, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, null=True)
     label = models.CharField(max_length=255)
+    json = JSONField(null=True, blank=True)
 
     class Meta:
         db_table = "research_fields"
         indexes = [
+            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
@@ -56,22 +50,311 @@ class ResearchField(TimeStampedModel):
         return self.label
 
 
-class Concept(TimeStampedModel):
-    """Concept model for SQL."""
+class SeeAlso(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, unique=True, null=True)
+    label = models.CharField(max_length=255, unique=True)
 
-    id = models.CharField(max_length=255, primary_key=True)
+    class Meta:
+        db_table = "see_alsos"
+        indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Matrix(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, unique=True, null=True)
+    json = JSONField(null=True, blank=True)
+    label = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    type = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    exact_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    close_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "matrices"
+        indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Property(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, unique=True, null=True)
+    json = JSONField(null=True, blank=True)
+    label = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    exact_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    close_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "properties"
+        indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Unit(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, unique=True, null=True)
+    json = JSONField(null=True, blank=True)
+    type = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    label = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    exact_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    close_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "units"
+        indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class ObjectOfInterest(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, unique=True, null=True)
+    json = JSONField(null=True, blank=True)
+    label = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    type = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    exact_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    close_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "object_of_interests"
+        indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Constraint(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, unique=True, null=True)
+    json = JSONField(null=True, blank=True)
+    label = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    exact_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    close_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "constraints"
+        indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Operation(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, unique=True, null=True)
+    json = JSONField(null=True, blank=True)
+    label = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    exact_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    close_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "operations"
+        indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Component(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, unique=True, null=True)
+    json = JSONField(null=True, blank=True)
+    matrices = models.ManyToManyField(
+        Matrix,
+        related_name="components",
+        blank=True,
+        db_index=True,
+    )
+    object_of_interests = models.ManyToManyField(
+        ObjectOfInterest,
+        related_name="components",
+        blank=True,
+        db_index=True,
+    )
+    properties = models.ManyToManyField(
+        Property,
+        related_name="components",
+        blank=True,
+        db_index=True,
+    )
+    units = models.ManyToManyField(
+        Unit,
+        related_name="components",
+        blank=True,
+        db_index=True,
+    )
+
+    string_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    exact_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    close_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    type = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    ID_TYPE = [
+        ("component", "Component"),
+        ("measure", "Measure"),
+        ("variable", "Variable"),
+    ]
+
+    class Meta:
+        db_table = "components"
+        indexes = [
+            models.Index(fields=["_id"]),
+        ]
+
+    def __str__(self):
+        return self.id
+
+
+class Concept(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, null=True)
+    json = JSONField(null=True, blank=True)
     label = models.CharField(max_length=255)
-    identifier = models.CharField(max_length=255, null=True, blank=True)
-    research_fields_id = ArrayField(
-        models.CharField(max_length=255), null=True, blank=True
+    definition = models.TextField(null=True, blank=True)
+    string_match = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
     )
-    research_fields = models.ManyToManyField(
-        ResearchField, related_name="concepts", blank=True
-    )
+    see_also = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = "concepts"
         indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Identifier(TimeStampedModel):
+    ENTITY_CHOICES = [
+        ("concept", "Concept"),
+        ("research_field", "ResearchField"),
+        ("author", "Author"),
+        ("publisher", "Publisher"),
+        ("journal_conference", "JournalConference"),
+        ("article", "Article"),
+    ]
+
+    ID_TYPE_CHOICES = [
+        ("uuid", "UUID"),
+        ("external_id", "External ID"),
+        ("doi", "DOI"),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, null=True)
+    identifier_value = models.CharField(max_length=255)
+    entity_type = models.CharField(max_length=50, choices=ENTITY_CHOICES)
+    identifier_type = models.CharField(
+        max_length=50, choices=ID_TYPE_CHOICES, default="doi"
+    )
+    entity_id = models.PositiveBigIntegerField()
+
+    class Meta:
+        db_table = "identifiers"
+        verbose_name = "Identifier"
+        verbose_name_plural = "Identifiers"
+        unique_together = [("entity_type", "entity_id", "identifier_type")]
+        indexes = [
+            models.Index(fields=["_id"]),
+            models.Index(fields=["identifier_value"]),
+            models.Index(fields=["entity_type", "entity_id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.identifier_value} ({self.entity_type}:{self.entity_id})"
+
+
+class Publisher(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, null=True)
+    json = JSONField(null=True, blank=True)
+    label = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "publishers"
+        indexes = [
+            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
@@ -80,13 +363,18 @@ class Concept(TimeStampedModel):
 
 
 class JournalConference(TimeStampedModel):
-    """Journal or conference model for SQL."""
-
-    id = models.CharField(max_length=255, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, null=True)
+    json = JSONField(null=True, blank=True)
     label = models.CharField(max_length=255)
-    publisher = JSONField(null=True, blank=True)
-    research_fields_id = ArrayField(
-        models.CharField(max_length=255), null=True, blank=True
+    type = models.CharField(max_length=255, null=True)
+    publisher = models.ForeignKey(
+        Publisher,
+        on_delete=models.CASCADE,
+        related_name="journals_conferences",
+        null=True,
+        blank=True,
+        db_index=True,
     )
     research_fields = models.ManyToManyField(
         ResearchField, related_name="journals_conferences", blank=True
@@ -95,6 +383,7 @@ class JournalConference(TimeStampedModel):
     class Meta:
         db_table = "journals_conferences"
         indexes = [
+            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
@@ -103,36 +392,67 @@ class JournalConference(TimeStampedModel):
 
 
 class Article(TimeStampedModel):
-    """Article model for SQL."""
-
-    id = models.CharField(max_length=255, primary_key=True)
-    article_id = models.CharField(max_length=255, unique=True)
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, null=True)
+    json = JSONField(null=True, blank=True)
     name = models.CharField(max_length=255)
     abstract = models.TextField(null=True, blank=True)
     date_published = models.DateTimeField(null=True, blank=True)
-    publisher = JSONField(null=True, blank=True)
-    journal = JSONField(null=True, blank=True)
-    conference = JSONField(null=True, blank=True)
     identifier = models.CharField(max_length=255, null=True, blank=True)
-    paper_type = models.CharField(max_length=255, null=True, blank=True)
     reborn_doi = models.CharField(max_length=255, null=True, blank=True)
-    research_field = JSONField(null=True, blank=True)
-    dataset = JSONField(null=True, blank=True)
-    research_fields_id = ArrayField(
-        models.CharField(max_length=255), null=True, blank=True
-    )
-    author_ids = ArrayField(models.CharField(max_length=255), null=True, blank=True)
+    paper_type = models.CharField(max_length=255, null=True, blank=True)
+    concepts = models.ManyToManyField(Concept, related_name="articles", blank=True)
     authors = models.ManyToManyField(Author, related_name="articles", blank=True)
     research_fields = models.ManyToManyField(
         ResearchField, related_name="articles", blank=True
     )
-    concepts = models.ManyToManyField(Concept, related_name="articles", blank=True)
+    journal_conference = models.ForeignKey(
+        JournalConference,
+        on_delete=models.CASCADE,
+        related_name="articles",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    publisher = models.ForeignKey(
+        Publisher,
+        on_delete=models.CASCADE,
+        related_name="articles",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
 
     class Meta:
         db_table = "articles"
         indexes = [
+            models.Index(fields=["_id"]),
             models.Index(fields=["name"]),
-            models.Index(fields=["date_published"]),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class SchemaType(TimeStampedModel):
+    type_id = models.CharField(max_length=255, primary_key=True)
+    schema_data = JSONField()
+    name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    description = models.TextField(null=True, blank=True)
+    property = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "schemata"
+        indexes = [
+            models.Index(fields=["type_id"]),
+            models.Index(fields=["last_updated"]),
         ]
 
     def __str__(self):
@@ -140,52 +460,501 @@ class Article(TimeStampedModel):
 
 
 class Statement(TimeStampedModel):
-    """Statement model for SQL."""
-
-    id = models.CharField(max_length=255, primary_key=True)
-    statement_id = models.CharField(max_length=255, null=True, blank=True)
-    content = JSONField()
-    author = JSONField()
-    article_id = models.CharField(max_length=255)
-    supports = JSONField(null=True, blank=True)
-    authors_id = ArrayField(models.CharField(max_length=255), null=True, blank=True)
-    concepts_id = ArrayField(models.CharField(max_length=255), null=True, blank=True)
-    research_fields_id = ArrayField(
-        models.CharField(max_length=255), null=True, blank=True
-    )
-    journals_conferences_id = ArrayField(
-        models.CharField(max_length=255), null=True, blank=True
-    )
-    date_published = models.DateTimeField(null=True, blank=True)
+    id = models.AutoField(primary_key=True)
+    _id = models.CharField(max_length=255, null=True)
+    json = JSONField(null=True, blank=True)
+    content = JSONField(null=True, blank=True)
+    version = models.CharField(max_length=255, null=True)
+    encodingFormat = models.CharField(max_length=255, null=True)
+    name = models.CharField(max_length=255, null=True)
+    label = models.CharField(null=True, blank=True)
     article = models.ForeignKey(
         Article,
         on_delete=models.CASCADE,
         related_name="statements",
-        to_field="article_id",
+        null=True,
+        blank=True,
+        db_index=True,
     )
-    authors = models.ManyToManyField(Author, related_name="statements", blank=True)
-    concepts = models.ManyToManyField(Concept, related_name="statements", blank=True)
-    research_fields = models.ManyToManyField(
-        ResearchField, related_name="statements", blank=True
+    authors = models.ManyToManyField(
+        Author,
+        related_name="statements",
+        blank=True,
+        db_index=True,
+    )
+    concepts = models.ManyToManyField(
+        Concept,
+        related_name="statements",
+        blank=True,
+        db_index=True,
+    )
+    components = models.ManyToManyField(
+        Component,
+        related_name="statements",
+        blank=True,
+        db_index=True,
     )
 
     class Meta:
         db_table = "statements"
         indexes = [
-            models.Index(fields=["statement_id"]),
-            models.Index(fields=["article_id"]),
-            models.Index(fields=["date_published"]),
+            models.Index(fields=["_id"]),
         ]
 
     def __str__(self):
-        return self.statement_id or self.id
+        return self.name
+
+
+class Implement(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    url = models.CharField(max_length=255, null=True, blank=True)
+    statement = models.ForeignKey(
+        Statement,
+        on_delete=models.CASCADE,
+        related_name="implement_statements",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "implements"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["statement_id"]),
+        ]
+
+    def __str__(self):
+        return self.url
+
+
+class HasPart(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    type = models.CharField(max_length=255, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    statement = models.ForeignKey(
+        Statement,
+        on_delete=models.CASCADE,
+        related_name="has_part_statements",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "has_parts"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["statement_id"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class MartixSize(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    number_rows = models.CharField(max_length=255, null=True, blank=True)
+    number_columns = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        db_table = "martix_sizes"
+        indexes = [
+            models.Index(fields=["id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.number_rows} {self.number_columns}"
+
+
+class DataItemComponent(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    see_also = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        db_table = "data_item_components"
+        indexes = [
+            models.Index(fields=["id"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Figure(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    source_url = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        db_table = "figures"
+        indexes = [
+            models.Index(fields=["id"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class DataItem(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    source_url = models.CharField(max_length=255, null=True, blank=True)
+    comment = models.CharField(max_length=255, null=True, blank=True)
+    source_table = JSONField(null=True, blank=True)
+    has_characteristic = models.ForeignKey(
+        MartixSize,
+        on_delete=models.CASCADE,
+        related_name="data_item",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    has_expression = models.ManyToManyField(
+        Figure,
+        related_name="data_item",
+        blank=True,
+        db_index=True,
+    )
+    has_part = models.ManyToManyField(
+        DataItemComponent,
+        related_name="data_item",
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "data_items"
+        indexes = [
+            models.Index(fields=["id"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Software(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    version_info = models.CharField(max_length=255, null=True, blank=True)
+    has_support_url = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        db_table = "softwares"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class SoftwareLibrary(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    version_info = models.CharField(max_length=255, null=True, blank=True)
+    has_support_url = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    part_of = models.ForeignKey(
+        Software,
+        on_delete=models.CASCADE,
+        related_name="part_of_software",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "software_libraries"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class SoftwareMethod(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    part_of = models.ManyToManyField(
+        SoftwareLibrary,
+        related_name="software_methods",
+        blank=True,
+        db_index=True,
+    )
+    is_implemented_by = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+    has_support_url = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "software_methods"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class DataType(TimeStampedModel, PolymorphicModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255)
+    see_also = models.CharField(max_length=255)
+    statement = models.ForeignKey(
+        Statement,
+        on_delete=models.CASCADE,
+        related_name="data_type_statement",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    execute = models.ForeignKey(
+        SoftwareMethod,
+        on_delete=models.CASCADE,
+        related_name="software_method",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    has_inputs = models.ManyToManyField(
+        DataItem,
+        related_name="input_data",
+        blank=True,
+        db_index=True,
+    )
+    has_outputs = models.ManyToManyField(
+        DataItem,
+        related_name="output_data",
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "data_types"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class DataPreprocessing(DataType):
+    data_preprocessing_label = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "data_preprocessing"
+
+    def __str__(self):
+        return self.id
+
+
+class DescriptiveStatistics(DataType):
+    descriptive_statistics_label = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "descriptive_statistics"
+
+    def __str__(self):
+        return self.id
+
+
+class Algorithm(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    see_also = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "algorithms"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class Task(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    see_also = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "tasks"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class AlgorithmEvaluation(DataType):
+    evaluate = models.ForeignKey(
+        Algorithm,
+        on_delete=models.CASCADE,
+        related_name="evaluate",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    evaluates_for = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="evaluates_for",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "algorithm_evaluations"
+
+    def __str__(self):
+        return self.id
+
+
+class SharedType(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    label = models.CharField(max_length=255, null=True, blank=True)
+    type = models.CharField(max_length=255, null=True, blank=True)
+    see_also = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
+
+    class Meta:
+        db_table = "shared_types"
+        indexes = [
+            models.Index(fields=["id"]),
+            models.Index(fields=["label"]),
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class MultilevelAnalysis(DataType):
+    targets = models.ManyToManyField(
+        SharedType,
+        related_name="targets_multilevel_analysis",
+        blank=True,
+        db_index=True,
+    )
+    level = models.ManyToManyField(
+        SharedType,
+        related_name="level_multilevel_analysis",
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "multilevel_analysis"
+
+    def __str__(self):
+        return self.id
+
+
+class CorrelationAnalysis(DataType):
+    correlation_analysis_label = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "correlation_analysis"
+
+    def __str__(self):
+        return self.id
+
+
+class GroupComparison(DataType):
+    targets = models.ManyToManyField(
+        SharedType,
+        related_name="group_comparisons",
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "group_comparisons"
+
+    def __str__(self):
+        return self.id
+
+
+class RegressionAnalysis(DataType):
+    targets = models.ManyToManyField(
+        SharedType,
+        related_name="regression_analysis",
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "regression_analysis"
+
+    def __str__(self):
+        return self.id
+
+
+class ClassPrediction(DataType):
+    targets = models.ManyToManyField(
+        SharedType,
+        related_name="class_predictions",
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "class_predictions"
+
+    def __str__(self):
+        return self.id
+
+
+class ClassDiscovery(DataType):
+    class_discovery_label = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "class_discoveries"
+
+    def __str__(self):
+        return self.id
+
+
+class FactorAnalysis(DataType):
+    factor_analysis_label = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "factor_analysis"
+
+    def __str__(self):
+        return self.id
+
+
+class Statistics(TimeStampedModel):
+    mean = models.CharField(max_length=255, null=True, blank=True)
+    standard_deviation = models.CharField(max_length=255, null=True, blank=True)
 
 
 class Contribution(TimeStampedModel):
-    """Contribution model for SQL."""
-
     id = models.CharField(max_length=255, primary_key=True)
-    paper_id = models.CharField(max_length=255)
+    # Completely rename the paper_id field to avoid collision with the ForeignKey
+    contribution_paper_id = models.CharField(max_length=255)  # Renamed from paper_id
     json_id = models.CharField(max_length=255, null=True, blank=True)
     json_type = models.CharField(max_length=255, null=True, blank=True)
     json_context = JSONField(null=True, blank=True)
@@ -194,18 +963,17 @@ class Contribution(TimeStampedModel):
     author = JSONField(null=True, blank=True)
     info = JSONField(null=True, blank=True)
     predicates = JSONField(null=True, blank=True)
-    article = models.ForeignKey(
-        Article,
-        on_delete=models.CASCADE,
-        related_name="contributions",
-        to_field="article_id",
-        db_column="paper_id",
-    )
+    # article = models.ForeignKey(
+    #     Article,
+    #     on_delete=models.CASCADE,
+    #     related_name="contributions",
+    #     to_field="article_id",
+    # )
 
     class Meta:
         db_table = "contributions"
         indexes = [
-            models.Index(fields=["paper_id"]),
+            models.Index(fields=["contribution_paper_id"]),  # Updated index name
             models.Index(fields=["json_id"]),
         ]
 

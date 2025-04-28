@@ -434,8 +434,8 @@ class MongoDBPaperRepository(PaperRepository):
     def add_article(
         self, paper_data: Dict[str, Any], json_files: Dict[str, str]
     ) -> bool:
-        """Add an article from scraped data."""
-        try:
+        # """Add an article from scraped data."""
+        # try:
             scraper = NodeExtractor()
             graph_data = paper_data.get("@graph", [])
             data = {}
@@ -465,7 +465,8 @@ class MongoDBPaperRepository(PaperRepository):
 
                 research_fields.append(item_check)
                 research_field_ids.append(research_field_id)
-
+            print("research_fields:")
+            print(research_fields)
             data["author"] = [
                 item for item in graph_data if item.get("@type") == "Person"
             ]
@@ -485,7 +486,8 @@ class MongoDBPaperRepository(PaperRepository):
                     self.db.authors.insert_one(temp)
 
                 authors.append(author_id)
-
+            print("authors:")
+            print(authors)
             data["publisher"] = [
                 item for item in graph_data if "Publisher" in item.get("@type", [])
             ]
@@ -500,7 +502,10 @@ class MongoDBPaperRepository(PaperRepository):
                 journal["publisher"] = data["publisher"]
                 result = self.db.journals_conferences.insert_one(journal)
                 journals_conferences.append(result.inserted_id)
-
+            
+            print("journals_conferences:")
+            print(journals_conferences)
+            
             data["conference"] = [
                 item for item in graph_data if "Conference" in item.get("@type", [])
             ]
@@ -510,12 +515,19 @@ class MongoDBPaperRepository(PaperRepository):
                 conference["publisher"] = data["publisher"]
                 result = self.db.journals_conferences.insert_one(conference)
                 journals_conferences.append(result.inserted_id)
-
+            
+            print("journals_conferences:")
+            print(journals_conferences)
+            
+            data["concept"] = [
+                item for item in graph_data if "Concept" in item.get("@type", [])
+            ]
             data["concept"] = [
                 item for item in graph_data if "Concept" in item.get("@type", [])
             ]
             concepts = []
-
+            print('data["concept"]:')
+            print(data["concept"])
             for concept in data["concept"]:
                 concept_id = generate_static_id(concept["label"])
                 item_check = self.db.concepts.find_one({"id": concept_id})
@@ -532,7 +544,7 @@ class MongoDBPaperRepository(PaperRepository):
 
             # Process other entity types
             for entity_type in [
-                "objectOfInterest",
+                "ObjectOfInterest",
                 "matrix",
                 "property",
                 "constraint",
@@ -544,6 +556,9 @@ class MongoDBPaperRepository(PaperRepository):
                     for item in graph_data
                     if entity_type.title() in item.get("@type", [])
                 ]
+                print(f"entity_type:${entity_type}")
+                print(data[entity_type])
+                print(entity_type.lower() + "s")
                 if data[entity_type]:
                     self.db[entity_type.lower() + "s"].insert_many(data[entity_type])
 
@@ -593,25 +608,25 @@ class MongoDBPaperRepository(PaperRepository):
             ]
 
             # Add to search index
-            article_data = [
-                {
-                    "title": ScholarlyArticle[0]["name"],
-                    "abstract": ScholarlyArticle[0]["abstract"],
-                    "article_id": str(article.inserted_id),
-                }
-            ]
+            # article_data = [
+            #     {
+            #         "title": ScholarlyArticle[0]["name"],
+            #         "abstract": ScholarlyArticle[0]["abstract"],
+            #         "article_id": str(article.inserted_id),
+            #     }
+            # ]
 
             # Import here to avoid circular import
-            from core.infrastructure.search.hybrid_engine import HybridSearchEngine
-            from core.infrastructure.search.semantic_engine import SemanticSearchEngine
-            from core.infrastructure.search.keyword_engine import KeywordSearchEngine
+            # from core.infrastructure.search.hybrid_engine import HybridSearchEngine
+            # from core.infrastructure.search.semantic_engine import SemanticSearchEngine
+            # from core.infrastructure.search.keyword_engine import KeywordSearchEngine
 
-            semantic_engine = SemanticSearchEngine()
-            keyword_engine = KeywordSearchEngine()
-            hybrid_engine = HybridSearchEngine(semantic_engine, keyword_engine)
+            # semantic_engine = SemanticSearchEngine()
+            # keyword_engine = KeywordSearchEngine()
+            # hybrid_engine = HybridSearchEngine(semantic_engine, keyword_engine)
 
-            hybrid_engine.semantic_engine.add_articles(article_data)
-            hybrid_engine.keyword_engine.add_articles(article_data)
+            # hybrid_engine.semantic_engine.add_articles(article_data)
+            # hybrid_engine.keyword_engine.add_articles(article_data)
 
             for statement in data["statements"]:
                 temp = statement.copy()
@@ -626,29 +641,30 @@ class MongoDBPaperRepository(PaperRepository):
                 temp["datePublished"] = datetime(
                     int(ScholarlyArticle[0]["datePublished"]), 6, 6
                 )
+                print(temp["supports"])
                 temp["statement_id"] = generate_static_id(
                     temp["supports"][0]["notation"]["label"]
                 )
 
-                statement_result = self.db.statements.insert_one(temp)
+                # statement_result = self.db.statements.insert_one(temp)
 
                 # Add to search index
-                statement_data = [
-                    {
-                        "text": temp["supports"][0]["notation"]["label"],
-                        "abstract": ScholarlyArticle[0]["abstract"],
-                        "statement_id": str(statement_result.inserted_id),
-                    }
-                ]
+                # statement_data = [
+                #     {
+                #         "text": temp["supports"][0]["notation"]["label"],
+                #         "abstract": ScholarlyArticle[0]["abstract"],
+                #         "statement_id": str(statement_result.inserted_id),
+                #     }
+                # ]
 
-                hybrid_engine.semantic_engine.add_statements(statement_data)
-                hybrid_engine.keyword_engine.add_statements(statement_data)
+                # hybrid_engine.semantic_engine.add_statements(statement_data)
+                # hybrid_engine.keyword_engine.add_statements(statement_data)
 
             return True
 
-        except Exception as e:
-            logger.error(f"Error in add_article: {str(e)}")
-            raise DatabaseError(f"Failed to add article: {str(e)}")
+        # except Exception as e:
+        #     logger.error(f"Error in add_article: {str(e)}")
+        #     raise DatabaseError(f"Failed to add article isssssssss: {str(e)}")
 
     def _replace_with_full_data(
         self, item: Dict[str, Any], data: Dict[str, Any]

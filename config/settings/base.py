@@ -22,22 +22,37 @@ ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = [
-    # Django apps
+    # Django core apps
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Third-party apps
+    
+    # Database extensions
+    "django.contrib.postgres",
+    
+    # API-related
     "rest_framework",
     "corsheaders",
-    "drf_yasg",  # Swagger/OpenAPI
+    "drf_yasg",
+
+    # Async/celery
     "django_celery_results",
     "django_celery_beat",
+    
+    # Monitoring
     "django_prometheus",
-    "axes",  # Security - login attempt throttling
+    
+    # ORM extensions
+    "polymorphic",
+    
+    # Security - login attempt throttling
+    "axes",  
+    
     # Project apps
+    "core",
     "core.infrastructure",
     "core.presentation",
 ]
@@ -81,7 +96,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASE_TYPE = os.environ.get("DATABASE_TYPE", "postgresql")
+DATABASE_TYPE = os.environ.get("DATABASE_TYPE", "postgres")
 
 if DATABASE_TYPE == "mongodb":
     DATABASES = {
@@ -89,8 +104,8 @@ if DATABASE_TYPE == "mongodb":
             "ENGINE": "djongo",
             "NAME": os.environ.get("MONGO_DB_NAME", "reborn_db"),
             "CLIENT": {
-                "host": os.environ.get("MONGO_URI", "mongodb://localhost:27017/"),
-                "port": int(os.environ.get("MONGO_PORT", 27017)),
+                "host": os.environ.get("MONGO_URI", "mongodb://localhost:27018/"),
+                "port": int(os.environ.get("MONGO_PORT", 27018)),
                 "username": os.environ.get("MONGO_USER", ""),
                 "password": os.environ.get("MONGO_PASSWORD", ""),
             },
@@ -115,7 +130,7 @@ else:
         }
     }
 # MongoDB connection for mongoengine (used in addition to djongo for some features)
-MONGODB_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
+MONGODB_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27018/")
 MONGODB_DB = os.environ.get("MONGO_DB_NAME", "reborn_db")
 
 # Password validation
@@ -300,5 +315,4 @@ AUTHENTICATION_BACKENDS = [
 AXES_FAILURE_LIMIT = 5  # Number of login attempts allowed before lockout
 AXES_LOCK_OUT_AT_FAILURE = True  # Lock out after failure limit is reached
 AXES_COOLOFF_TIME = timedelta(minutes=30)  # Lock out duration
-AXES_USE_USER_AGENT = True  # Include User-Agent in the hash
 AXES_LOCKOUT_TEMPLATE = None  # Use the HttpResponse instead of template

@@ -1,9 +1,3 @@
-"""
-MongoDB models for the REBORN API.
-
-These models represent the data structure in MongoDB.
-"""
-
 import mongoengine as me
 from datetime import datetime
 from typing import Any, Dict, List, Optional

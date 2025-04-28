@@ -45,7 +45,7 @@ class StatementInputDTO(BaseModel):
     """Input DTO for a statement."""
 
     content: Dict[str, Any]
-    author: List[AuthorInputDTO]
+    authors: List[AuthorInputDTO]
     article_id: str
     supports: List[Dict[str, Any]] = []
     notation: Optional[NotationInputDTO] = None
@@ -57,7 +57,7 @@ class ContributionInputDTO(BaseModel):
     """Input DTO for a contribution."""
 
     title: str
-    author: List[AuthorInputDTO]
+    authors: List[AuthorInputDTO]
     info: Dict[str, Any]
     paper_id: Optional[str] = None
     json_id: Optional[str] = None
@@ -71,8 +71,8 @@ class PaperInputDTO(BaseModel):
     """Input DTO for a research paper."""
 
     title: str
-    author: List[AuthorInputDTO]
-    abstract: str
+    authors: List[AuthorInputDTO]
+    # abstract: str
     dois: Optional[str] = None
     date_published: Optional[datetime] = None
     entity: Optional[str] = None

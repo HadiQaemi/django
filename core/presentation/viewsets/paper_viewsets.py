@@ -103,42 +103,42 @@ class PaperViewSet(viewsets.GenericViewSet):
         kwargs.setdefault("context", self.get_serializer_context())
         return serializer_class(*args, **kwargs)
 
-    @method_decorator(cache_page(60 * 15))
+    # @method_decorator(cache_page(60 * 15))
+    @method_decorator(cache_page(1 * 1))
     @method_decorator(vary_on_cookie)
     def list(self, request: Request) -> Response:
-        """List all papers."""
+        # try:
+        page = request.query_params.get("page", 1)
+        page_size = request.query_params.get("page_size", 10)
+        print("----------paper_viewsets-----list-----------", __file__)
+        # Validate and convert to integers
         try:
-            page = request.query_params.get("page", 1)
-            page_size = request.query_params.get("page_size", 10)
+            page = int(page)
+            page_size = int(page_size)
+        except ValueError:
+            page = 1
+            page_size = 10
 
-            # Validate and convert to integers
-            try:
-                page = int(page)
-                page_size = int(page_size)
-            except ValueError:
-                page = 1
-                page_size = 10
+        result = self.paper_service.get_all_papers(page, page_size)
 
-            result = self.paper_service.get_all_papers(page, page_size)
+        return Response(
+            {
+                "content": result.content,
+                "total_elements": result.total_elements,
+                "page": result.page,
+                "page_size": result.page_size,
+                "total_pages": result.total_pages,
+                "has_next": result.has_next,
+                "has_previous": result.has_previous,
+            }
+        )
 
-            return Response(
-                {
-                    "content": result.content,
-                    "total_elements": result.total_elements,
-                    "page": result.page,
-                    "page_size": result.page_size,
-                    "total_pages": result.total_pages,
-                    "has_next": result.has_next,
-                    "has_previous": result.has_previous,
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Error in list: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve papers"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        # except Exception as e:
+        #     logger.error(f"Error in list: {str(e)}")
+        #     return Response(
+        #         {"error": "Failed to retrieve papers"},
+        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #     )
 
     @method_decorator(cache_page(60 * 15))
     @method_decorator(vary_on_cookie)
@@ -722,32 +722,32 @@ class PaperViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=["post"])
     def add_paper(self, request: Request) -> Response:
-        try:
-            serializer = ScraperUrlSerializer(data=request.data)
+        # try:
+        serializer = ScraperUrlSerializer(data=request.data)
 
-            if not serializer.is_valid():
-                return Response(
-                    {"error": serializer.errors},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
-            result = self.paper_service.extract_paper(url_dto)
-
-            if not result.success:
-                return Response(
-                    {"error": result.message or "Failed to extract paper"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            return Response({"result": True})
-
-        except Exception as e:
-            logger.error(f"Error in add_paper: {str(e)}")
+        if not serializer.is_valid():
             return Response(
-                {"error": "Failed to add paper"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
+        url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
+        result = self.paper_service.extract_paper(url_dto)
+
+        if not result.success:
+            return Response(
+                {"error": result.message or "Failed to extract paper"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({"result": True})
+
+    # except Exception as e:
+    #     logger.error(f"Error in add_paper: {str(e)}")
+    #     return Response(
+    #         {"error": "Failed to add paper"},
+    #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #     )
 
     @action(detail=False, methods=["post"])
     def add_all_papers(self, request: Request) -> Response:
@@ -847,18 +847,18 @@ class SearchViewSet(viewsets.GenericViewSet):
     def get_serializer_class(self):
         """Return the appropriate serializer class."""
         action_serializer_map = {
-            'semantic_search_statements': SearchQuerySerializer,
-            'semantic_search_articles': SearchQuerySerializer,
-            'delete_indices': SearchQuerySerializer,
+            "semantic_search_statements": SearchQuerySerializer,
+            "semantic_search_articles": SearchQuerySerializer,
+            "delete_indices": SearchQuerySerializer,
         }
         return action_serializer_map.get(self.action, SearchQuerySerializer)
-    
+
     def get_serializer(self, *args, **kwargs):
         """Get serializer instance with proper context."""
         serializer_class = self.get_serializer_class()
-        kwargs.setdefault('context', self.get_serializer_context())
+        kwargs.setdefault("context", self.get_serializer_context())
         return serializer_class(*args, **kwargs)
-    
+
     @action(detail=False, methods=["get"])
     def semantic_search_statements(self, request: Request) -> Response:
         """Perform semantic search on statements."""

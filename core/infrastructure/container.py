@@ -22,6 +22,9 @@ from core.application.interfaces.repositories import (
 from core.application.interfaces.services import PaperService, SearchService
 from core.application.services.paper_service import PaperServiceImpl
 from core.application.services.search_service import SearchServiceImpl
+from core.infrastructure.clients.type_registry_client import TypeRegistryClient
+from core.application.interfaces.repositories import CacheRepository
+from core.infrastructure.repositories.cache_repos import SQLCacheRepository
 from core.infrastructure.repositories.mongo_repos import (
     MongoDBPaperRepository,
     MongoDBStatementRepository,
@@ -63,11 +66,10 @@ class Container:
             PaperService: PaperServiceImpl,
             SearchService: SearchServiceImpl,
         }
-
-        # Database-specific repositories
-        db_type = getattr(settings, "DATABASE_TYPE", "mongodb")
-        if db_type == "postgresql":
-            try:
+        db_type = getattr(settings, "DATABASE_TYPE", "postgres")
+        print(db_type)
+        if db_type == "postgres":
+            # try:
                 # Import SQL repositories
                 from core.infrastructure.repositories.sql_repos import (
                     SQLPaperRepository,
@@ -87,16 +89,19 @@ class Container:
                         ConceptRepository: SQLConceptRepository,
                         ResearchFieldRepository: SQLResearchFieldRepository,
                         JournalRepository: SQLJournalRepository,
+                        CacheRepository: SQLCacheRepository,
                     }
                 )
 
                 logger.info("Using PostgreSQL repositories")
-            except ImportError:
-                logger.warning(
-                    "SQL repositories not available, falling back to MongoDB"
-                )
+            # except ImportError:
+            #     logger.warning(
+            #         "SQL repositories not available, falling back to MongoDB"
+            #     )
         else:
             logger.info("Using MongoDB repositories")
+        cache_repo = cls.resolve(CacheRepository)
+        cls._instances[TypeRegistryClient] = TypeRegistryClient(cache_repo)
 
     @classmethod
     def resolve(cls, interface: Type[T]) -> T:

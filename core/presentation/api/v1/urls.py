@@ -5,7 +5,7 @@ from core.presentation.viewsets.paper_viewsets import PaperViewSet, SearchViewSe
 
 # Create a router for viewsets
 router = DefaultRouter()
-router.register(r"papers", PaperViewSet, basename="paper")
+router.register(r"articles", PaperViewSet, basename="paper")
 router.register(r"search", SearchViewSet, basename="search")
 
 # URL patterns for API v1

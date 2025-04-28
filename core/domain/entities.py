@@ -104,7 +104,7 @@ class Paper:
 
     id: str
     title: str
-    author: List[Author]
+    authors: List[Author]
     abstract: str
     contributions: List[Contribution] = field(default_factory=list)
     statements: List[Statement] = field(default_factory=list)

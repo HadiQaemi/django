@@ -17,7 +17,7 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
-      - DATABASE_TYPE=mongodb
+      - DATABASE_TYPE=postgres
     depends_on:
       - mongodb
       - redis
@@ -107,7 +107,7 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
-      - DATABASE_TYPE=mongodb
+      - DATABASE_TYPE=postgres
     depends_on:
       - web
       - redis
@@ -130,7 +130,7 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
-      - DATABASE_TYPE=mongodb
+      - DATABASE_TYPE=postgres
     depends_on:
       - web
       - redis
@@ -154,7 +154,7 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
-      - DATABASE_TYPE=mongodb
+      - DATABASE_TYPE=postgres
     depends_on:
       - web
       - redis

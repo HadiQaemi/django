@@ -26,8 +26,11 @@ from core.application.dtos.input_dtos import (
 )
 from core.application.dtos.output_dtos import (
     PaperOutputDTO,
+    ShortPaperOutputDTO,
     StatementOutputDTO,
     AuthorOutputDTO,
+    ShortAuthorOutputDTO,
+    ShortResearchFieldOutputDTO,
     ConceptOutputDTO,
     CommonResponseDTO,
     PaginatedResponseDTO,
@@ -68,30 +71,35 @@ class PaperServiceImpl(PaperServiceInterface):
         self, page: int = 1, page_size: int = 10
     ) -> PaginatedResponseDTO:
         """Get all papers with pagination."""
-        cache_key = f"all_papers_{page}_{page_size}"
-        cached_result = cache.get(cache_key)
+        # cache_key = f"all_papers_{page}_{page_size}"
+        # cached_result = cache.get(cache_key)
+        print("------------get_all_papers------------", __file__)
+        # if cached_result:
+        #     return cached_result
 
-        if cached_result:
-            return cached_result
+        # try:
+        papers, total = self.paper_repository.find_all(page, page_size)
+        print("----------papers----------", __file__)
+        print(papers[0].id)
+        # print(papers[0].name)
+        # print(papers[0].authors)
+        print(papers[0])
+        print("----------papers----------", __file__)
+        result = PaginatedResponseDTO(
+            content=[self._map_paper_to_dto(paper) for paper in papers],
+            total_elements=total,
+            page=page,
+            page_size=page_size,
+            total_pages=math.ceil(total / page_size),
+        )
 
-        try:
-            papers, total = self.paper_repository.find_all(page, page_size)
+        # Cache for 15 minutes
+        # cache.set(cache_key, result, settings.CACHE_TTL)
+        return result
 
-            result = PaginatedResponseDTO(
-                content=[self._map_paper_to_dto(paper) for paper in papers],
-                total_elements=total,
-                page=page,
-                page_size=page_size,
-                total_pages=math.ceil(total / page_size),
-            )
-
-            # Cache for 15 minutes
-            cache.set(cache_key, result, settings.CACHE_TTL)
-            return result
-
-        except Exception as e:
-            logger.error(f"Error in get_all_papers: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
+        # except Exception as e:
+        #     logger.error(f"Error in get_all_papers: {str(e)}")
+        #     raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
 
     def get_paper_by_id(self, paper_id: str) -> CommonResponseDTO:
         """Get a paper by its ID."""
@@ -594,29 +602,27 @@ class PaperServiceImpl(PaperServiceInterface):
             raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")
 
     def extract_paper(self, url_dto: ScraperUrlInputDTO) -> CommonResponseDTO:
-        """Extract a paper from a URL."""
-        try:
-            url = str(url_dto.url)
-            self.scraper.set_url(url)
-            json_files = self.scraper.all_json_files()
-            ro_crate = self.scraper.load_json_from_url(
-                json_files["ro-crate-metadata.json"]
-            )
-            self.paper_repository.add_article(ro_crate, json_files)
+        # """Extract a paper from a URL."""
+        # try:
+        url = str(url_dto.url)
+        self.scraper.set_url(url)
+        json_files = self.scraper.all_json_files()
+        ro_crate = self.scraper.load_json_from_url(json_files["ro-crate-metadata.json"])
+        print(json_files)
+        self.paper_repository.add_article(ro_crate, json_files)
+        # Invalidate relevant caches
+        cache.delete_pattern("all_papers_*")
+        cache.delete_pattern("latest_articles_*")
 
-            # Invalidate relevant caches
-            cache.delete_pattern("all_papers_*")
-            cache.delete_pattern("latest_articles_*")
+        return CommonResponseDTO(
+            success=True, message="Paper extracted and saved successfully"
+        )
 
-            return CommonResponseDTO(
-                success=True, message="Paper extracted and saved successfully"
-            )
-
-        except Exception as e:
-            logger.error(f"Error in extract_paper: {str(e)}")
-            return CommonResponseDTO(
-                success=False, message=f"Failed to extract paper: {str(e)}"
-            )
+    # except Exception as e:
+    #     logger.error(f"Error in extract_paper: {str(e)}")
+    #     return CommonResponseDTO(
+    #         success=False, message=f"Failed to extract paper ssss: {str(e)}"
+    #     )
 
     def delete_database(self) -> CommonResponseDTO:
         """Delete the database."""
@@ -639,63 +645,37 @@ class PaperServiceImpl(PaperServiceInterface):
                 success=False, message=f"Failed to delete database: {str(e)}"
             )
 
-    def _map_paper_to_dto(self, paper) -> PaperOutputDTO:
+    def _map_paper_to_dto(self, paper) -> ShortPaperOutputDTO:
         """Map a paper entity to its DTO."""
         authors = []
-        for author in paper.author:
+        print("----------_map_paper_to_dto------------", __file__)
+        print(paper)
+        for author in paper.authors:
             if isinstance(author, dict):
                 authors.append(
-                    AuthorOutputDTO(
-                        id=author.get("id", ""),
-                        given_name=author.get("given_name", ""),
-                        family_name=author.get("family_name", ""),
+                    ShortAuthorOutputDTO(
                         label=author.get("label", ""),
                     )
                 )
             else:
                 authors.append(
-                    AuthorOutputDTO(
-                        id=author.id,
-                        given_name=author.given_name,
-                        family_name=author.family_name,
+                    ShortAuthorOutputDTO(
                         label=author.label,
                     )
                 )
 
         research_fields = []
-        for rf in paper.research_fields:
-            if isinstance(rf, dict):
-                research_fields.append(
-                    ResearchFieldOutputDTO(
-                        id=rf.get("id", ""), label=rf.get("label", "")
-                    )
-                )
-            else:
-                research_fields.append(ResearchFieldOutputDTO(id=rf.id, label=rf.label))
-
-        return PaperOutputDTO(
+        # for rf in paper.research_fields:
+        #     if isinstance(rf, dict):
+        #         research_fields.append(
+        #             ShortResearchFieldOutputDTO(label=rf.get("label", ""))
+        #         )
+        #     else:
+        #         research_fields.append(ShortResearchFieldOutputDTO(label=rf.label))
+        return ShortPaperOutputDTO(
             id=paper.id,
-            article_id=paper.article_id,
-            title=paper.title,
-            author=authors,
-            abstract=paper.abstract,
-            contributions=[],  # Will be filled separately if needed
-            statements=[],  # Will be filled separately if needed
-            dois=paper.dois,
-            date_published=paper.date_published,
-            entity=paper.entity,
-            external=paper.external,
-            info=paper.info,
-            timeline=paper.timeline,
-            journal=None,  # Will be filled separately if needed
-            conference=None,  # Will be filled separately if needed
-            publisher=paper.publisher,
-            research_fields=research_fields,
-            reborn_doi=paper.reborn_doi,
-            paper_type=paper.paper_type,
-            concepts=[],  # Will be filled separately if needed
-            created_at=paper.created_at,
-            updated_at=paper.updated_at,
+            name=paper.name,
+            authors=authors,
         )
 
     def _map_statement_to_dto(self, statement) -> StatementOutputDTO:
