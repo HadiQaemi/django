@@ -122,40 +122,30 @@ class SQLPaperRepository(PaperRepository):
     def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Paper], int]:
         """Find all papers with pagination."""
         # try:
+        print("---------find_all-----queryset----------", __file__)
         queryset = (
             ArticleModel.objects.all()
             .only("name", "date_published")
             .prefetch_related("authors", "journal_conference")
         )
         total = queryset.count()
-        print("---------find_all-----queryset----------", __file__)
-        print(queryset)
-        print("---------find_all-----queryset----------", __file__)
         paginator = Paginator(queryset, page_size)
         page_obj = paginator.get_page(page)
 
         papers = []
         for article in page_obj:
-            print("-----------find_all-----------article------------", __file__)
-            print(article)
-            print("-----------find_all-----------article------------", __file__)
             paper = self._convert_article_to_paper(article)
-            print("-----------find_all-----------paper------------", __file__)
-            print(paper)
-            print("-----------find_all-----------paper------------", __file__)
             papers.append(paper)
-
         return papers, total
-
         # except Exception as e:
         #     logger.error(f"Error in find_all: {str(e)}")
         #     raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
 
     def find_by_id(self, paper_id: str) -> Optional[Paper]:
         """Find a paper by its ID."""
+        print("---------------find_by_id------------=============------", __file__)
         try:
             article = ArticleModel.objects.filter(article_id=paper_id).first()
-
             if article:
                 return self._convert_article_to_paper(article)
 
@@ -291,7 +281,8 @@ class SQLPaperRepository(PaperRepository):
                         defaults={
                             "given_name": author_entity.given_name,
                             "family_name": author_entity.family_name,
-                            "label": author_entity.label
+                            "label": author_entity.label,
+                            "author_id": generate_static_id(author_entity.label)
                             or f"{author_entity.given_name} {author_entity.family_name}",
                         },
                     )
@@ -320,9 +311,11 @@ class SQLPaperRepository(PaperRepository):
                 for concept_entity in paper.concepts:
                     concept, _ = ConceptModel.objects.update_or_create(
                         id=concept_entity.id,
+                        concept_id=generate_static_id(concept_entity.label),
                         defaults={
                             "label": concept_entity.label,
                             "identifier": concept_entity.identifier,
+                            "concept_id": generate_static_id(concept_entity.label),
                         },
                     )
                     concept_instances.append(concept)
@@ -348,7 +341,7 @@ class SQLPaperRepository(PaperRepository):
         """Get latest articles with filters."""
         try:
             query = ArticleModel.objects.all()
-
+            print("-----------get_latest_articles---------", __file__)
             if search_query:
                 query = query.filter(name__icontains=search_query)
 
@@ -480,9 +473,11 @@ class SQLPaperRepository(PaperRepository):
             rf, created = ResearchFieldModel.objects.get_or_create(
                 _id=research_field.get("@id", ""),
                 label=research_field["label"],
+                research_field_id=generate_static_id(research_field["label"]),
                 defaults={
                     "label": research_field["label"],
                     "json": research_field,
+                    "research_field_id": generate_static_id(research_field["label"]),
                 },
             )
             research_fields.append(rf)
@@ -500,6 +495,9 @@ class SQLPaperRepository(PaperRepository):
                 defaults={
                     "orcid": author.get("@id", ""),
                     "json": author,
+                    "author_id": generate_static_id(
+                        f"{author.get('givenName', '')} {author.get('familyName', '')}"
+                    ),
                     "given_name": author.get("givenName", ""),
                     "family_name": author.get("familyName", ""),
                     "label": f"{author.get('givenName', '')} {author.get('familyName', '')}",
@@ -730,6 +728,7 @@ class SQLPaperRepository(PaperRepository):
                 _id=publisher.get("@id", ""),
                 defaults={
                     "label": publisher.get("label", ""),
+                    "publisher_id": generate_static_id(publisher.get("label", "")),
                     "json": publisher,
                 },
             )
@@ -746,6 +745,9 @@ class SQLPaperRepository(PaperRepository):
                 _id=journal.get("@id", ""),
                 defaults={
                     "label": journal.get("label", ""),
+                    "journal_conference_id": generate_static_id(
+                        journal.get("label", "")
+                    ),
                     "json": journal,
                     "type": "journal",
                     "publisher_id": publisher_id,
@@ -765,6 +767,9 @@ class SQLPaperRepository(PaperRepository):
                 _id=conference.get("@id", ""),
                 defaults={
                     "label": conference.get("label", ""),
+                    "journal_conference_id": generate_static_id(
+                        conference.get("label", "")
+                    ),
                     "json": conference,
                     "type": "conference",
                     "publisher_id": publisher_id,
@@ -783,12 +788,14 @@ class SQLPaperRepository(PaperRepository):
         for concept in data["concept"]:
             concept_obj, created = ConceptModel.objects.get_or_create(
                 _id=concept.get("@id", ""),
+                concept_id=generate_static_id(concept.get("label", "")),
                 defaults={
                     "label": concept.get("label", ""),
                     "json": concept,
                     "definition": concept.get("definition", ""),
                     "see_also": concept.get("seeAlso", ""),
                     "string_match": concept.get("stringMatch", ""),
+                    "concept_id": generate_static_id(concept.get("label", "")),
                 },
             )
             concepts_id[concept.get("@id", "")] = concept_obj.id
@@ -811,6 +818,7 @@ class SQLPaperRepository(PaperRepository):
             _id=article_data.get("@id", ""),
             defaults={
                 "name": article_data.get("name", ""),
+                "article_id": generate_static_id(article_data.get("name", "")),
                 "json": article_data,
                 "abstract": article_data.get("abstract", ""),
                 "date_published": datetime.strptime(
@@ -883,6 +891,7 @@ class SQLPaperRepository(PaperRepository):
                 _id=statement_item["@id"],
                 defaults={
                     "label": statement_properties["label"],
+                    "statement_id": generate_static_id(statement_properties["label"]),
                     "name": json_files[statement_item.get("name", "")],
                     "json": statement_item,
                     "content": statement_content,
@@ -900,7 +909,7 @@ class SQLPaperRepository(PaperRepository):
             for author in statement_properties["author"]:
                 statement.authors.add(authors_id[author["@id"]])
 
-            type_info = self.type_registry_client.get_type_info(
+            type_info, _info = self.type_registry_client.get_type_info(
                 statement_content["@type"].replace("doi:", "")
             )
             print(f"Line: {sys._getframe(0).f_lineno}", statement_content["@type"])
@@ -910,9 +919,8 @@ class SQLPaperRepository(PaperRepository):
             )
 
             print('----------type_info["property"]--------------')
-            # print(type_info["property"])
             # print(statement_content)
-            for property in type_info["property"]:
+            for property in _info["property"]:
                 p = property
                 if property.replace("21.T11969/", "") in statement_content:
                     p = property.replace("21.T11969/", "")
@@ -930,757 +938,1318 @@ class SQLPaperRepository(PaperRepository):
                         )
                     elif p.endswith("#has_part"):
                         # print("#has_part")
-                        # print(statement_content[p]["@type"])
-                        _type_info = self.type_registry_client.get_type_info(
-                            statement_content[p]["@type"].replace("doi:", "")
-                        )
-                        label_items = [
-                            item for item in _type_info["property"] if "#label" in item
-                        ]
-                        print('_type_info["property"]')
-                        # print(_type_info["property"])
-                        # print(statement_content[p])
-                        print("------------statement_id-----------")
-                        print(statement.id)
-                        print("------------statement_id-----------")
-                        print("------------statement_content[p]-----------")
-                        HasPartModel.objects.update_or_create(
-                            label=statement_content[p][label_items[0]]
-                            if label_items[0] in statement_content[p]
-                            else "",
-                            statement_id=statement.id,
-                            defaults={
-                                "label": statement_content[p][label_items[0]]
-                                if label_items[0] in statement_content[p]
+                        has_parts = statement_content[p]
+                        if isinstance(statement_content[p], dict):
+                            has_parts = [statement_content[p]]
+
+                        for statement_content_item in has_parts:
+                            _type_info, _info = self.type_registry_client.get_type_info(
+                                statement_content_item["@type"].replace("doi:", "")
+                            )
+                            label_items = [
+                                item for item in _info["property"] if "#label" in item
+                            ]
+                            print("------------statement_id-----------")
+
+                            HasPartModel.objects.update_or_create(
+                                label=statement_content_item[label_items[0]]
+                                if label_items[0] in statement_content_item
                                 else "",
-                                "statement_id": statement.id,
-                                "type": _type_info["name"],
-                                "description": _type_info["description"],
-                            },
-                        )
-                        label = ""
-                        see_also = ""
-                        target_item = ""
-                        has_output_items = []
-                        has_input_items = []
-                        for _property in _type_info["property"]:
-                            _p = _property
-                            if (
-                                _property.replace("21.T11969/", "")
-                                in statement_content[p]
-                            ):
-                                _p = _property.replace("21.T11969/", "")
-                            if _p not in statement_content[p]:
-                                continue
-                            if _p.endswith("#has_output"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "#has_output",
-                                    _p,
-                                )
-                                has_outputs = statement_content[p][_p]
-                                if not isinstance(has_outputs, list):
-                                    has_outputs = [has_outputs]
-                                for has_output in has_outputs:
-                                    has_output_type = has_output["@type"]
-                                    has_output_source_table = ""
-                                    if f"{has_output_type}#source_table" in has_output:
-                                        has_output_source_table = has_output[
-                                            f"{has_output_type}#source_table"
-                                        ]
-
-                                    has_output_label = ""
-                                    if f"{has_output_type}#label" in has_output:
-                                        has_output_label = has_output[
-                                            f"{has_output_type}#label"
-                                        ]
-
-                                    has_output_source_url = ""
-                                    if f"{has_output_type}#source_url" in has_output:
-                                        has_output_source_url = has_output[
-                                            f"{has_output_type}#source_url"
-                                        ]
-
-                                    has_output_comment = ""
-                                    if f"{has_output_type}#comment" in has_output:
-                                        has_output_comment = has_output[
-                                            f"{has_output_type}#comment"
-                                        ]
-                                        if isinstance(has_output_comment, str):
-                                            has_output_comment = [has_output_comment]
-
-                                    has_output_has_parts = []
-                                    if f"{has_output_type}#has_part" in has_output:
-                                        has_output_has_part = has_output[
-                                            f"{has_output_type}#has_part"
-                                        ]
-                                        if not isinstance(
-                                            has_output_has_part, (dict, list)
-                                        ):
-                                            has_output_has_part = [has_output_has_part]
-                                        for item in has_output_has_part:
-                                            has_part_type = item["@type"]
-                                            has_part, created = (
-                                                DataItemComponentModel.objects.update_or_create(
-                                                    label=item[f"{has_part_type}#label"]
-                                                    if f"{has_part_type}#label" in item
-                                                    else "",
-                                                    see_also=item[
-                                                        f"{has_part_type}#see_also"
-                                                    ]
-                                                    if f"{has_part_type}#see_also"
-                                                    in item
-                                                    else "",
-                                                    defaults={
-                                                        "label": item[
-                                                            f"{has_part_type}#label"
-                                                        ]
-                                                        if f"{has_part_type}#label"
-                                                        in item
-                                                        else "",
-                                                        "see_also": item[
-                                                            f"{has_part_type}#see_also"
-                                                        ]
-                                                        if f"{has_part_type}#see_also"
-                                                        in item
-                                                        else "",
-                                                    },
-                                                )
-                                            )
-                                            has_output_has_parts.append(has_part)
-
-                                    has_characteristic = ""
-                                    if (
-                                        f"{has_output_type}#has_characteristic"
-                                        in has_output
-                                    ):
-                                        has_output_has_characteristic = has_output[
-                                            f"{has_output_type}#has_characteristic"
-                                        ]
-                                        has_characteristic_type = (
-                                            has_output_has_characteristic["@type"]
-                                        )
-                                        has_expression_number_of_rows = has_output_has_characteristic[
-                                            f"{has_characteristic_type}#number_of_rows"
-                                        ]
-                                        has_expression_number_of_columns = has_output_has_characteristic[
-                                            f"{has_characteristic_type}#number_of_columns"
-                                        ]
-                                        has_characteristic, created = (
-                                            MartixSizeModel.objects.update_or_create(
-                                                number_rows=has_expression_number_of_rows,
-                                                number_columns=has_expression_number_of_columns,
-                                                defaults={
-                                                    "number_columns": has_expression_number_of_columns,
-                                                    "number_rows": has_expression_number_of_rows,
-                                                },
-                                            )
-                                        )
-
-                                    has_expressions = []
-                                    if (
-                                        f"{has_output_type}#has_expression"
-                                        in has_output
-                                    ):
-                                        has_output_has_expression = has_output[
-                                            f"{has_output_type}#has_expression"
-                                        ]
-                                        has_expression_type = has_output_has_expression[
-                                            "@type"
-                                        ]
-                                        has_expression_label = ""
-                                        if (
-                                            f"{has_expression_type}#label"
-                                            in has_output_has_expression
-                                        ):
-                                            has_expression_label = (
-                                                has_output_has_expression[
-                                                    f"{has_expression_type}#label"
-                                                ]
-                                            )
-                                        has_expression_source_url = ""
-                                        if (
-                                            f"{has_expression_type}#source_url"
-                                            in has_output_has_expression
-                                        ):
-                                            has_expression_source_url = (
-                                                has_output_has_expression[
-                                                    f"{has_expression_type}#source_url"
-                                                ]
-                                            )
-                                        figure, created = (
-                                            FigureModel.objects.update_or_create(
-                                                source_url=has_expression_source_url,
-                                                label=has_expression_label,
-                                                defaults={
-                                                    "label": has_expression_label,
-                                                    "source_url": has_expression_source_url,
-                                                },
-                                            )
-                                        )
-                                        has_expressions.append(figure.id)
-
-                                    data_item, created = (
-                                        DataItemModel.objects.update_or_create(
-                                            label=has_output_label,
-                                            defaults={
-                                                "label": has_output_label,
-                                                "source_url": has_output_source_url,
-                                                "source_table": has_output_source_table,
-                                                "comment": has_output_comment,
-                                                "has_characteristic": has_characteristic,
-                                            },
-                                        )
-                                    )
-                                    if has_expressions:
-                                        data_item.has_expression.set(has_expressions)
-                                    if has_output_has_parts:
-                                        data_item.has_part.set(has_output_has_parts)
-
-                                    has_output_items.append(data_item)
-                            elif _p.endswith("#has_input"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "#has_input",
-                                    _p,
-                                )
-                                has_inputs = statement_content[p][_p]
-                                if not isinstance(has_inputs, list):
-                                    has_inputs = [has_inputs]
-                                for has_input in has_inputs:
-                                    has_input_type = has_input["@type"]
-                                    has_input_source_table = ""
-                                    if f"{has_input_type}#source_table" in has_input:
-                                        has_input_source_table = has_input[
-                                            f"{has_input_type}#source_table"
-                                        ]
-
-                                    has_input_label = ""
-                                    if f"{has_input_type}#label" in has_input:
-                                        has_input_label = has_input[
-                                            f"{has_input_type}#label"
-                                        ]
-
-                                    has_input_source_url = ""
-                                    if f"{has_input_type}#source_url" in has_input:
-                                        has_input_source_url = has_input[
-                                            f"{has_input_type}#source_url"
-                                        ]
-
-                                    has_input_comment = ""
-                                    if f"{has_input_type}#comment" in has_input:
-                                        has_input_comment = has_input[
-                                            f"{has_input_type}#comment"
-                                        ]
-                                        if isinstance(has_input_comment, str):
-                                            has_input_comment = [has_input_comment]
-
-                                    has_input_has_parts = []
-                                    if f"{has_input_type}#has_part" in has_input:
-                                        has_input_has_part = has_input[
-                                            f"{has_input_type}#has_part"
-                                        ]
-                                        if not isinstance(
-                                            has_input_has_part, (dict, list)
-                                        ):
-                                            has_input_has_part = [has_input_has_part]
-                                        for item in has_input_has_part:
-                                            has_part_type = item["@type"]
-                                            has_part, created = (
-                                                DataItemComponentModel.objects.update_or_create(
-                                                    label=item[f"{has_part_type}#label"]
-                                                    if f"{has_part_type}#label" in item
-                                                    else "",
-                                                    see_also=item[
-                                                        f"{has_part_type}#see_also"
-                                                    ]
-                                                    if f"{has_part_type}#see_also"
-                                                    in item
-                                                    else "",
-                                                    defaults={
-                                                        "label": item[
-                                                            f"{has_part_type}#label"
-                                                        ]
-                                                        if f"{has_part_type}#label"
-                                                        in item
-                                                        else "",
-                                                        "see_also": item[
-                                                            f"{has_part_type}#see_also"
-                                                        ]
-                                                        if f"{has_part_type}#see_also"
-                                                        in item
-                                                        else "",
-                                                    },
-                                                )
-                                            )
-                                            has_input_has_parts.append(has_part)
-
-                                    has_characteristic = ""
-                                    if (
-                                        f"{has_input_type}#has_characteristic"
-                                        in has_input
-                                    ):
-                                        has_input_has_characteristic = has_input[
-                                            f"{has_input_type}#has_characteristic"
-                                        ]
-                                        has_characteristic_type = (
-                                            has_input_has_characteristic["@type"]
-                                        )
-                                        has_expression_number_of_rows = has_input_has_characteristic[
-                                            f"{has_characteristic_type}#number_of_rows"
-                                        ]
-                                        has_expression_number_of_columns = has_input_has_characteristic[
-                                            f"{has_characteristic_type}#number_of_columns"
-                                        ]
-                                        has_characteristic, created = (
-                                            MartixSizeModel.objects.update_or_create(
-                                                number_rows=has_expression_number_of_rows,
-                                                number_columns=has_expression_number_of_columns,
-                                                defaults={
-                                                    "number_columns": has_expression_number_of_columns,
-                                                    "number_rows": has_expression_number_of_rows,
-                                                },
-                                            )
-                                        )
-
-                                    has_expressions = []
-                                    if f"{has_input_type}#has_expression" in has_input:
-                                        has_input_has_expression = has_input[
-                                            f"{has_input_type}#has_expression"
-                                        ]
-                                        has_expression_type = has_input_has_expression[
-                                            "@type"
-                                        ]
-                                        has_expression_label = ""
-                                        if (
-                                            f"{has_expression_type}#label"
-                                            in has_input_has_expression
-                                        ):
-                                            has_expression_label = (
-                                                has_input_has_expression[
-                                                    f"{has_expression_type}#label"
-                                                ]
-                                            )
-                                        has_expression_source_url = ""
-                                        if (
-                                            f"{has_expression_type}#source_url"
-                                            in has_input_has_expression
-                                        ):
-                                            has_expression_source_url = (
-                                                has_input_has_expression[
-                                                    f"{has_expression_type}#source_url"
-                                                ]
-                                            )
-                                        figure, created = (
-                                            FigureModel.objects.update_or_create(
-                                                source_url=has_expression_source_url,
-                                                label=has_expression_label,
-                                                defaults={
-                                                    "label": has_expression_label,
-                                                    "source_url": has_expression_source_url,
-                                                },
-                                            )
-                                        )
-                                        has_expressions.append(figure.id)
-                                    data_item, created = (
-                                        DataItemModel.objects.update_or_create(
-                                            label=has_input_label,
-                                            defaults={
-                                                "label": has_input_label,
-                                                "source_url": has_input_source_url,
-                                                "source_table": has_input_source_table,
-                                                "comment": has_input_comment,
-                                                "has_characteristic": has_characteristic,
-                                            },
-                                        )
-                                    )
-                                    if has_expressions:
-                                        data_item.has_expression.set(has_expressions)
-                                    if has_input_has_parts:
-                                        data_item.has_part.set(has_input_has_parts)
-
-                                    has_input_items.append(data_item)
-                            elif _p.endswith("#has_part"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "#has_part",
-                                    _p,
-                                )
-                            elif _p.endswith("#evaluates_for"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "#evaluates_for",
-                                    _p,
-                                )
-                            elif _p.endswith("#evaluates"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "#evaluates",
-                                    _p,
-                                )
-                            elif _p.endswith("#executes"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "Done #executes",
-                                    _p,
-                                )
-                                software_methods = statement_content[p][_p]
-                                executes_type = software_methods["@type"]
-
-                                software_libraries = software_methods[
-                                    f"{executes_type}#part_of"
-                                ]
-                                software_libraries_type = software_libraries["@type"]
-
-                                software_libraries_label = software_libraries[
-                                    f"{software_libraries_type}#label"
-                                ]
-                                software_libraries_version_info = software_libraries[
-                                    f"{software_libraries_type}#version_info"
-                                ]
-                                software_libraries_has_support_url = software_libraries[
-                                    f"{software_libraries_type}#has_support_url"
-                                ]
-                                if isinstance(software_libraries_has_support_url, str):
-                                    software_libraries_has_support_url = [
-                                        software_libraries_has_support_url
-                                    ]
-
-                                softwares = software_libraries[
-                                    f"{software_libraries_type}#part_of"
-                                ]
-                                softwares_type = softwares["@type"]
-                                softwares_has_support_url = softwares[
-                                    f"{softwares_type}#has_support_url"
-                                ]
-                                softwares_version_info = softwares[
-                                    f"{softwares_type}#version_info"
-                                ]
-                                softwares_label = softwares[f"{softwares_type}#label"]
-                                software_item, created = (
-                                    SoftwareModel.objects.update_or_create(
-                                        has_support_url=softwares_has_support_url,
-                                        version_info=softwares_version_info,
-                                        label=softwares_label,
-                                        defaults={
-                                            "has_support_url": softwares_has_support_url,
-                                            "version_info": softwares_version_info,
-                                            "label": softwares_label,
-                                        },
-                                    )
-                                )
-                                software_libraries_item, created = (
-                                    SoftwareLibraryModel.objects.update_or_create(
-                                        has_support_url=software_libraries_has_support_url,
-                                        version_info=software_libraries_version_info,
-                                        label=software_libraries_label,
-                                        defaults={
-                                            "has_support_url": software_libraries_has_support_url,
-                                            "version_info": software_libraries_version_info,
-                                            "part_of": software_item,
-                                            "label": software_libraries_label,
-                                        },
-                                    )
-                                )
-                                software_method_label = software_methods[
-                                    f"{executes_type}#label"
-                                ]
-                                software_method_is_implemented_by = software_methods[
-                                    f"{executes_type}#is_implemented_by"
-                                ]
-                                if isinstance(software_method_is_implemented_by, str):
-                                    software_method_is_implemented_by = [
-                                        software_method_is_implemented_by
-                                    ]
-                                software_method_has_support_url = ""
+                                statement_id=statement.id,
+                                defaults={
+                                    "label": statement_content_item[label_items[0]]
+                                    if label_items[0] in statement_content_item
+                                    else "",
+                                    "statement_id": statement.id,
+                                    "type": _info["name"],
+                                    "schema_type": _type_info,
+                                    "description": _info["description"],
+                                },
+                            )
+                            label = ""
+                            see_also = ""
+                            target_item = ""
+                            has_output_items = []
+                            has_input_items = []
+                            software_method_item = None
+                            for _property in _type_info.property:
+                                _p = _property
                                 if (
-                                    f"{executes_type}#has_support_url"
-                                    in software_methods
+                                    _property.replace("21.T11969/", "")
+                                    in statement_content_item
                                 ):
-                                    software_method_has_support_url = software_methods[
+                                    _p = _property.replace("21.T11969/", "")
+                                if _p not in statement_content_item:
+                                    continue
+                                if _p.endswith("#has_output"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "#has_output",
+                                        _p,
+                                    )
+                                    has_outputs = statement_content_item[_p]
+                                    if not isinstance(has_outputs, list):
+                                        has_outputs = [has_outputs]
+                                    for has_output in has_outputs:
+                                        has_output_type = has_output["@type"]
+                                        has_output_source_table = ""
+                                        if (
+                                            f"{has_output_type}#source_table"
+                                            in has_output
+                                        ):
+                                            has_output_source_table = has_output[
+                                                f"{has_output_type}#source_table"
+                                            ]
+                                        elif (
+                                            f"{has_output_type}#source_table".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_output
+                                        ):
+                                            has_output_source_table = has_output[
+                                                f"{has_output_type}#source_table".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        has_output_label = ""
+                                        if f"{has_output_type}#label" in has_output:
+                                            has_output_label = has_output[
+                                                f"{has_output_type}#label"
+                                            ]
+                                        elif (
+                                            f"{has_output_type}#label".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_output
+                                        ):
+                                            has_output_label = has_output[
+                                                f"{has_output_type}#label".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        has_output_source_url = ""
+                                        if (
+                                            f"{has_output_type}#source_url"
+                                            in has_output
+                                        ):
+                                            has_output_source_url = has_output[
+                                                f"{has_output_type}#source_url"
+                                            ]
+                                        elif (
+                                            f"{has_output_type}#source_url".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_output
+                                        ):
+                                            has_output_source_url = has_output[
+                                                f"{has_output_type}#source_url".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        has_output_comment = ""
+                                        if f"{has_output_type}#comment" in has_output:
+                                            has_output_comment = has_output[
+                                                f"{has_output_type}#comment"
+                                            ]
+                                            if isinstance(has_output_comment, str):
+                                                has_output_comment = [
+                                                    has_output_comment
+                                                ]
+                                        elif (
+                                            f"{has_output_type}#comment".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_output
+                                        ):
+                                            has_output_comment = has_output[
+                                                f"{has_output_type}#comment".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+                                            if isinstance(has_output_comment, str):
+                                                has_output_comment = [
+                                                    has_output_comment
+                                                ]
+
+                                        has_output_has_parts = []
+                                        has_output_has_part = None
+                                        if f"{has_output_type}#has_part" in has_output:
+                                            has_output_has_part = has_output[
+                                                f"{has_output_type}#has_part"
+                                            ]
+                                        elif (
+                                            f"{has_output_type}#has_part".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_output
+                                        ):
+                                            has_output_has_part = has_output[
+                                                f"{has_output_type}#has_part".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+                                        if has_output_has_part:
+                                            if not isinstance(
+                                                has_output_has_part, (dict, list)
+                                            ):
+                                                has_output_has_part = [
+                                                    has_output_has_part
+                                                ]
+                                            for item in has_output_has_part:
+                                                has_part_type = item["@type"]
+                                                item_label = ""
+                                                if f"{has_part_type}#label" in item:
+                                                    item_label = item[
+                                                        f"{has_part_type}#label"
+                                                    ]
+                                                elif (
+                                                    f"{has_part_type}#label".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                    in item
+                                                ):
+                                                    item_label = item[
+                                                        f"{has_part_type}#label".replace(
+                                                            "doi:", "doi:21.T11969/"
+                                                        )
+                                                    ]
+                                                item_see_also = ""
+                                                if f"{has_part_type}#see_also" in item:
+                                                    item_see_also = item[
+                                                        f"{has_part_type}#see_also"
+                                                    ]
+                                                elif (
+                                                    f"{has_part_type}#see_also".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                    in item
+                                                ):
+                                                    item_see_also = item[
+                                                        f"{has_part_type}#see_also".replace(
+                                                            "doi:", "doi:21.T11969/"
+                                                        )
+                                                    ]
+                                                has_part, created = (
+                                                    DataItemComponentModel.objects.update_or_create(
+                                                        label=item_label,
+                                                        see_also=item_see_also,
+                                                        defaults={
+                                                            "label": item_label,
+                                                            "see_also": item_see_also,
+                                                        },
+                                                    )
+                                                )
+                                                has_output_has_parts.append(has_part)
+
+                                        has_characteristic = None
+                                        has_output_has_characteristic = None
+                                        if (
+                                            f"{has_output_type}#has_characteristic"
+                                            in has_output
+                                        ):
+                                            has_output_has_characteristic = has_output[
+                                                f"{has_output_type}#has_characteristic"
+                                            ]
+                                        elif (
+                                            f"{has_output_type}#has_characteristic".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_output
+                                        ):
+                                            has_output_has_characteristic = has_output[
+                                                f"{has_output_type}#has_characteristic".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        if has_output_has_characteristic:
+                                            has_characteristic_type = (
+                                                has_output_has_characteristic["@type"]
+                                            )
+
+                                            has_expression_number_of_rows = None
+                                            if (
+                                                f"{has_characteristic_type}#number_of_rows"
+                                                in has_output_has_characteristic
+                                            ):
+                                                has_expression_number_of_rows = has_output_has_characteristic[
+                                                    f"{has_characteristic_type}#number_of_rows"
+                                                ]
+                                            elif (
+                                                f"{has_characteristic_type}#number_of_rows".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                                in has_output_has_characteristic
+                                            ):
+                                                has_expression_number_of_rows = has_output_has_characteristic[
+                                                    f"{has_characteristic_type}#number_of_rows".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+
+                                            has_expression_number_of_columns = None
+                                            if (
+                                                f"{has_characteristic_type}#number_of_columns"
+                                                in has_output_has_characteristic
+                                            ):
+                                                has_expression_number_of_columns = has_output_has_characteristic[
+                                                    f"{has_characteristic_type}#number_of_columns"
+                                                ]
+                                            elif (
+                                                f"{has_characteristic_type}#number_of_columns".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                                in has_output_has_characteristic
+                                            ):
+                                                has_expression_number_of_columns = has_output_has_characteristic[
+                                                    f"{has_characteristic_type}#number_of_columns".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+
+                                            has_characteristic, created = (
+                                                MartixSizeModel.objects.update_or_create(
+                                                    number_rows=has_expression_number_of_rows,
+                                                    number_columns=has_expression_number_of_columns,
+                                                    defaults={
+                                                        "number_columns": has_expression_number_of_columns,
+                                                        "number_rows": has_expression_number_of_rows,
+                                                    },
+                                                )
+                                            )
+
+                                        has_expressions = []
+                                        has_output_has_expression = None
+                                        if (
+                                            f"{has_output_type}#has_expression"
+                                            in has_output
+                                        ):
+                                            has_output_has_expression = has_output[
+                                                f"{has_output_type}#has_expression"
+                                            ]
+                                        elif (
+                                            f"{has_output_type}#has_expression".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_output
+                                        ):
+                                            has_output_has_expression = has_output[
+                                                f"{has_output_type}#has_expression".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        if has_output_has_expression:
+                                            has_expression_type = (
+                                                has_output_has_expression["@type"]
+                                            )
+                                            has_expression_label = ""
+                                            if (
+                                                f"{has_expression_type}#label"
+                                                in has_output_has_expression
+                                            ):
+                                                has_expression_label = (
+                                                    has_output_has_expression[
+                                                        f"{has_expression_type}#label"
+                                                    ]
+                                                )
+                                            elif (
+                                                f"{has_expression_type}#label".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                                in has_output_has_expression
+                                            ):
+                                                has_expression_label = has_output_has_expression[
+                                                    f"{has_expression_type}#label".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+                                            has_expression_source_url = ""
+                                            if (
+                                                f"{has_expression_type}#source_url"
+                                                in has_output_has_expression
+                                            ):
+                                                has_expression_source_url = has_output_has_expression[
+                                                    f"{has_expression_type}#source_url"
+                                                ]
+                                            elif (
+                                                f"{has_expression_type}#source_url".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                                in has_output_has_expression
+                                            ):
+                                                has_expression_source_url = has_output_has_expression[
+                                                    f"{has_expression_type}#source_url".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+                                            figure, created = (
+                                                FigureModel.objects.update_or_create(
+                                                    source_url=has_expression_source_url,
+                                                    label=has_expression_label,
+                                                    defaults={
+                                                        "label": has_expression_label,
+                                                        "source_url": has_expression_source_url,
+                                                    },
+                                                )
+                                            )
+                                            has_expressions.append(figure.id)
+
+                                        data_item, created = (
+                                            DataItemModel.objects.update_or_create(
+                                                label=has_output_label,
+                                                defaults={
+                                                    "label": has_output_label,
+                                                    "source_url": has_output_source_url,
+                                                    "source_table": has_output_source_table,
+                                                    "comment": has_output_comment,
+                                                    "has_characteristic": has_characteristic,
+                                                },
+                                            )
+                                        )
+                                        if has_expressions:
+                                            data_item.has_expression.set(
+                                                has_expressions
+                                            )
+                                        if has_output_has_parts:
+                                            data_item.has_part.set(has_output_has_parts)
+
+                                        has_output_items.append(data_item)
+                                elif _p.endswith("#has_input"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "#has_input",
+                                        _p,
+                                    )
+                                    has_inputs = statement_content_item[_p]
+                                    if not isinstance(has_inputs, list):
+                                        has_inputs = [has_inputs]
+                                    for has_input in has_inputs:
+                                        has_input_type = has_input["@type"]
+                                        has_input_source_table = ""
+                                        if (
+                                            f"{has_input_type}#source_table"
+                                            in has_input
+                                        ):
+                                            has_input_source_table = has_input[
+                                                f"{has_input_type}#source_table"
+                                            ]
+                                        elif (
+                                            f"{has_input_type}#source_table".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_input
+                                        ):
+                                            has_input_source_table = has_input[
+                                                f"{has_input_type}#source_table".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        has_input_label = ""
+                                        if f"{has_input_type}#label" in has_input:
+                                            has_input_label = has_input[
+                                                f"{has_input_type}#label"
+                                            ]
+                                        elif (
+                                            f"{has_input_type}#label".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_input
+                                        ):
+                                            has_input_label = has_input[
+                                                f"{has_input_type}#label".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        has_input_source_url = ""
+                                        if f"{has_input_type}#source_url" in has_input:
+                                            has_input_source_url = has_input[
+                                                f"{has_input_type}#source_url"
+                                            ]
+                                        elif (
+                                            f"{has_input_type}#source_url".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_input
+                                        ):
+                                            has_input_source_url = has_input[
+                                                f"{has_input_type}#source_url".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        has_input_comment = ""
+                                        if f"{has_input_type}#comment" in has_input:
+                                            has_input_comment = has_input[
+                                                f"{has_input_type}#comment"
+                                            ]
+                                            if isinstance(has_input_comment, str):
+                                                has_input_comment = [has_input_comment]
+                                        elif (
+                                            f"{has_input_type}#comment".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_input
+                                        ):
+                                            has_input_comment = has_input[
+                                                f"{has_input_type}#comment".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+                                            if isinstance(has_input_comment, str):
+                                                has_input_comment = [has_input_comment]
+
+                                        has_input_has_parts = []
+                                        has_input_has_part = None
+                                        if f"{has_input_type}#has_part" in has_input:
+                                            has_input_has_part = has_input[
+                                                f"{has_input_type}#has_part"
+                                            ]
+                                        elif (
+                                            f"{has_input_type}#has_part".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_input
+                                        ):
+                                            has_input_has_part = has_input[
+                                                f"{has_input_type}#has_part".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        if has_input_has_part:
+                                            if not isinstance(
+                                                has_input_has_part, (dict, list)
+                                            ):
+                                                has_input_has_part = [
+                                                    has_input_has_part
+                                                ]
+                                            for item in has_input_has_part:
+                                                has_part_type = item["@type"]
+                                                label_item = None
+                                                if f"{has_part_type}#label" in item:
+                                                    label_item = item[
+                                                        f"{has_part_type}#label"
+                                                    ]
+                                                elif (
+                                                    f"{has_part_type}#label".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                    in item
+                                                ):
+                                                    label_item = item[
+                                                        f"{has_part_type}#label".replace(
+                                                            "doi:", "doi:21.T11969/"
+                                                        )
+                                                    ]
+                                                label_see_also = None
+                                                if f"{has_part_type}#see_also" in item:
+                                                    label_see_also = item[
+                                                        f"{has_part_type}#see_also"
+                                                    ]
+                                                elif (
+                                                    f"{has_part_type}#see_also".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                    in item
+                                                ):
+                                                    label_see_also = item[
+                                                        f"{has_part_type}#see_also".replace(
+                                                            "doi:", "doi:21.T11969/"
+                                                        )
+                                                    ]
+                                                has_part, created = (
+                                                    DataItemComponentModel.objects.update_or_create(
+                                                        label=label_item,
+                                                        see_also=label_see_also,
+                                                        defaults={
+                                                            "label": label_item,
+                                                            "see_also": label_see_also,
+                                                        },
+                                                    )
+                                                )
+                                                has_input_has_parts.append(has_part)
+
+                                        has_characteristic = None
+                                        has_input_has_characteristic = None
+                                        if (
+                                            f"{has_input_type}#has_characteristic"
+                                            in has_input
+                                        ):
+                                            has_input_has_characteristic = has_input[
+                                                f"{has_input_type}#has_characteristic"
+                                            ]
+                                        elif (
+                                            f"{has_input_type}#has_characteristic".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_input
+                                        ):
+                                            has_input_has_characteristic = has_input[
+                                                f"{has_input_type}#has_characteristic".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+
+                                        if has_input_has_characteristic:
+                                            has_characteristic_type = (
+                                                has_input_has_characteristic["@type"]
+                                            )
+
+                                            has_expression_number_of_rows = None
+                                            if (
+                                                f"{has_characteristic_type}#number_of_rows"
+                                                in has_input_has_characteristic
+                                            ):
+                                                has_expression_number_of_rows = has_input_has_characteristic[
+                                                    f"{has_characteristic_type}#number_of_rows"
+                                                ]
+                                            elif (
+                                                f"{has_characteristic_type}#number_of_rows".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                                in has_input_has_characteristic
+                                            ):
+                                                has_expression_number_of_rows = has_input_has_characteristic[
+                                                    f"{has_characteristic_type}#number_of_rows".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+
+                                            has_expression_number_of_columns = None
+                                            if (
+                                                f"{has_characteristic_type}#number_of_columns"
+                                                in has_input_has_characteristic
+                                            ):
+                                                has_expression_number_of_columns = has_input_has_characteristic[
+                                                    f"{has_characteristic_type}#number_of_columns"
+                                                ]
+                                            elif (
+                                                f"{has_characteristic_type}#number_of_columns".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                                in has_input_has_characteristic
+                                            ):
+                                                has_expression_number_of_columns = has_input_has_characteristic[
+                                                    f"{has_characteristic_type}#number_of_columns".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+
+                                            has_characteristic, created = (
+                                                MartixSizeModel.objects.update_or_create(
+                                                    number_rows=has_expression_number_of_rows,
+                                                    number_columns=has_expression_number_of_columns,
+                                                    defaults={
+                                                        "number_columns": has_expression_number_of_columns,
+                                                        "number_rows": has_expression_number_of_rows,
+                                                    },
+                                                )
+                                            )
+
+                                        has_expressions = None
+                                        has_input_has_expression = None
+                                        if (
+                                            f"{has_input_type}#has_expression"
+                                            in has_input
+                                        ):
+                                            has_input_has_expression = has_input[
+                                                f"{has_input_type}#has_expression"
+                                            ]
+                                        elif (
+                                            f"{has_input_type}#has_expression".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in has_input
+                                        ):
+                                            has_input_has_expression = has_input[
+                                                f"{has_input_type}#has_expression".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+                                        if has_input_has_expression:
+                                            has_expression_type = (
+                                                has_input_has_expression["@type"]
+                                            )
+                                            has_expression_label = ""
+                                            if (
+                                                f"{has_expression_type}#label"
+                                                in has_input_has_expression
+                                            ):
+                                                has_expression_label = (
+                                                    has_input_has_expression[
+                                                        f"{has_expression_type}#label"
+                                                    ]
+                                                )
+                                            elif (
+                                                f"{has_expression_type}#label".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                                in has_input_has_expression
+                                            ):
+                                                has_expression_label = has_input_has_expression[
+                                                    f"{has_expression_type}#label".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+                                            has_expression_source_url = ""
+                                            if (
+                                                f"{has_expression_type}#source_url"
+                                                in has_input_has_expression
+                                            ):
+                                                has_expression_source_url = has_input_has_expression[
+                                                    f"{has_expression_type}#source_url"
+                                                ]
+                                            elif (
+                                                f"{has_expression_type}#source_url".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                                in has_input_has_expression
+                                            ):
+                                                has_expression_source_url = has_input_has_expression[
+                                                    f"{has_expression_type}#source_url".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+                                            figure, created = (
+                                                FigureModel.objects.update_or_create(
+                                                    source_url=has_expression_source_url,
+                                                    label=has_expression_label,
+                                                    defaults={
+                                                        "label": has_expression_label,
+                                                        "source_url": has_expression_source_url,
+                                                    },
+                                                )
+                                            )
+                                            has_expressions.append(figure.id)
+                                        data_item, created = (
+                                            DataItemModel.objects.update_or_create(
+                                                label=has_input_label,
+                                                defaults={
+                                                    "label": has_input_label,
+                                                    "source_url": has_input_source_url,
+                                                    "source_table": has_input_source_table,
+                                                    "comment": has_input_comment,
+                                                    "has_characteristic": has_characteristic,
+                                                },
+                                            )
+                                        )
+                                        if has_expressions:
+                                            data_item.has_expression.set(
+                                                has_expressions
+                                            )
+                                        if has_input_has_parts:
+                                            data_item.has_part.set(has_input_has_parts)
+
+                                        has_input_items.append(data_item)
+                                elif _p.endswith("#has_part"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "#has_part",
+                                        _p,
+                                    )
+                                elif _p.endswith("#evaluates_for"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "#evaluates_for",
+                                        _p,
+                                    )
+                                    evaluates_for = statement_content_item[_p]
+                                    evaluates_for_type = evaluates_for["@type"]
+                                    evaluates_for_see_also = []
+                                    evaluates_for_label = ""
+                                    if (
+                                        f"{evaluates_for_type}#see_also"
+                                        in evaluates_for
+                                    ):
+                                        evaluates_for_see_also.append(
+                                            evaluates_for[
+                                                f"{evaluates_for_type}#see_also"
+                                            ]
+                                        )
+                                    elif (
+                                        f"{evaluates_for_type}#see_also".replace(
+                                            "doi:", "doi:21.T11969/"
+                                        )
+                                        in evaluates_for
+                                    ):
+                                        evaluates_for_see_also.append(
+                                            evaluates_for[
+                                                f"{evaluates_for_type}#see_also".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+                                        )
+                                    if f"{evaluates_for_type}#label" in evaluates_for:
+                                        evaluates_for_label = evaluates_for[
+                                            f"{evaluates_for_type}#label"
+                                        ]
+                                    elif (
+                                        f"{evaluates_for_type}#label".replace(
+                                            "doi:", "doi:21.T11969/"
+                                        )
+                                        in evaluates_for
+                                    ):
+                                        evaluates_for_label = evaluates_for[
+                                            f"{evaluates_for_type}#label".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                        ]
+                                    evaluates_for_item, created = (
+                                        SharedTypeModel.objects.update_or_create(
+                                            see_also=evaluates_for_see_also,
+                                            label=evaluates_for_label,
+                                            type="evaluates_for",
+                                            defaults={
+                                                "label": evaluates_for_label,
+                                                "see_also": evaluates_for_see_also,
+                                                "type": "evaluates_for",
+                                            },
+                                        )
+                                    )
+                                elif _p.endswith("#evaluates"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "#evaluates",
+                                        _p,
+                                    )
+                                    evaluate = statement_content_item[_p]
+                                    evaluate_type = evaluate["@type"]
+                                    evaluate_see_also = []
+                                    evaluate_label = ""
+                                    if f"{evaluate_type}#see_also" in evaluate:
+                                        evaluate_see_also.append(
+                                            evaluate[f"{evaluate_type}#see_also"]
+                                        )
+                                    elif (
+                                        f"{evaluate_type}#see_also".replace(
+                                            "doi:", "doi:21.T11969/"
+                                        )
+                                        in evaluate
+                                    ):
+                                        evaluate_see_also.append(
+                                            evaluate[
+                                                f"{evaluate_type}#see_also".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+                                        )
+                                    if f"{evaluate_type}#label" in evaluate:
+                                        evaluate_label = evaluate[
+                                            f"{evaluate_type}#label"
+                                        ]
+                                    elif (
+                                        f"{evaluate_type}#label".replace(
+                                            "doi:", "doi:21.T11969/"
+                                        )
+                                        in evaluate
+                                    ):
+                                        evaluate_label = evaluate[
+                                            f"{evaluate_type}#label".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                        ]
+                                    evaluate_item, created = (
+                                        SharedTypeModel.objects.update_or_create(
+                                            see_also=evaluate_see_also,
+                                            label=evaluate_label,
+                                            type="evaluates",
+                                            defaults={
+                                                "label": evaluate_label,
+                                                "see_also": evaluate_see_also,
+                                                "type": "evaluates",
+                                            },
+                                        )
+                                    )
+                                elif _p.endswith("#executes"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "Done #executes",
+                                        _p,
+                                    )
+                                    software_methods = statement_content_item[_p]
+                                    executes_type = software_methods["@type"]
+
+                                    software_libraries = software_methods[
+                                        f"{executes_type}#part_of"
+                                    ]
+                                    software_libraries_type = software_libraries[
+                                        "@type"
+                                    ]
+
+                                    software_libraries_label = software_libraries[
+                                        f"{software_libraries_type}#label"
+                                    ]
+                                    software_libraries_version_info = (
+                                        software_libraries[
+                                            f"{software_libraries_type}#version_info"
+                                        ]
+                                    )
+                                    software_libraries_has_support_url = (
+                                        software_libraries[
+                                            f"{software_libraries_type}#has_support_url"
+                                        ]
+                                    )
+                                    if isinstance(
+                                        software_libraries_has_support_url, str
+                                    ):
+                                        software_libraries_has_support_url = [
+                                            software_libraries_has_support_url
+                                        ]
+
+                                    softwares = software_libraries[
+                                        f"{software_libraries_type}#part_of"
+                                    ]
+                                    softwares_type = softwares["@type"]
+                                    softwares_has_support_url = softwares[
+                                        f"{softwares_type}#has_support_url"
+                                    ]
+                                    softwares_version_info = softwares[
+                                        f"{softwares_type}#version_info"
+                                    ]
+                                    softwares_label = softwares[
+                                        f"{softwares_type}#label"
+                                    ]
+                                    software_item, created = (
+                                        SoftwareModel.objects.update_or_create(
+                                            has_support_url=softwares_has_support_url,
+                                            version_info=softwares_version_info,
+                                            label=softwares_label,
+                                            defaults={
+                                                "has_support_url": softwares_has_support_url,
+                                                "version_info": softwares_version_info,
+                                                "label": softwares_label,
+                                            },
+                                        )
+                                    )
+                                    software_libraries_item, created = (
+                                        SoftwareLibraryModel.objects.update_or_create(
+                                            has_support_url=software_libraries_has_support_url,
+                                            version_info=software_libraries_version_info,
+                                            label=software_libraries_label,
+                                            defaults={
+                                                "has_support_url": software_libraries_has_support_url,
+                                                "version_info": software_libraries_version_info,
+                                                "part_of": software_item,
+                                                "label": software_libraries_label,
+                                            },
+                                        )
+                                    )
+                                    software_method_label = software_methods[
+                                        f"{executes_type}#label"
+                                    ]
+                                    software_method_is_implemented_by = (
+                                        software_methods[
+                                            f"{executes_type}#is_implemented_by"
+                                        ]
+                                    )
+                                    if isinstance(
+                                        software_method_is_implemented_by, str
+                                    ):
+                                        software_method_is_implemented_by = [
+                                            software_method_is_implemented_by
+                                        ]
+                                    software_method_has_support_url = ""
+                                    if (
                                         f"{executes_type}#has_support_url"
-                                    ]
-                                if isinstance(software_method_has_support_url, str):
-                                    software_method_has_support_url = [
-                                        software_method_has_support_url
-                                    ]
-                                software_method_item, created = (
-                                    SoftwareMethodModel.objects.update_or_create(
-                                        has_support_url=software_method_has_support_url,
-                                        is_implemented_by=software_method_is_implemented_by,
-                                        label=software_method_label,
+                                        in software_methods
+                                    ):
+                                        software_method_has_support_url = (
+                                            software_methods[
+                                                f"{executes_type}#has_support_url"
+                                            ]
+                                        )
+                                    if isinstance(software_method_has_support_url, str):
+                                        software_method_has_support_url = [
+                                            software_method_has_support_url
+                                        ]
+                                    software_method_item, created = (
+                                        SoftwareMethodModel.objects.update_or_create(
+                                            has_support_url=software_method_has_support_url,
+                                            is_implemented_by=software_method_is_implemented_by,
+                                            label=software_method_label,
+                                            defaults={
+                                                "has_support_url": software_method_has_support_url,
+                                                "is_implemented_by": software_method_is_implemented_by,
+                                                "label": software_method_label,
+                                            },
+                                        )
+                                    )
+                                    software_method_item.part_of.add(
+                                        software_libraries_item
+                                    )
+                                elif _p.endswith("#targets"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "Done #targets",
+                                        _p,
+                                    )
+                                    target = statement_content_item[_p]
+                                    target_type = target["@type"]
+                                    target_see_also = []
+                                    target_label = ""
+
+                                    if f"{target_type}#see_also" in target:
+                                        target_see_also.append(
+                                            target[f"{target_type}#see_also"]
+                                        )
+                                    elif (
+                                        f"{target_type}#see_also".replace(
+                                            "doi:", "doi:21.T11969/"
+                                        )
+                                        in target
+                                    ):
+                                        target_see_also.append(
+                                            target[
+                                                f"{target_type}#see_also".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+                                        )
+                                    if f"{target_type}#label" in target:
+                                        target_label = target[f"{target_type}#label"]
+                                    elif (
+                                        f"{target_type}#label".replace(
+                                            "doi:", "doi:21.T11969/"
+                                        )
+                                        in target
+                                    ):
+                                        target_label = target[
+                                            f"{target_type}#label".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                        ]
+                                    target_item, created = (
+                                        SharedTypeModel.objects.update_or_create(
+                                            see_also=target_see_also,
+                                            label=target_label,
+                                            type="targets",
+                                            defaults={
+                                                "label": target_label,
+                                                "see_also": target_see_also,
+                                                "type": "targets",
+                                            },
+                                        )
+                                    )
+                                elif _p.endswith("#label"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "#label",
+                                        _p,
+                                    )
+                                    label = statement_content_item[_p]
+                                elif _p.endswith("#level"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "#level",
+                                        _p,
+                                    )
+                                    levels = statement_content_item[_p]
+                                    if not isinstance(levels, list):
+                                        levels = [levels]
+                                    level_items = []
+                                    for level in levels:
+                                        print('------------level["@type"]-----------')
+                                        print(levels)
+                                        print(level)
+                                        level_type = level["@type"]
+                                        level_see_also = []
+                                        level_label = ""
+
+                                        if f"{level_type}#see_also" in level:
+                                            level_see_also.append(
+                                                level[f"{level_type}#see_also"]
+                                            )
+                                        elif (
+                                            f"{level_type}#see_also".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in level
+                                        ):
+                                            level_see_also.append(
+                                                level[
+                                                    f"{level_type}#see_also".replace(
+                                                        "doi:", "doi:21.T11969/"
+                                                    )
+                                                ]
+                                            )
+                                        if f"{level_type}#label" in level:
+                                            level_label = level[f"{level_type}#label"]
+                                        elif (
+                                            f"{level_type}#label".replace(
+                                                "doi:", "doi:21.T11969/"
+                                            )
+                                            in level
+                                        ):
+                                            level_label = level[
+                                                f"{level_type}#label".replace(
+                                                    "doi:", "doi:21.T11969/"
+                                                )
+                                            ]
+                                        level_item, created = (
+                                            SharedTypeModel.objects.update_or_create(
+                                                see_also=level_see_also,
+                                                label=level_label,
+                                                type="levels",
+                                                defaults={
+                                                    "label": level_label,
+                                                    "see_also": level_see_also,
+                                                    "type": "levels",
+                                                },
+                                            )
+                                        )
+                                        level_items.append(level_item)
+                                elif _p.endswith("#see_also"):
+                                    print(
+                                        f"Line: {sys._getframe(0).f_lineno}",
+                                        "#see_also",
+                                        _p,
+                                    )
+                                    if _p in statement_content_item:
+                                        see_also = statement_content_item[_p]
+                                else:
+                                    print(f"Line: {sys._getframe(0).f_lineno}", _p)
+
+                                # if _p.endswith("#is_implemented_by"):
+                                #     implement, created = (
+                                #         ImplementModel.objects.update_or_create(
+                                #             url=statement_content_item,
+                                #             statement_id=statement.id,
+                                #             defaults={
+                                #                 "url": statement_content_item,
+                                #                 "statement_id": statement.id,
+                                #             },
+                                #         )
+                                #     )
+                            # print("_type_info: ", _type_info)
+
+                            print(_type_info.name)
+                            if _type_info.name == "Multilevel analysis":
+                                MultilevelAnalysis, created = (
+                                    MultilevelAnalysisModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
                                         defaults={
-                                            "has_support_url": software_method_has_support_url,
-                                            "is_implemented_by": software_method_is_implemented_by,
-                                            "label": software_method_label,
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "MultilevelAnalysis",
+                                            "statement_id": statement.id,
                                         },
                                     )
                                 )
-                                software_method_item.part_of.add(
-                                    software_libraries_item
-                                )
-                            elif _p.endswith("#targets"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "Done #targets",
-                                    _p,
-                                )
-                                target = statement_content[p][_p]
-                                target_type = target["@type"]
-                                target_see_also = []
-                                target_label = ""
-                                if f"{target_type}#see_also" in target:
-                                    target_see_also.append(
-                                        target[f"{target_type}#see_also"]
-                                    )
-                                if f"{target_type}#label" in target:
-                                    target_label = target[f"{target_type}#label"]
-                                target_item, created = (
-                                    SharedTypeModel.objects.update_or_create(
-                                        see_also=target_see_also,
-                                        label=target_label,
-                                        type="targets",
+                                if target_item:
+                                    MultilevelAnalysis.targets.add(target_item)
+                                if level_items:
+                                    MultilevelAnalysis.level.set(level_items)
+                                if has_output_items:
+                                    MultilevelAnalysis.has_outputs.set(has_output_items)
+                                if has_input_items:
+                                    MultilevelAnalysis.has_inputs.set(has_input_items)
+                            if _type_info.name == "Class prediction":
+                                ClassPrediction, created = (
+                                    ClassPredictionModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
                                         defaults={
-                                            "label": target_label,
-                                            "see_also": target_see_also,
-                                            "type": "targets",
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "ClassPrediction",
+                                            "statement_id": statement.id,
                                         },
                                     )
                                 )
-                            elif _p.endswith("#label"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "#label",
-                                    _p,
+                                if target_item:
+                                    ClassPrediction.targets.add(target_item)
+                                if has_output_items:
+                                    ClassPrediction.has_outputs.set(has_output_items)
+                                if has_input_items:
+                                    ClassPrediction.has_inputs.set(has_input_items)
+                            if _type_info.name == "Factor analysis":
+                                FactorAnalysis, created = (
+                                    FactorAnalysisModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
+                                        defaults={
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "FactorAnalysis",
+                                            "statement_id": statement.id,
+                                        },
+                                    )
                                 )
-                                label = statement_content[p][_p]
-                            elif _p.endswith("#level"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "#level",
-                                    _p,
+                                if has_output_items:
+                                    FactorAnalysis.has_outputs.set(has_output_items)
+                                if has_input_items:
+                                    FactorAnalysis.has_inputs.set(has_input_items)
+                            if _type_info.name == "Data preprocessing":
+                                DataPreprocessing, created = (
+                                    DataPreprocessingModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
+                                        defaults={
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "DataPreprocessing",
+                                            "statement_id": statement.id,
+                                        },
+                                    )
                                 )
-                                if _p in statement_content[p]:
-                                    level = statement_content[p][_p]
-                                print(level)
-                            elif _p.endswith("#see_also"):
-                                print(
-                                    f"Line: {sys._getframe(0).f_lineno}",
-                                    "#see_also",
-                                    _p,
+                                if has_output_items:
+                                    DataPreprocessing.has_outputs.set(has_output_items)
+                                if has_input_items:
+                                    DataPreprocessing.has_inputs.set(has_input_items)
+                            if _type_info.name == "Class discovery":
+                                ClassDiscovery, created = (
+                                    ClassDiscoveryModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
+                                        defaults={
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "ClassDiscovery",
+                                            "statement_id": statement.id,
+                                        },
+                                    )
                                 )
-                                if _p in statement_content[p]:
-                                    see_also = statement_content[p][_p]
-                            else:
-                                print(f"Line: {sys._getframe(0).f_lineno}", _p)
+                                if has_output_items:
+                                    ClassDiscovery.has_outputs.set(has_output_items)
+                                if has_input_items:
+                                    ClassDiscovery.has_inputs.set(has_input_items)
+                            if _type_info.name == "Correlation analysis":
+                                CorrelationAnalysis, created = (
+                                    CorrelationAnalysisModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
+                                        defaults={
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "CorrelationAnalysis",
+                                            "statement_id": statement.id,
+                                        },
+                                    )
+                                )
+                                if has_output_items:
+                                    CorrelationAnalysis.has_outputs.set(
+                                        has_output_items
+                                    )
+                                if has_input_items:
+                                    CorrelationAnalysis.has_inputs.set(has_input_items)
+                            if _type_info.name == "Group comparison":
+                                GroupComparison, created = (
+                                    GroupComparisonModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
+                                        defaults={
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "GroupComparison",
+                                            "statement_id": statement.id,
+                                        },
+                                    )
+                                )
+                                if target_item:
+                                    GroupComparison.targets.add(target_item)
+                                if has_output_items:
+                                    GroupComparison.has_outputs.set(has_output_items)
+                                if has_input_items:
+                                    GroupComparison.has_inputs.set(has_input_items)
+                            if _type_info.name == "Regression analysis":
+                                RegressionAnalysis, created = (
+                                    RegressionAnalysisModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
+                                        defaults={
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "RegressionAnalysis",
+                                            "statement_id": statement.id,
+                                        },
+                                    )
+                                )
+                                if target_item:
+                                    RegressionAnalysis.targets.add(target_item)
+                                if has_output_items:
+                                    RegressionAnalysis.has_outputs.set(has_output_items)
+                                if has_input_items:
+                                    RegressionAnalysis.has_inputs.set(has_input_items)
+                            if _type_info.name == "Descriptive statistics":
+                                DescriptiveStatistics, created = (
+                                    DescriptiveStatisticsModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
+                                        defaults={
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "DescriptiveStatistics",
+                                            "statement_id": statement.id,
+                                        },
+                                    )
+                                )
+                                if has_output_items:
+                                    DescriptiveStatistics.has_outputs.set(
+                                        has_output_items
+                                    )
+                                if has_input_items:
+                                    DescriptiveStatistics.has_inputs.set(
+                                        has_input_items
+                                    )
+                            if _type_info.name == "Algorithm evaluation":
+                                AlgorithmEvaluation, created = (
+                                    AlgorithmEvaluationModel.objects.update_or_create(
+                                        statement_id=statement.id,
+                                        label=label,
+                                        execute=software_method_item,
+                                        defaults={
+                                            "execute": software_method_item,
+                                            "label": label,
+                                            "see_also": see_also,
+                                            "type": "AlgorithmEvaluation",
+                                            "statement_id": statement.id,
+                                            "evaluates_for": evaluates_for_item,
+                                            "evaluate": evaluate_item,
+                                        },
+                                    )
+                                )
+                                if has_output_items:
+                                    AlgorithmEvaluation.has_outputs.set(
+                                        has_output_items
+                                    )
+                                if has_input_items:
+                                    AlgorithmEvaluation.has_inputs.set(has_input_items)
 
-                            # if _p.endswith("#is_implemented_by"):
-                            #     implement, created = (
-                            #         ImplementModel.objects.update_or_create(
-                            #             url=statement_content[p],
-                            #             statement_id=statement.id,
-                            #             defaults={
-                            #                 "url": statement_content[p],
-                            #                 "statement_id": statement.id,
-                            #             },
-                            #         )
-                            #     )
-                        # print("_type_info: ", _type_info)
-
-                        print(_type_info["name"])
-                        if _type_info["name"] == "Multilevel analysis":
-                            MultilevelAnalysis, created = (
-                                MultilevelAnalysisModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if target_item:
-                                MultilevelAnalysis.targets.add(target_item)
-                            if has_output_items:
-                                MultilevelAnalysis.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                MultilevelAnalysis.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Class prediction":
-                            ClassPrediction, created = (
-                                ClassPredictionModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if target_item:
-                                ClassPrediction.targets.add(target_item)
-                            if has_output_items:
-                                ClassPrediction.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                ClassPrediction.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Factor analysis":
-                            FactorAnalysis, created = (
-                                FactorAnalysisModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if has_output_items:
-                                FactorAnalysis.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                FactorAnalysis.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Data preprocessing":
-                            DataPreprocessing, created = (
-                                DataPreprocessingModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if has_output_items:
-                                DataPreprocessing.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                DataPreprocessing.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Class discovery":
-                            ClassDiscovery, created = (
-                                ClassDiscoveryModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if has_output_items:
-                                ClassDiscovery.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                ClassDiscovery.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Correlation analysis":
-                            CorrelationAnalysis, created = (
-                                CorrelationAnalysisModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if has_output_items:
-                                CorrelationAnalysis.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                CorrelationAnalysis.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Group comparison":
-                            GroupComparison, created = (
-                                GroupComparisonModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if target_item:
-                                GroupComparison.targets.add(target_item)
-                            if has_output_items:
-                                GroupComparison.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                GroupComparison.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Regression analysis":
-                            RegressionAnalysis, created = (
-                                RegressionAnalysisModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if target_item:
-                                RegressionAnalysis.targets.add(target_item)
-                            if has_output_items:
-                                RegressionAnalysis.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                RegressionAnalysis.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Descriptive statistics":
-                            DescriptiveStatistics, created = (
-                                DescriptiveStatisticsModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if has_output_items:
-                                DescriptiveStatistics.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                DescriptiveStatistics.has_inputs.set(has_input_items)
-                        if _type_info["name"] == "Algorithm evaluation":
-                            AlgorithmEvaluation, created = (
-                                AlgorithmEvaluationModel.objects.update_or_create(
-                                    statement_id=statement.id,
-                                    label=label,
-                                    execute=software_method_item,
-                                    defaults={
-                                        "execute": software_method_item,
-                                        "label": label,
-                                        "see_also": see_also,
-                                        "statement_id": statement.id,
-                                    },
-                                )
-                            )
-                            if has_output_items:
-                                AlgorithmEvaluation.has_outputs.set(has_output_items)
-                            if has_input_items:
-                                AlgorithmEvaluation.has_inputs.set(has_input_items)
                     else:
+                        print("---------p-------------")
                         print(p)
-                        _type_info = self.type_registry_client.get_type_info(
-                            statement_content[p]["@type"].replace("doi:", "")
-                        )
+                        print("---------statement_content[p]-------------")
+                        print(statement_content[p])
+                        print("---------statement_content-------------")
+                        # print(statement_content)
+                        # _type_info, _info = self.type_registry_client.get_type_info(
+                        #     statement_content[p]["@type"].replace("doi:", "")
+                        # )
 
                     # DescriptiveStatisticsModel,
                     # GroupComparisonModel,
@@ -1725,44 +2294,66 @@ class SQLPaperRepository(PaperRepository):
     #     logger.error(f"Error in add_article: {str(e)}")
     #     raise DatabaseError(f"Failed to add article: {str(e)}")
 
-    def _convert_article_to_paper(self, article: ArticleModel) -> ShortPaperOutputDTO:
+    def _convert_article_to_paper(self, article: ArticleModel) -> Paper:
         authors = []
         print("--------_convert_article_to_paper-----------", __file__)
-        print(type(article.id))
-        print(article.id)
-        print(article.authors.all())
         for author in article.authors.all():
             authors.append(
-                ShortAuthorOutputDTO(
+                Author(
+                    id=author.id,
+                    orcid=author.orcid,
+                    given_name=author.given_name,
+                    family_name=author.family_name,
+                    author_id=author.author_id,
                     label=author.label,
                 )
             )
-
-        # research_fields = []
-        # for rf in article.research_fields.all():
-        #     research_fields.append(ResearchField(id=rf.id, label=rf.label))
-
-        # journal = None
-        # if article.journal_conference:
-        #     journal_data = article.journal_conference
-        #     journal = Journal(
-        #         id=article.journal_conference_id,
-        #         label=journal_data,
-        #         publisher=article.publisher_id,
-        #     )
+        journal = None
+        if article.journal_conference:
+            journal = Journal(
+                id=article.journal_conference.id,
+                label=article.journal_conference.label,
+                journal_conference_id=article.journal_conference.journal_conference_id,
+                publisher=article.publisher_id,
+            )
 
         concepts = []
         for concept in article.concepts.all():
-            concepts.append(Concept(id=concept.id, label=concept.label))
-        print("---------authors---------")
-        print(authors)
-        print("---------authors---------")
-        return ShortPaperOutputDTO(
+            concepts.append(Concept(id=concept.concept_id, label=concept.label))
+
+        print("--------------find_by_id-----00000000000000-------", __file__)
+        research_fields = []
+        for research_field in article.research_fields.all():
+            research_fields.append(
+                ResearchField(
+                    id=research_field.id,
+                    label=research_field.label,
+                    research_field_id=research_field.research_field_id,
+                )
+            )
+        return Paper(
             id=article.id,
             name=article.name,
             authors=authors,
-            # date_published=article.date_published,
-            # journal_conference=journal,
+            abstract=article.abstract,
+            contributions=[],
+            statements=article.statements.all(),
+            dois=article.identifier,
+            date_published=article.date_published,
+            research_fields=research_fields,
+            entity=None,
+            external=None,
+            info={},
+            timeline={},
+            journal=journal,
+            publisher=article.publisher,
+            # research_fields=research_fields,
+            article_id=article.article_id,
+            reborn_doi=article.reborn_doi,
+            paper_type=article.paper_type,
+            concepts=concepts,
+            created_at=article.created_at,
+            updated_at=article.updated_at,
         )
 
 
@@ -1782,6 +2373,7 @@ class SQLAuthorRepository(AuthorRepository):
             for author_model in authors_queryset:
                 author = Author(
                     id=author_model.id,
+                    orcid=author_model.orcid,
                     given_name=author_model.given_name,
                     family_name=author_model.family_name,
                     label=author_model.label,
@@ -1826,9 +2418,9 @@ class SQLAuthorRepository(AuthorRepository):
         page_size: int = 10,
     ) -> Tuple[List[Author], int]:
         """Get latest authors with filters."""
+        print("-------------get_latest_authors----------", __file__)
         try:
             query = AuthorModel.objects.all()
-
             if search_query:
                 query = query.filter(
                     Q(label__icontains=search_query)
@@ -1860,6 +2452,8 @@ class SQLAuthorRepository(AuthorRepository):
             for author_model in page_obj:
                 author = Author(
                     id=author_model.id,
+                    orcid=author_model.orcid,
+                    author_id=author_model.author_id,
                     given_name=author_model.given_name,
                     family_name=author_model.family_name,
                     label=author_model.label,
@@ -1999,7 +2593,11 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
 
             research_fields = []
             for rf_model in rf_queryset:
-                research_field = ResearchField(id=rf_model.id, label=rf_model.label)
+                research_field = ResearchField(
+                    id=rf_model.id,
+                    label=rf_model.label,
+                    research_field_id=rf_model.research_field_id,
+                )
                 research_fields.append(research_field)
 
             return research_fields
@@ -2016,7 +2614,11 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
 
             # Create or update research field
             rf_model, created = ResearchFieldModel.objects.update_or_create(
-                id=research_field.id, defaults={"label": research_field.label}
+                id=research_field.id,
+                defaults={
+                    "label": research_field.label,
+                    "research_field_id": generate_static_id(research_field.label),
+                },
             )
 
             return research_field
@@ -2060,6 +2662,7 @@ class SQLJournalRepository(JournalRepository):
         page_size: int = 10,
     ) -> Tuple[List[Dict[str, Any]], int]:
         """Get latest journals with filters."""
+        print("-------------get_latest_journals----------", __file__)
         try:
             query = JournalConferenceModel.objects.all()
 
@@ -2090,11 +2693,11 @@ class SQLJournalRepository(JournalRepository):
             for journal_model in page_obj:
                 journal_dict = {
                     "id": journal_model.id,
+                    "journal_conference_id": journal_model.journal_conference_id,
                     "label": journal_model.label,
                     "publisher": journal_model.publisher,
                 }
                 journals.append(journal_dict)
-
             return journals, total
 
         except Exception as e:
@@ -2127,17 +2730,48 @@ class SQLStatementRepository(StatementRepository):
             logger.error(f"Error in find_all: {str(e)}")
             raise DatabaseError(f"Failed to retrieve statements: {str(e)}")
 
-    def find_by_id(self, statement_id: str) -> Optional[Statement]:
+    def find_paper_with_statement_details(
+        self, statement_id: str
+    ) -> Optional[Statement]:
         """Find a statement by its ID."""
         try:
+            print(
+                "--------------find_paper_with_statement_details-----find_by_id-----------------",
+                __file__,
+            )
             statement_model = StatementModel.objects.filter(
                 statement_id=statement_id
             ).first()
 
             if statement_model:
-                return self._convert_statement_to_entity(statement_model)
+                return self._convert_article_to_paper_statement(
+                    statement_model.article, statement_id
+                )
+
+            # if statement_model:
+            #     return self._convert_statement_to_entity(statement_model)
 
             return None
+
+        except Exception as e:
+            logger.error(f"Error in find_by_id: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve statement: {str(e)}")
+
+    def find_by_id(self, statement_id: str) -> Optional[Statement]:
+        """Find a statement by its ID."""
+        try:
+            print(
+                "--------------SQLStatementRepository-----find_by_id-----------------",
+                __file__,
+            )
+            statement_model = StatementModel.objects.filter(
+                statement_id=statement_id
+            ).first()
+
+            # if statement_model:
+            #     return self._convert_statement_to_entity(statement_model)
+
+            return statement_model
 
         except Exception as e:
             logger.error(f"Error in find_by_id: {str(e)}")
@@ -2216,6 +2850,59 @@ class SQLStatementRepository(StatementRepository):
             logger.error(f"Error in save: {str(e)}")
             raise DatabaseError(f"Failed to save statement: {str(e)}")
 
+    def _convert_article_to_paper_statement(
+        self, article: ArticleModel, statement_id
+    ) -> Paper:
+        authors = []
+        print("--------_convert_article_to_paper_statement-----------", __file__)
+        for author in article.authors.all():
+            authors.append(
+                Author(
+                    id=author.id,
+                    orcid=author.orcid,
+                    given_name=author.given_name,
+                    family_name=author.family_name,
+                    author_id=author.author_id,
+                    label=author.label,
+                )
+            )
+        journal = None
+        if article.journal_conference:
+            journal = Journal(
+                id=article.journal_conference.id,
+                label=article.journal_conference.label,
+                publisher=article.publisher_id,
+            )
+
+        concepts = []
+        for concept in article.concepts.all():
+            concepts.append(Concept(id=concept.concept_id, label=concept.label))
+
+        print("--------------find_by_id----1111111111111--------", __file__)
+        return Paper(
+            id=article.id,
+            name=article.name,
+            authors=authors,
+            abstract=article.abstract,
+            contributions=[],
+            statements=article.statements.all(),
+            dois=article.identifier,
+            date_published=article.date_published,
+            entity=None,
+            external=None,
+            info={},
+            timeline={},
+            journal=journal,
+            publisher=article.publisher,
+            # research_fields=research_fields,
+            article_id=article.article_id,
+            reborn_doi=article.reborn_doi,
+            paper_type=article.paper_type,
+            concepts=concepts,
+            created_at=article.created_at,
+            updated_at=article.updated_at,
+        )
+
     def get_latest_statements(
         self,
         research_fields: Optional[List[str]] = None,
@@ -2224,10 +2911,9 @@ class SQLStatementRepository(StatementRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Statement], int]:
-        """Get latest statements with filters."""
+        print("----------get_latest_statements------", __file__)
         try:
             query = StatementModel.objects.select_related("article").all()
-
             if search_query:
                 query = query.filter(
                     supports__contains=[{"notation": {"label": search_query}}]
@@ -2236,7 +2922,6 @@ class SQLStatementRepository(StatementRepository):
             if research_fields and len(research_fields) > 0:
                 query = query.filter(research_fields_id__overlap=research_fields)
 
-            # Apply sorting
             if sort_order == "a-z":
                 query = query.order_by("article__name")
             elif sort_order == "z-a":
@@ -2246,10 +2931,7 @@ class SQLStatementRepository(StatementRepository):
             else:
                 query = query.order_by("article__name")
 
-            # Get total count before pagination
             total = query.count()
-
-            # Apply pagination
             paginator = Paginator(query, page_size)
             page_obj = paginator.get_page(page)
 
@@ -2257,7 +2939,6 @@ class SQLStatementRepository(StatementRepository):
             for statement_model in page_obj:
                 statement = self._convert_statement_to_entity(statement_model)
                 statements.append(statement)
-
             return statements, total
 
         except Exception as e:
@@ -2306,61 +2987,77 @@ class SQLStatementRepository(StatementRepository):
     def _convert_statement_to_entity(
         self, statement_model: StatementModel
     ) -> Statement:
-        """Convert a Django ORM Statement model to a Statement domain entity."""
-        # Convert authors
+        print("----------_convert_statement_to_entity------", __file__)
         authors = []
-
-        # First try to get authors from the related field
         for author in statement_model.authors.all():
+            print(author.author_id)
             authors.append(
                 Author(
                     id=author.id,
+                    author_id=author.author_id,
                     given_name=author.given_name,
+                    orcid=author.orcid,
                     family_name=author.family_name,
                     label=author.label,
                 )
             )
-
-        # If no related authors, use the JSON field
         if not authors and statement_model.author:
             for author_data in statement_model.author:
                 authors.append(
                     Author(
                         id=author_data.get("id", ""),
                         given_name=author_data.get("given_name", ""),
+                        orcid=author.orcid,
                         family_name=author_data.get("family_name", ""),
                         label=author_data.get("label", ""),
                     )
                 )
 
-        # Create notation if available in supports
-        notation = None
-        if statement_model.supports and len(statement_model.supports) > 0:
-            notation_data = statement_model.supports[0].get("notation", {})
-            if notation_data:
-                concept = None
-                if "concept" in notation_data:
-                    concept_data = notation_data["concept"]
-                    concept = Concept(
-                        id=concept_data.get("id", ""),
-                        label=concept_data.get("label", ""),
-                        identifier=concept_data.get("identifier", ""),
-                    )
-
-                notation = Notation(
-                    id=notation_data.get("id", ""),
-                    label=notation_data.get("label", ""),
-                    concept=concept,
+        article_authors = []
+        for author in statement_model.article.authors.all():
+            article_authors.append(
+                Author(
+                    id=author.id,
+                    orcid=author.orcid,
+                    given_name=author.given_name,
+                    family_name=author.family_name,
+                    author_id=author.author_id,
+                    label=author.label,
                 )
+            )
+        journal = None
+        if statement_model.article.journal_conference:
+            journal = Journal(
+                id=statement_model.article.journal_conference.id,
+                label=statement_model.article.journal_conference.label,
+                publisher=statement_model.article.publisher_id,
+            )
 
-        # Create the Statement entity
+        article_concepts = []
+        for concept in statement_model.article.concepts.all():
+            article_concepts.append(Concept(id=concept.concept_id, label=concept.label))
+        article = {
+            "concepts": article_concepts,
+            "journal": journal,
+            "authors": article_authors,
+            "abstract": statement_model.article.abstract,
+            "dois": statement_model.article.identifier,
+            "date_published": statement_model.article.date_published,
+            "publisher": statement_model.article.publisher,
+            "article_id": statement_model.article.article_id,
+            "reborn_doi": statement_model.article.reborn_doi,
+            "created_at": statement_model.article.created_at,
+        }
+
         return Statement(
             id=statement_model.id,
-            content=statement_model.content,
+            label=statement_model.label,
+            article=article,
             author=authors,
             article_id=statement_model.article_id,
-            supports=statement_model.supports,
-            notation=notation,
+            article_name=statement_model.article.name,
+            date_published=statement_model.article.date_published,
+            journal_conference=statement_model.article.journal_conference.label,
             statement_id=statement_model.statement_id,
             created_at=statement_model.created_at,
             updated_at=statement_model.updated_at,

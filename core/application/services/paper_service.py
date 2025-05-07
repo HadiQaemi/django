@@ -9,7 +9,7 @@ import math
 from typing import List, Dict, Any, Optional, Tuple, Union, cast
 from django.core.cache import cache
 from django.conf import settings
-
+from django.utils.timezone import localtime
 from core.application.interfaces.services import PaperService as PaperServiceInterface
 from core.application.interfaces.repositories import (
     PaperRepository,
@@ -30,6 +30,7 @@ from core.application.dtos.output_dtos import (
     StatementOutputDTO,
     AuthorOutputDTO,
     ShortAuthorOutputDTO,
+    ShortStatementOutputDTO,
     ShortResearchFieldOutputDTO,
     ConceptOutputDTO,
     CommonResponseDTO,
@@ -43,6 +44,7 @@ from core.domain.exceptions import (
     DatabaseError,
 )
 from core.infrastructure.scrapers.node_extractor import NodeExtractor
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +82,11 @@ class PaperServiceImpl(PaperServiceInterface):
         # try:
         papers, total = self.paper_repository.find_all(page, page_size)
         print("----------papers----------", __file__)
-        print(papers[0].id)
+        # print(papers[0].id)
         # print(papers[0].name)
         # print(papers[0].authors)
-        print(papers[0])
-        print("----------papers----------", __file__)
+        # print(papers[0])
+        # print("----------papers----------", __file__)
         result = PaginatedResponseDTO(
             content=[self._map_paper_to_dto(paper) for paper in papers],
             total_elements=total,
@@ -101,57 +103,15 @@ class PaperServiceImpl(PaperServiceInterface):
         #     logger.error(f"Error in get_all_papers: {str(e)}")
         #     raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
 
-    def get_paper_by_id(self, paper_id: str) -> CommonResponseDTO:
-        """Get a paper by its ID."""
-        cache_key = f"paper_{paper_id}"
-        cached_result = cache.get(cache_key)
-
-        if cached_result:
-            return cached_result
-
-        try:
-            paper = self.paper_repository.find_by_id(paper_id)
-
-            if paper:
-                statements = self.statement_repository.find_by_paper_id(paper_id)
-                paper_dto = self._map_paper_to_dto(paper)
-
-                for statement in statements:
-                    statement_dto = self._map_statement_to_dto(statement)
-                    paper_dto.statements.append(statement_dto)
-
-                result = CommonResponseDTO(
-                    success=True,
-                    result={
-                        "article": paper_dto,
-                        "statements": [s for s in paper_dto.statements],
-                    },
-                    total_count=len(paper_dto.statements),
-                )
-
-                # Cache for 15 minutes
-                cache.set(cache_key, result, settings.CACHE_TTL)
-                return result
-
-            return CommonResponseDTO(
-                success=False, message=f"Paper with ID {paper_id} not found"
-            )
-
-        except Exception as e:
-            logger.error(f"Error in get_paper_by_id: {str(e)}")
-            return CommonResponseDTO(
-                success=False, message=f"Failed to retrieve paper: {str(e)}"
-            )
-
     def get_all_statements(
         self, page: int = 1, page_size: int = 10
     ) -> PaginatedResponseDTO:
         """Get all statements with pagination."""
-        cache_key = f"all_statements_{page}_{page_size}"
-        cached_result = cache.get(cache_key)
+        # cache_key = f"all_statements_{page}_{page_size}"
+        # cached_result = cache.get(cache_key)
 
-        if cached_result:
-            return cached_result
+        # if cached_result:
+        #     return cached_result
 
         try:
             statements, total = self.statement_repository.find_all(page, page_size)
@@ -167,7 +127,7 @@ class PaperServiceImpl(PaperServiceInterface):
             )
 
             # Cache for 15 minutes
-            cache.set(cache_key, result, settings.CACHE_TTL)
+            # cache.set(cache_key, result, settings.CACHE_TTL)
             return result
 
         except Exception as e:
@@ -216,10 +176,486 @@ class PaperServiceImpl(PaperServiceInterface):
                 success=False, message=f"Failed to query data: {str(e)}"
             )
 
+    def get_statement(self, statement_id: str) -> CommonResponseDTO:
+        """Get a statement with related data."""
+        print("-------------------get_statement-----------------", __file__)
+        try:
+            statement = self.statement_repository.find_by_id(statement_id)
+            authors = []
+            for author in statement.authors.all():
+                authors.append({"label": author.label, "author_id": author.author_id})
+
+            concepts = []
+            for concept in statement.concepts.all():
+                concepts.append(
+                    {"label": concept.label, "concept_id": concept.concept_id}
+                )
+            data_type = []
+            if statement_id == statement.statement_id:
+                implement_statements = statement.implement_statements.all()
+                implements = []
+                for implement_statement in implement_statements:
+                    implements.append(implement_statement.url)
+                for data_type_statement in statement.data_type_statement.all():
+                    execute = None
+                    if data_type_statement.execute:
+                        execute_part_ofs = data_type_statement.execute.part_of.all()
+                        software_libraries = []
+                        for software_library in execute_part_ofs:
+                            software = software_library.part_of
+                            software_libraries.append(
+                                {
+                                    "label": software_library.label,
+                                    "version_info": software_library.version_info,
+                                    "has_support_url": software_library.has_support_url,
+                                    "part_of": {
+                                        "label": software.label,
+                                        "version_info": software.version_info,
+                                        "has_support_url": software.has_support_url,
+                                    },
+                                }
+                            )
+                        execute = {
+                            "part_of": software_libraries,
+                            "label": data_type_statement.execute.label,
+                            "is_implemented_by": data_type_statement.execute.is_implemented_by,
+                            "has_support_url": data_type_statement.execute.has_support_url,
+                        }
+                    has_inputs = []
+                    for has_input in data_type_statement.has_inputs.all():
+                        has_characteristic = None
+                        if has_input.has_characteristic:
+                            has_characteristic = {
+                                "number_rows": has_input.has_characteristic.number_rows,
+                                "number_columns": has_input.has_characteristic.number_columns,
+                            }
+                        has_expressions = []
+                        for has_expression in has_input.has_expression.all():
+                            has_expressions.append(
+                                {
+                                    "label": has_expression.label,
+                                    "source_url": has_expression.source_url,
+                                }
+                            )
+                        has_parts = []
+                        for has_part in has_input.has_part.all():
+                            has_parts.append(
+                                {
+                                    "label": has_part.label,
+                                    "see_alsol": has_part.see_also,
+                                }
+                            )
+                        has_inputs.append(
+                            {
+                                "label": has_input.label,
+                                "source_url": has_input.source_url,
+                                "comment": has_input.comment,
+                                "source_table": has_input.source_table,
+                                "has_characteristic": has_characteristic,
+                                "has_expressions": has_expressions,
+                                "has_parts": has_parts,
+                            }
+                        )
+                    has_outputs = []
+                    for has_output in data_type_statement.has_outputs.all():
+                        has_characteristic = None
+                        if has_output.has_characteristic:
+                            has_characteristic = {
+                                "number_rows": has_output.has_characteristic.number_rows,
+                                "number_columns": has_output.has_characteristic.number_columns,
+                            }
+                        has_expressions = []
+                        for has_expression in has_output.has_expression.all():
+                            has_expressions.append(
+                                {
+                                    "label": has_expression.label,
+                                    "source_url": has_expression.source_url,
+                                }
+                            )
+                        has_parts = []
+                        for has_part in has_output.has_part.all():
+                            has_parts.append(
+                                {
+                                    "label": has_part.label,
+                                    "see_alsol": has_part.see_also,
+                                }
+                            )
+                        has_outputs.append(
+                            {
+                                "label": has_output.label,
+                                "source_url": has_output.source_url,
+                                "comment": has_output.comment,
+                                "source_table": has_output.source_table,
+                                "has_characteristic": has_characteristic,
+                                "has_expressions": has_expressions,
+                                "has_parts": has_parts,
+                            }
+                        )
+                    dt = {
+                        "label": data_type_statement.label,
+                        "type": data_type_statement.type,
+                        "see_also": data_type_statement.see_also,
+                        "executes": execute,
+                        "has_input": has_inputs,
+                        "has_output": has_outputs,
+                    }
+                    if data_type_statement.type == "AlgorithmEvaluation":
+                        if data_type_statement.evaluate:
+                            dt["evaluates"] = {
+                                "label": data_type_statement.evaluate.label,
+                                "type": data_type_statement.evaluate.type,
+                                "see_also": data_type_statement.evaluate.see_also,
+                            }
+                        if data_type_statement.evaluates_for:
+                            dt["evaluates_for"] = {
+                                "label": data_type_statement.evaluates_for.label,
+                                "type": data_type_statement.evaluates_for.type,
+                                "see_also": data_type_statement.evaluates_for.see_also,
+                            }
+                    if data_type_statement.type == "MultilevelAnalysis":
+                        targets = []
+                        for target in data_type_statement.targets.all():
+                            targets.append(
+                                {
+                                    "label": target.label,
+                                    "type": target.type,
+                                    "see_also": target.see_also,
+                                }
+                            )
+                        if targets:
+                            dt["targets"] = targets
+                        levels = []
+                        for level in data_type_statement.level.all():
+                            levels.append(
+                                {
+                                    "label": level.label,
+                                    "type": level.type,
+                                    "see_also": level.see_also,
+                                }
+                            )
+                        if levels:
+                            dt["level"] = levels
+                    if data_type_statement.type == "GroupComparison":
+                        targets = []
+                        for target in data_type_statement.targets.all():
+                            targets.append(
+                                {
+                                    "label": target.label,
+                                    "type": target.type,
+                                    "see_also": target.see_also,
+                                }
+                            )
+                        if targets:
+                            dt["targets"] = targets
+                    has_part = statement.has_part_statements.first()
+                    data_type.append(
+                        {
+                            "has_part": dt,
+                            "is_implemented_by": implements,
+                            "type": {
+                                "name": has_part.schema_type.name,
+                                "description": has_part.schema_type.description,
+                                "type_id": has_part.schema_type.type_id,
+                                "properties": [
+                                    s.split("#", 1)[1] if "#" in s else ""
+                                    for s in has_part.schema_type.property
+                                ],
+                            },
+                        }
+                    )
+            result = CommonResponseDTO(
+                success=True,
+                result={
+                    "data_type": data_type,
+                },
+                total_count=1,
+            )
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in get_statement: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to retrieve statement: {str(e)}"
+            )
+
     def get_statement_by_id(self, statement_id: str) -> CommonResponseDTO:
         """Get a statement by its ID."""
         try:
-            statement = self.statement_repository.find_by_id(statement_id)
+            print("-------------------get_statement_by_id-----------------", __file__)
+            # print(statement_id, __file__)
+            statement_in_paper = (
+                self.statement_repository.find_paper_with_statement_details(
+                    statement_id
+                )
+            )
+            print("------------get_statement_by_id-----------statement---------------")
+            if statement_in_paper:
+                paper = self.paper_repository.find_by_id(statement_in_paper.article_id)
+                paper_dto = self._map_paper_to_dto(paper)
+                authors = []
+                for author in paper_dto.authors:
+                    authors.append(
+                        {
+                            "label": author.label,
+                            "orcid": author.orcid,
+                            "author_id": author.author_id,
+                        }
+                    )
+                concepts = []
+                if paper_dto.concepts:
+                    for concept in paper_dto.concepts:
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.id,
+                            }
+                        )
+                paper_info = {
+                    "name": paper_dto.name,
+                    "article_id": paper_dto.article_id,
+                    "authors": authors,
+                    "abstract": paper_dto.abstract,
+                    "dois": paper_dto.dois,
+                    "reborn_doi": paper_dto.reborn_doi,
+                    "academic_publication": paper_dto.journal
+                    if paper_dto.journal
+                    else paper_dto.conference,
+                    "concepts": concepts,
+                    "research_fields": paper_dto.research_fields,
+                    "publisher": paper_dto.publisher,
+                    "reborn_date": localtime(paper_dto.created_at).strftime(
+                        "%B %d, %Y"
+                    ),
+                    "date_published": localtime(paper_dto.created_at).strftime("%Y"),
+                }
+                statements = []
+                for statement in paper.statements.all():
+                    has_part = statement.has_part_statements.first()
+                    authors = []
+                    for author in statement.authors.all():
+                        authors.append(
+                            {
+                                "name": author.label,
+                                "author_id": author.author_id,
+                                "orcid": author._id
+                                if author._id.startswith("https://orcid.org/")
+                                else None,
+                            }
+                        )
+
+                    concepts = []
+                    for concept in statement.concepts.all():
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.concept_id,
+                                "see_also": concept.see_also,
+                            }
+                        )
+                    data_type = []
+                    if statement_id == statement.statement_id:
+                        statement = self.statement_repository.find_by_id(statement_id)
+                        implement_statements = statement.implement_statements.all()
+                        implements = []
+                        for implement_statement in implement_statements:
+                            implements.append(implement_statement.url)
+                        for data_type_statement in statement.data_type_statement.all():
+                            execute = None
+                            if data_type_statement.execute:
+                                execute_part_ofs = data_type_statement.execute.part_of.all()
+                                software_libraries = []
+                                for software_library in execute_part_ofs:
+                                    software = software_library.part_of
+                                    software_libraries.append(
+                                        {
+                                            "label": software_library.label,
+                                            "version_info": software_library.version_info,
+                                            "has_support_url": software_library.has_support_url,
+                                            "part_of": {
+                                                "label": software.label,
+                                                "version_info": software.version_info,
+                                                "has_support_url": software.has_support_url,
+                                            },
+                                        }
+                                    )
+                                execute = {
+                                    "part_of": software_libraries,
+                                    "label": data_type_statement.execute.label,
+                                    "is_implemented_by": data_type_statement.execute.is_implemented_by,
+                                    "has_support_url": data_type_statement.execute.has_support_url,
+                                }
+                            has_inputs = []
+                            for has_input in data_type_statement.has_inputs.all():
+                                has_characteristic = None
+                                if has_input.has_characteristic:
+                                    has_characteristic = {
+                                        "number_rows": has_input.has_characteristic.number_rows,
+                                        "number_columns": has_input.has_characteristic.number_columns,
+                                    }
+                                has_expressions = []
+                                for has_expression in has_input.has_expression.all():
+                                    has_expressions.append(
+                                        {
+                                            "label": has_expression.label,
+                                            "source_url": has_expression.source_url,
+                                        }
+                                    )
+                                has_parts = []
+                                for has_part in has_input.has_part.all():
+                                    has_parts.append(
+                                        {
+                                            "label": has_part.label,
+                                            "see_alsol": has_part.see_also,
+                                        }
+                                    )
+                                has_inputs.append(
+                                    {
+                                        "label": has_input.label,
+                                        "source_url": has_input.source_url,
+                                        "comment": has_input.comment,
+                                        "source_table": has_input.source_table,
+                                        "has_characteristic": has_characteristic,
+                                        "has_expressions": has_expressions,
+                                        "has_parts": has_parts,
+                                    }
+                                )
+                            has_outputs = []
+                            for has_output in data_type_statement.has_outputs.all():
+                                has_characteristic = None
+                                if has_output.has_characteristic:
+                                    has_characteristic = {
+                                        "number_rows": has_output.has_characteristic.number_rows,
+                                        "number_columns": has_output.has_characteristic.number_columns,
+                                    }
+                                has_expressions = []
+                                for has_expression in has_output.has_expression.all():
+                                    has_expressions.append(
+                                        {
+                                            "label": has_expression.label,
+                                            "source_url": has_expression.source_url,
+                                        }
+                                    )
+                                has_parts = []
+                                for has_part in has_output.has_part.all():
+                                    has_parts.append(
+                                        {
+                                            "label": has_part.label,
+                                            "see_alsol": has_part.see_also,
+                                        }
+                                    )
+                                has_outputs.append(
+                                    {
+                                        "label": has_output.label,
+                                        "source_url": has_output.source_url,
+                                        "comment": has_output.comment,
+                                        "source_table": has_output.source_table,
+                                        "has_characteristic": has_characteristic,
+                                        "has_expressions": has_expressions,
+                                        "has_parts": has_parts,
+                                    }
+                                )
+                            dt = {
+                                "label": data_type_statement.label,
+                                "type": data_type_statement.type,
+                                "see_also": data_type_statement.see_also,
+                                "executes": execute,
+                                "has_input": has_inputs,
+                                "has_output": has_outputs,
+                            }
+                            if data_type_statement.type == "AlgorithmEvaluation":
+                                if data_type_statement.evaluate:
+                                    dt["evaluates"] = {
+                                        "label": data_type_statement.evaluate.label,
+                                        "type": data_type_statement.evaluate.type,
+                                        "see_also": data_type_statement.evaluate.see_also,
+                                    }
+                                if data_type_statement.evaluates_for:
+                                    dt["evaluates_for"] = {
+                                        "label": data_type_statement.evaluates_for.label,
+                                        "type": data_type_statement.evaluates_for.type,
+                                        "see_also": data_type_statement.evaluates_for.see_also,
+                                    }
+                            if data_type_statement.type == "MultilevelAnalysis":
+                                targets = []
+                                for target in data_type_statement.targets.all():
+                                    targets.append(
+                                        {
+                                            "label": target.label,
+                                            "type": target.type,
+                                            "see_also": target.see_also,
+                                        }
+                                    )
+                                if targets:
+                                    dt["targets"] = targets
+                                levels = []
+                                for level in data_type_statement.level.all():
+                                    levels.append(
+                                        {
+                                            "label": level.label,
+                                            "type": level.type,
+                                            "see_also": level.see_also,
+                                        }
+                                    )
+                                if levels:
+                                    dt["level"] = levels
+                            if data_type_statement.type == "GroupComparison":
+                                targets = []
+                                for target in data_type_statement.targets.all():
+                                    targets.append(
+                                        {
+                                            "label": target.label,
+                                            "type": target.type,
+                                            "see_also": target.see_also,
+                                        }
+                                    )
+                                if targets:
+                                    dt["targets"] = targets
+                            has_part = statement.has_part_statements.first()
+                            data_type.append(
+                                {
+                                    "has_part": dt,
+                                    "is_implemented_by": implements,
+                                    "type": {
+                                        "name": has_part.schema_type.name,
+                                        "description": has_part.schema_type.description,
+                                        "type_id": has_part.schema_type.type_id,
+                                        "properties": [
+                                            s.split("#", 1)[1] if "#" in s else ""
+                                            for s in has_part.schema_type.property
+                                        ],
+                                    },
+                                }
+                            )
+            
+                    statements.append(
+                        {
+                            "statement_id": statement.statement_id,
+                            "label": statement.label,
+                            "authors": authors,
+                            "concepts": concepts,
+                            "statement": data_type
+                            if statement.statement_id == statement_id
+                            else None,
+                            "type": {
+                                "name": has_part.schema_type.name,
+                                "description": has_part.schema_type.description,
+                                "type_id": has_part.schema_type.type_id,
+                                "properties": [
+                                    s.split("#", 1)[1] if "#" in s else ""
+                                    for s in has_part.schema_type.property
+                                ],
+                            },
+                        }
+                    )
+                result = CommonResponseDTO(
+                    success=True,
+                    result={
+                        "article": paper_info,
+                        "statements": statements,
+                    },
+                    total_count=len(statements),
+                )
+                return result
 
             if statement:
                 statement_dto = self._map_statement_to_dto(statement)
@@ -236,6 +672,121 @@ class PaperServiceImpl(PaperServiceInterface):
             logger.error(f"Error in get_statement_by_id: {str(e)}")
             return CommonResponseDTO(
                 success=False, message=f"Failed to retrieve statement: {str(e)}"
+            )
+
+    def get_paper_by_id(self, paper_id: str) -> CommonResponseDTO:
+        """Get a paper by its ID."""
+        # cache_key = f"paper_{paper_id}"
+        # cached_result = cache.get(cache_key)
+
+        # if cached_result:
+        #     return cached_result
+        print("-----------get_paper_by_id--------------", __file__)
+        try:
+            paper = self.paper_repository.find_by_id(paper_id)
+            if paper:
+                paper_dto = self._map_paper_to_dto(paper)
+                authors = []
+                for author in paper_dto.authors:
+                    authors.append(
+                        {
+                            "label": author.label,
+                            "orcid": author.orcid,
+                            "author_id": author.author_id,
+                        }
+                    )
+                concepts = []
+                if paper_dto.concepts:
+                    for concept in paper_dto.concepts:
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.id,
+                            }
+                        )
+                paper_info = {
+                    "name": paper_dto.name,
+                    "article_id": paper_dto.article_id,
+                    "authors": authors,
+                    "abstract": paper_dto.abstract,
+                    "dois": paper_dto.dois,
+                    "reborn_doi": paper_dto.reborn_doi,
+                    "academic_publication": paper_dto.journal
+                    if paper_dto.journal
+                    else paper_dto.conference,
+                    "concepts": concepts,
+                    "research_fields": paper_dto.research_fields,
+                    "publisher": paper_dto.publisher,
+                    "reborn_date": localtime(paper_dto.created_at).strftime(
+                        "%B %d, %Y"
+                    ),
+                    "date_published": localtime(paper_dto.created_at).strftime("%Y"),
+                }
+                statements = []
+                for statement in paper.statements.all():
+                    has_part = statement.has_part_statements.first()
+                    authors = []
+                    for author in statement.authors.all():
+                        authors.append(
+                            {
+                                "name": author.label,
+                                "author_id": author.author_id,
+                                "orcid": author._id
+                                if author._id.startswith("https://orcid.org/")
+                                else None,
+                            }
+                        )
+
+                    concepts = []
+                    for concept in statement.concepts.all():
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.concept_id,
+                                "see_also": concept.see_also,
+                            }
+                        )
+
+                    statements.append(
+                        {
+                            "statement_id": statement.statement_id,
+                            "label": statement.label,
+                            "authors": authors,
+                            "concepts": concepts,
+                            "type": {
+                                "name": has_part.schema_type.name,
+                                "description": has_part.schema_type.description,
+                                "type_id": has_part.schema_type.type_id,
+                                "properties": [
+                                    s.split("#", 1)[1] if "#" in s else ""
+                                    for s in has_part.schema_type.property
+                                ],
+                            },
+                        }
+                    )
+                print("-------------statements-------------")
+                result = CommonResponseDTO(
+                    success=True,
+                    result={
+                        "article": paper_info,
+                        "statements": statements,
+                    },
+                    total_count=len(statements),
+                )
+                return result
+
+            # Cache for 15 minutes
+            # cache.set(cache_key, result, settings.CACHE_TTL)
+            # return result
+
+            return CommonResponseDTO(
+                success=False, message=f"Paper with ID {paper_id} not found"
+            )
+
+        except Exception as e:
+            logger.error(f"Error in get_paper_by_id: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to retrieve paper: {str(e)}"
             )
 
     def get_authors(self, search_term: str) -> List[AuthorOutputDTO]:
@@ -313,40 +864,23 @@ class PaperServiceImpl(PaperServiceInterface):
         """Get research fields by search term."""
         try:
             research_fields = self.research_field_repository.find_by_label(search_term)
-            return [{"id": rf.id, "name": rf.label} for rf in research_fields]
+            print("---------research_fields----------")
+            print(research_fields)
+            print("---------research_fields----------")
+            return [
+                {"research_field_id": rf.research_field_id, "label": rf.label}
+                for rf in research_fields
+            ]
 
         except Exception as e:
             logger.error(f"Error in get_research_fields: {str(e)}")
             return []
 
-    def get_statement(self, statement_id: str) -> CommonResponseDTO:
-        """Get a statement with related data."""
-        try:
-            statements = self.statement_repository.find_by_id(statement_id)
-
-            # Group statements by article ID
-            grouped_data = {}
-            if statements:
-                # This is specific to the original implementation structure
-                paper_id = statements.article_id
-                if paper_id not in grouped_data:
-                    grouped_data[paper_id] = self._map_statement_to_dto(statements)
-
-            return CommonResponseDTO(
-                success=True, result=grouped_data, total_count=len(grouped_data)
-            )
-
-        except Exception as e:
-            logger.error(f"Error in get_statement: {str(e)}")
-            return CommonResponseDTO(
-                success=False, message=f"Failed to retrieve statement: {str(e)}"
-            )
-
     def get_paper(self, paper_id: str) -> CommonResponseDTO:
         """Get a paper with related data."""
         try:
             paper = self.paper_repository.find_by_id(paper_id)
-
+            print("-----------get_paper--------------", __file__)
             # Group statements by article ID
             grouped_data = {}
             if paper:
@@ -379,38 +913,36 @@ class PaperServiceImpl(PaperServiceInterface):
         page_size: int = 10,
     ) -> PaginatedResponseDTO:
         """Get latest statements with filters."""
-        cache_key = f"latest_statements_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
-        cached_result = cache.get(cache_key)
+        # cache_key = f"latest_statements_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
+        # cached_result = cache.get(cache_key)
 
-        if cached_result:
-            return cached_result
+        # if cached_result:
+        #     return cached_result
+        print("------------get_latest_statements-----------", __file__)
+        # try:
+        statements, total = self.statement_repository.get_latest_statements(
+            research_fields=research_fields,
+            search_query=search_query,
+            sort_order=sort_order,
+            page=page,
+            page_size=page_size,
+        )
 
-        try:
-            statements, total = self.statement_repository.get_latest_statements(
-                research_fields=research_fields,
-                search_query=search_query,
-                sort_order=sort_order,
-                page=page,
-                page_size=page_size,
-            )
+        result = PaginatedResponseDTO(
+            content=[self._map_statement_to_dto(statement) for statement in statements],
+            total_elements=total,
+            page=page,
+            page_size=page_size,
+            total_pages=math.ceil(total / page_size),
+        )
 
-            result = PaginatedResponseDTO(
-                content=[
-                    self._map_statement_to_dto(statement) for statement in statements
-                ],
-                total_elements=total,
-                page=page,
-                page_size=page_size,
-                total_pages=math.ceil(total / page_size),
-            )
+        # Cache for 15 minutes
+        # cache.set(cache_key, result, settings.CACHE_TTL)
+        return result
 
-            # Cache for 15 minutes
-            cache.set(cache_key, result, settings.CACHE_TTL)
-            return result
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_statements: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest statements: {str(e)}")
+        # except Exception as e:
+        #     logger.error(f"Error in get_latest_statements: {str(e)}")
+        #     raise DatabaseError(f"Failed to retrieve latest statements: {str(e)}")
 
     def get_latest_articles(
         self,
@@ -421,11 +953,12 @@ class PaperServiceImpl(PaperServiceInterface):
         page_size: int = 10,
     ) -> PaginatedResponseDTO:
         """Get latest articles with filters."""
-        cache_key = f"latest_articles_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
-        cached_result = cache.get(cache_key)
+        print("-------------get_latest_articles---------------", __file__)
+        # cache_key = f"latest_articles_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
+        # cached_result = cache.get(cache_key)
 
-        if cached_result:
-            return cached_result
+        # if cached_result:
+        #     return cached_result
 
         try:
             papers, total = self.paper_repository.get_latest_articles(
@@ -435,7 +968,6 @@ class PaperServiceImpl(PaperServiceInterface):
                 page=page,
                 page_size=page_size,
             )
-
             result = PaginatedResponseDTO(
                 content=[self._map_paper_to_dto(paper) for paper in papers],
                 total_elements=total,
@@ -445,7 +977,7 @@ class PaperServiceImpl(PaperServiceInterface):
             )
 
             # Cache for 15 minutes
-            cache.set(cache_key, result, settings.CACHE_TTL)
+            # cache.set(cache_key, result, settings.CACHE_TTL)
             return result
 
         except Exception as e:
@@ -461,11 +993,11 @@ class PaperServiceImpl(PaperServiceInterface):
         page_size: int = 10,
     ) -> PaginatedResponseDTO:
         """Get latest keywords with filters."""
-        cache_key = f"latest_keywords_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
-        cached_result = cache.get(cache_key)
+        # cache_key = f"latest_keywords_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
+        # cached_result = cache.get(cache_key)
 
-        if cached_result:
-            return cached_result
+        # if cached_result:
+        #     return cached_result
 
         try:
             concepts, total = self.concept_repository.get_latest_keywords(
@@ -492,7 +1024,7 @@ class PaperServiceImpl(PaperServiceInterface):
             )
 
             # Cache for 15 minutes
-            cache.set(cache_key, result, settings.CACHE_TTL)
+            # cache.set(cache_key, result, settings.CACHE_TTL)
             return result
 
         except Exception as e:
@@ -508,12 +1040,12 @@ class PaperServiceImpl(PaperServiceInterface):
         page_size: int = 10,
     ) -> PaginatedResponseDTO:
         """Get latest authors with filters."""
-        cache_key = f"latest_authors_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
-        cached_result = cache.get(cache_key)
+        # cache_key = f"latest_authors_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
+        # cached_result = cache.get(cache_key)
 
-        if cached_result:
-            return cached_result
-
+        # if cached_result:
+        #     return cached_result
+        print("-------------get_latest_authors----------", __file__)
         try:
             authors, total = self.author_repository.get_latest_authors(
                 research_fields=research_fields,
@@ -525,12 +1057,12 @@ class PaperServiceImpl(PaperServiceInterface):
 
             result = PaginatedResponseDTO(
                 content=[
-                    AuthorOutputDTO(
-                        id=author.id,
-                        given_name=author.given_name,
-                        family_name=author.family_name,
-                        label=author.label
-                        or f"{author.given_name} {author.family_name}",
+                    ShortAuthorOutputDTO(
+                        label=author.label,
+                        author_id=author.author_id,
+                        orcid=author.orcid
+                        if author.orcid and author.orcid.startswith("https://orcid.org")
+                        else None,
                     )
                     for author in authors
                 ],
@@ -541,7 +1073,7 @@ class PaperServiceImpl(PaperServiceInterface):
             )
 
             # Cache for 15 minutes
-            cache.set(cache_key, result, settings.CACHE_TTL)
+            # cache.set(cache_key, result, settings.CACHE_TTL)
             return result
 
         except Exception as e:
@@ -557,11 +1089,12 @@ class PaperServiceImpl(PaperServiceInterface):
         page_size: int = 10,
     ) -> PaginatedResponseDTO:
         """Get latest journals with filters."""
-        cache_key = f"latest_journals_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
-        cached_result = cache.get(cache_key)
+        print("-------------get_latest_journals----------", __file__)
+        # cache_key = f"latest_journals_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
+        # cached_result = cache.get(cache_key)
 
-        if cached_result:
-            return cached_result
+        # if cached_result:
+        #     return cached_result
 
         try:
             journals, total = self.journal_repository.get_latest_journals(
@@ -571,7 +1104,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 page=page,
                 page_size=page_size,
             )
-
+            # print(journals)
             content = []
             for journal in journals:
                 if isinstance(journal, dict):
@@ -579,12 +1112,12 @@ class PaperServiceImpl(PaperServiceInterface):
                         {
                             "id": journal.get("id", ""),
                             "name": journal.get("label", ""),
-                            "publisher": journal.get("publisher", {}).get("label", "")
+                            "_id": journal.get("journal_conference_id", ""),
+                            "publisher": journal.get("publisher", {}).label
                             if journal.get("publisher")
                             else "",
                         }
                     )
-
             result = PaginatedResponseDTO(
                 content=content,
                 total_elements=total,
@@ -594,7 +1127,7 @@ class PaperServiceImpl(PaperServiceInterface):
             )
 
             # Cache for 15 minutes
-            cache.set(cache_key, result, settings.CACHE_TTL)
+            # cache.set(cache_key, result, settings.CACHE_TTL)
             return result
 
         except Exception as e:
@@ -608,11 +1141,11 @@ class PaperServiceImpl(PaperServiceInterface):
         self.scraper.set_url(url)
         json_files = self.scraper.all_json_files()
         ro_crate = self.scraper.load_json_from_url(json_files["ro-crate-metadata.json"])
-        print(json_files)
+        # print(json_files)
         self.paper_repository.add_article(ro_crate, json_files)
         # Invalidate relevant caches
-        cache.delete_pattern("all_papers_*")
-        cache.delete_pattern("latest_articles_*")
+        # cache.delete_pattern("all_papers_*")
+        # cache.delete_pattern("latest_articles_*")
 
         return CommonResponseDTO(
             success=True, message="Paper extracted and saved successfully"
@@ -649,33 +1182,53 @@ class PaperServiceImpl(PaperServiceInterface):
         """Map a paper entity to its DTO."""
         authors = []
         print("----------_map_paper_to_dto------------", __file__)
-        print(paper)
         for author in paper.authors:
             if isinstance(author, dict):
                 authors.append(
                     ShortAuthorOutputDTO(
                         label=author.get("label", ""),
+                        orcid=author.get("orcid", ""),
+                        author_id=author.get("author_id", ""),
                     )
                 )
             else:
                 authors.append(
                     ShortAuthorOutputDTO(
                         label=author.label,
+                        orcid=author.orcid,
+                        author_id=author.author_id,
                     )
                 )
-
         research_fields = []
-        # for rf in paper.research_fields:
-        #     if isinstance(rf, dict):
-        #         research_fields.append(
-        #             ShortResearchFieldOutputDTO(label=rf.get("label", ""))
-        #         )
-        #     else:
-        #         research_fields.append(ShortResearchFieldOutputDTO(label=rf.label))
+        if paper.research_fields:
+            for research_field in paper.research_fields:
+                research_fields.append(
+                    {
+                        "label": research_field.label,
+                        "research_field_id": research_field.research_field_id,
+                    }
+                )
+        academic_publication = None
+        if paper.journal:
+            journal = paper.journal
+            academic_publication = {
+                "label": journal.label,
+                "academic_publication_id": journal.journal_conference_id,
+            }
+
         return ShortPaperOutputDTO(
             id=paper.id,
+            article_id=paper.article_id,
             name=paper.name,
+            concepts=paper.concepts,
+            research_fields=research_fields,
+            reborn_doi=paper.reborn_doi,
+            dois=paper.dois,
+            abstract=paper.abstract,
+            publisher=paper.publisher.label,
             authors=authors,
+            journal=academic_publication,
+            date_published=paper.date_published,
         )
 
     def _map_statement_to_dto(self, statement) -> StatementOutputDTO:
@@ -684,31 +1237,26 @@ class PaperServiceImpl(PaperServiceInterface):
         for author in statement.author:
             if isinstance(author, dict):
                 authors.append(
-                    AuthorOutputDTO(
-                        id=author.get("id", ""),
-                        given_name=author.get("given_name", ""),
-                        family_name=author.get("family_name", ""),
-                        label=author.get("label", ""),
+                    ShortAuthorOutputDTO(
+                        label=author.label,
                     )
                 )
             else:
                 authors.append(
-                    AuthorOutputDTO(
-                        id=author.id,
-                        given_name=author.given_name,
-                        family_name=author.family_name,
+                    ShortAuthorOutputDTO(
                         label=author.label,
                     )
                 )
 
-        return StatementOutputDTO(
+        return ShortStatementOutputDTO(
             id=statement.id,
-            statement_id=statement.statement_id or statement.id,
-            content=statement.content,
-            author=authors,
+            statement_id=statement.statement_id,
+            authors=authors,
             article_id=statement.article_id,
-            supports=statement.supports,
-            notation=None,  # Will be filled separately if needed
+            article_name=statement.article_name,
+            date_published=statement.date_published,
+            journal_conference=statement.journal_conference,
+            label=statement.label,
             created_at=statement.created_at,
             updated_at=statement.updated_at,
         )

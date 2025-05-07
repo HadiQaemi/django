@@ -10,10 +10,13 @@ from pydantic import BaseModel, Field
 
 
 class ShortAuthorOutputDTO(BaseModel):
-    label: Optional[str] = None
+    label: str
+    orcid: Optional[str] = None
+    author_id: Optional[str] = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
+
 
 class AuthorOutputDTO(BaseModel):
     id: str
@@ -41,6 +44,7 @@ class ResearchFieldOutputDTO(BaseModel):
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
 
+
 class ShortResearchFieldOutputDTO(BaseModel):
     label: str
 
@@ -53,10 +57,11 @@ class JournalOutputDTO(BaseModel):
     label: str
     publisher: Optional[Dict[str, Any]] = None
 
+
 class ShortJournalOutputDTO(BaseModel):
     id: str
     label: str
-    publisher: Optional[Dict[str, Any]] = None
+    publisher: Optional[str] = None
 
 
 class ConferenceOutputDTO(BaseModel):
@@ -79,6 +84,22 @@ class StatementOutputDTO(BaseModel):
     article_id: str
     supports: List[Dict[str, Any]] = Field(default_factory=list)
     notation: Optional[NotationOutputDTO] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+
+class ShortStatementOutputDTO(BaseModel):
+    id: int
+    statement_id: str
+    authors: List[ShortAuthorOutputDTO]
+    label: str
+    article_id: int
+    article_name: str
+    date_published: Optional[datetime] = None
+    journal_conference: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -130,12 +151,22 @@ class PaperOutputDTO(BaseModel):
 
         json_encoders = {datetime: lambda v: v.isoformat()}
 
+
 class ShortPaperOutputDTO(BaseModel):
     id: int
     name: str
+    abstract: Optional[str] = None
     authors: List[ShortAuthorOutputDTO]
-    # date_published: Optional[datetime] = None
-    # journal_conference: Optional[ShortJournalOutputDTO] = None
+    statements: Optional[List[Any]] = None
+    research_fields: Optional[List[Any]] = None
+    concepts: Optional[List[Any]] = None
+    date_published: Optional[datetime] = None
+    journal: Optional[Dict[str, Any]] = None
+    article_id: str
+    dois: Optional[str] = None
+    reborn_doi: Optional[str] = None
+    publisher: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}

@@ -29,28 +29,21 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    
     # Database extensions
     "django.contrib.postgres",
-    
     # API-related
     "rest_framework",
     "corsheaders",
     "drf_yasg",
-
     # Async/celery
     "django_celery_results",
     "django_celery_beat",
-    
     # Monitoring
     "django_prometheus",
-    
     # ORM extensions
     "polymorphic",
-    
     # Security - login attempt throttling
-    "axes",  
-    
+    "axes",
     # Project apps
     "core",
     "core.infrastructure",
@@ -224,17 +217,18 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 # Cache settings
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.environ.get("REDIS_URL", "redis://localhost:6379/1"),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # "PARSER_CLASS": "redis.connection.HiredisParser",
-        },
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache"
+        # "BACKEND": "django_redis.cache.RedisCache",
+        # "LOCATION": os.environ.get("REDIS_URL", "redis://localhost:6379/1"),
+        # "OPTIONS": {
+        #     "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        #     # "PARSER_CLASS": "redis.connection.HiredisParser",
+        # },
     }
 }
 
 # Cache time to live is 15 minutes
-CACHE_TTL = 60 * 15
+CACHE_TTL = 1
 
 # Search engine settings
 ELASTICSEARCH_DSL = {

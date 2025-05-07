@@ -59,14 +59,15 @@ if "SENTRY_DSN" in os.environ:
 # Cache settings for production
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.environ.get("REDIS_URL"),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PARSER_CLASS": "redis.connection.HiredisParser",
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "IGNORE_EXCEPTIONS": False,
-        },
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache"
+        # "BACKEND": "django_redis.cache.RedisCache",
+        # "LOCATION": os.environ.get("REDIS_URL"),
+        # "OPTIONS": {
+        #     "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        #     "PARSER_CLASS": "redis.connection.HiredisParser",
+        #     "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+        #     "IGNORE_EXCEPTIONS": False,
+        # },
     }
 }
 

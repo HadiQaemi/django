@@ -31,7 +31,7 @@ class TypeRegistryClient:
 
         if cached_data:
             logger.debug(f"Using cached type information for {type_id}")
-            return {
+            return cached_data, {
                 "name": cached_data.name,
                 "description": cached_data.description,
                 "property": cached_data.property,
@@ -42,12 +42,12 @@ class TypeRegistryClient:
                 f"Fetching type information for {type_id} from external service"
             )
             type_data = self._fetch_from_api(type_id)
-            self._update_cache(type_id, type_data)
-            
+            _update_cache = self._update_cache(type_id, type_data)
+
             properties = []
             for property in type_data["Schema"]["Properties"]:
                 properties.append(f"doi:{type_data['Identifier']}#{property['Name']}")
-            return {
+            return _update_cache, {
                 "name": type_data["name"].replace("_", " ").capitalize(),
                 "property": properties,
                 "description": type_data["description"],
@@ -97,5 +97,5 @@ class TypeRegistryClient:
         )
         return datetime.now() < expiration_date
 
-    def _update_cache(self, type_id: str, type_data: Dict[str, Any]) -> None:
-        self.cache_repository.save_schema(type_id, type_data)
+    def _update_cache(self, type_id: str, type_data: Dict[str, Any]) -> CacheRepository:
+        return self.cache_repository.save_schema(type_id, type_data)

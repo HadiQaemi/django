@@ -16,6 +16,7 @@ class TimeStampedModel(models.Model):
 class Author(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    author_id = models.CharField(max_length=255, null=True)
     given_name = models.CharField(max_length=255)
     family_name = models.CharField(max_length=255)
     label = models.CharField(max_length=255, null=True, blank=True)
@@ -36,6 +37,7 @@ class Author(TimeStampedModel):
 class ResearchField(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    research_field_id = models.CharField(max_length=255, null=True)
     label = models.CharField(max_length=255)
     json = JSONField(null=True, blank=True)
 
@@ -286,6 +288,7 @@ class Component(TimeStampedModel):
 class Concept(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    concept_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
     label = models.CharField(max_length=255)
     definition = models.TextField(null=True, blank=True)
@@ -348,6 +351,7 @@ class Identifier(TimeStampedModel):
 class Publisher(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    publisher_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
     label = models.CharField(max_length=255)
 
@@ -365,6 +369,7 @@ class Publisher(TimeStampedModel):
 class JournalConference(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    journal_conference_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
     label = models.CharField(max_length=255)
     type = models.CharField(max_length=255, null=True)
@@ -394,6 +399,7 @@ class JournalConference(TimeStampedModel):
 class Article(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    article_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
     name = models.CharField(max_length=255)
     abstract = models.TextField(null=True, blank=True)
@@ -435,7 +441,8 @@ class Article(TimeStampedModel):
 
 
 class SchemaType(TimeStampedModel):
-    type_id = models.CharField(max_length=255, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    type_id = models.CharField(max_length=255, unique=True)
     schema_data = JSONField()
     name = models.CharField(
         max_length=255,
@@ -462,6 +469,7 @@ class SchemaType(TimeStampedModel):
 class Statement(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    statement_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
     content = JSONField(null=True, blank=True)
     version = models.CharField(max_length=255, null=True)
@@ -537,6 +545,14 @@ class HasPart(TimeStampedModel):
         Statement,
         on_delete=models.CASCADE,
         related_name="has_part_statements",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    schema_type = models.ForeignKey(
+        SchemaType,
+        on_delete=models.CASCADE,
+        related_name="has_parts",
         null=True,
         blank=True,
         db_index=True,
@@ -709,6 +725,7 @@ class SoftwareMethod(TimeStampedModel):
 class DataType(TimeStampedModel, PolymorphicModel):
     id = models.AutoField(primary_key=True)
     label = models.CharField(max_length=255)
+    type = models.CharField(max_length=255)
     see_also = models.CharField(max_length=255)
     statement = models.ForeignKey(
         Statement,
@@ -770,67 +787,6 @@ class DescriptiveStatistics(DataType):
         return self.id
 
 
-class Algorithm(TimeStampedModel):
-    id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
-    see_also = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
-
-    class Meta:
-        db_table = "algorithms"
-        indexes = [
-            models.Index(fields=["id"]),
-            models.Index(fields=["label"]),
-        ]
-
-    def __str__(self):
-        return self.label
-
-
-class Task(TimeStampedModel):
-    id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
-    see_also = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
-
-    class Meta:
-        db_table = "tasks"
-        indexes = [
-            models.Index(fields=["id"]),
-            models.Index(fields=["label"]),
-        ]
-
-    def __str__(self):
-        return self.label
-
-
-class AlgorithmEvaluation(DataType):
-    evaluate = models.ForeignKey(
-        Algorithm,
-        on_delete=models.CASCADE,
-        related_name="evaluate",
-        null=True,
-        blank=True,
-        db_index=True,
-    )
-    evaluates_for = models.ForeignKey(
-        Task,
-        on_delete=models.CASCADE,
-        related_name="evaluates_for",
-        null=True,
-        blank=True,
-        db_index=True,
-    )
-
-    class Meta:
-        db_table = "algorithm_evaluations"
-
-    def __str__(self):
-        return self.id
-
-
 class SharedType(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     label = models.CharField(max_length=255, null=True, blank=True)
@@ -848,6 +804,31 @@ class SharedType(TimeStampedModel):
 
     def __str__(self):
         return self.label
+
+
+class AlgorithmEvaluation(DataType):
+    evaluate = models.ForeignKey(
+        SharedType,
+        on_delete=models.CASCADE,
+        related_name="evaluate",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    evaluates_for = models.ForeignKey(
+        SharedType,
+        on_delete=models.CASCADE,
+        related_name="evaluates_for",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "algorithm_evaluations"
+
+    def __str__(self):
+        return self.id
 
 
 class MultilevelAnalysis(DataType):

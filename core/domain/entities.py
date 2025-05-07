@@ -16,12 +16,18 @@ class Author:
     id: str
     given_name: str
     family_name: str
+    orcid: str
+    author_id: str
     label: Optional[str] = None
 
     @property
     def full_name(self) -> str:
         """Get the author's full name."""
         return f"{self.given_name} {self.family_name}"
+
+    def formatted_orcid(self):
+        if self.orcid and self.orcid.startswith("https://orcid.org"):
+            return self
 
 
 @dataclass
@@ -31,6 +37,7 @@ class Journal:
     id: str
     label: str
     publisher: Optional[Dict[str, Any]] = None
+    journal_conference_id: Optional[str] = None
 
 
 @dataclass
@@ -57,6 +64,7 @@ class ResearchField:
 
     id: str
     label: str
+    research_field_id: Optional[str] = None
 
 
 @dataclass
@@ -73,11 +81,16 @@ class Statement:
     """Statement or claim made in a paper."""
 
     id: str
-    content: Dict[str, Any]
+    label: str
+    # content: Dict[str, Any]
     author: List[Author]
     article_id: str
+    article_name: str
+    date_published: str
+    journal_conference: str
     supports: List[Dict[str, Any]] = field(default_factory=list)
-    notation: Optional[Notation] = None
+    article: Optional[List[Dict[str, Any]]] = None
+    # notation: Optional[Notation] = None
     statement_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -103,7 +116,7 @@ class Paper:
     """Research paper with its metadata and contributions."""
 
     id: str
-    title: str
+    name: str
     authors: List[Author]
     abstract: str
     contributions: List[Contribution] = field(default_factory=list)
