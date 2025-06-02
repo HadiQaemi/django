@@ -455,6 +455,15 @@ class SQLPaperRepository(PaperRepository):
             logger.error(f"Error in delete_database: {str(e)}")
             return False
 
+    def get_property_info(self, info, property):
+        # print("len(info): ", len(info))
+        # print(info)
+        _type = info["@type"]
+        if f"{_type}#{property}" in info:
+            return info[f"{_type}#{property}"]
+        elif f"{_type}#{property}".replace("doi:", "doi:21.T11969/") in info:
+            return info[f"{_type}#{property}".replace("doi:", "doi:21.T11969/")]
+
     def add_article(
         self, paper_data: Dict[str, Any], json_files: Dict[str, str]
     ) -> bool:
@@ -857,13 +866,18 @@ class SQLPaperRepository(PaperRepository):
         # print('----------data["json_files"]------------')
         # print(data["json_files"])
         # print('----------data["json_files"]------------')
+        # iii = 0
         for statement_item in data["json_files"]:
-            print("---------------------------------")
-            print("json file: ", statement_item.get("name", ""))
+            # print("---------------------------------")
+            # print("json file: ", statement_item.get("name", ""))
+            # print("json file: ", statement_item)
+            # iii += 1
+            # if iii > 3:
+            #     continue
             statement_content = scraper.load_json_from_url(
                 json_files[statement_item.get("name", "")]
             )
-            # print("----------------statement_content-----------------")
+            print("----------------statement_content-----------------")
             # print(statement_content)
             # print("----------------statement_content-----------------")
             # print("----------------statement_item-----------------")
@@ -912,13 +926,12 @@ class SQLPaperRepository(PaperRepository):
             type_info, _info = self.type_registry_client.get_type_info(
                 statement_content["@type"].replace("doi:", "")
             )
-            print(f"Line: {sys._getframe(0).f_lineno}", statement_content["@type"])
-            print(
-                f"Line: {sys._getframe(0).f_lineno}",
-                f"{statement_content['@type']}#label",
-            )
-
-            print('----------type_info["property"]--------------')
+            # print(f"Line: {sys._getframe(0).f_lineno}", statement_content["@type"])
+            # print(
+            #     f"Line: {sys._getframe(0).f_lineno}",
+            #     f"{statement_content['@type']}#label",
+            # )
+            # print('----------type_info["property"]--------------')
             # print(statement_content)
             for property in _info["property"]:
                 p = property
@@ -991,106 +1004,27 @@ class SQLPaperRepository(PaperRepository):
                                     if not isinstance(has_outputs, list):
                                         has_outputs = [has_outputs]
                                     for has_output in has_outputs:
-                                        has_output_type = has_output["@type"]
-                                        has_output_source_table = ""
-                                        if (
-                                            f"{has_output_type}#source_table"
-                                            in has_output
-                                        ):
-                                            has_output_source_table = has_output[
-                                                f"{has_output_type}#source_table"
-                                            ]
-                                        elif (
-                                            f"{has_output_type}#source_table".replace(
-                                                "doi:", "doi:21.T11969/"
+                                        has_output_source_table = (
+                                            self.get_property_info(
+                                                has_output, "source_table"
                                             )
-                                            in has_output
-                                        ):
-                                            has_output_source_table = has_output[
-                                                f"{has_output_type}#source_table".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-
-                                        has_output_label = ""
-                                        if f"{has_output_type}#label" in has_output:
-                                            has_output_label = has_output[
-                                                f"{has_output_type}#label"
-                                            ]
-                                        elif (
-                                            f"{has_output_type}#label".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_output
-                                        ):
-                                            has_output_label = has_output[
-                                                f"{has_output_type}#label".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-
-                                        has_output_source_url = ""
-                                        if (
-                                            f"{has_output_type}#source_url"
-                                            in has_output
-                                        ):
-                                            has_output_source_url = has_output[
-                                                f"{has_output_type}#source_url"
-                                            ]
-                                        elif (
-                                            f"{has_output_type}#source_url".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_output
-                                        ):
-                                            has_output_source_url = has_output[
-                                                f"{has_output_type}#source_url".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-
-                                        has_output_comment = ""
-                                        if f"{has_output_type}#comment" in has_output:
-                                            has_output_comment = has_output[
-                                                f"{has_output_type}#comment"
-                                            ]
-                                            if isinstance(has_output_comment, str):
-                                                has_output_comment = [
-                                                    has_output_comment
-                                                ]
-                                        elif (
-                                            f"{has_output_type}#comment".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_output
-                                        ):
-                                            has_output_comment = has_output[
-                                                f"{has_output_type}#comment".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-                                            if isinstance(has_output_comment, str):
-                                                has_output_comment = [
-                                                    has_output_comment
-                                                ]
+                                        )
+                                        has_output_label = self.get_property_info(
+                                            has_output, "label"
+                                        )
+                                        has_output_source_url = self.get_property_info(
+                                            has_output, "source_url"
+                                        )
+                                        has_output_comment = self.get_property_info(
+                                            has_output, "comment"
+                                        )
+                                        if isinstance(has_output_comment, str):
+                                            has_output_comment = [has_output_comment]
 
                                         has_output_has_parts = []
-                                        has_output_has_part = None
-                                        if f"{has_output_type}#has_part" in has_output:
-                                            has_output_has_part = has_output[
-                                                f"{has_output_type}#has_part"
-                                            ]
-                                        elif (
-                                            f"{has_output_type}#has_part".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_output
-                                        ):
-                                            has_output_has_part = has_output[
-                                                f"{has_output_type}#has_part".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
+                                        has_output_has_part = self.get_property_info(
+                                            has_output, "has_part"
+                                        )
                                         if has_output_has_part:
                                             if not isinstance(
                                                 has_output_has_part, (dict, list)
@@ -1099,39 +1033,12 @@ class SQLPaperRepository(PaperRepository):
                                                     has_output_has_part
                                                 ]
                                             for item in has_output_has_part:
-                                                has_part_type = item["@type"]
-                                                item_label = ""
-                                                if f"{has_part_type}#label" in item:
-                                                    item_label = item[
-                                                        f"{has_part_type}#label"
-                                                    ]
-                                                elif (
-                                                    f"{has_part_type}#label".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                    in item
-                                                ):
-                                                    item_label = item[
-                                                        f"{has_part_type}#label".replace(
-                                                            "doi:", "doi:21.T11969/"
-                                                        )
-                                                    ]
-                                                item_see_also = ""
-                                                if f"{has_part_type}#see_also" in item:
-                                                    item_see_also = item[
-                                                        f"{has_part_type}#see_also"
-                                                    ]
-                                                elif (
-                                                    f"{has_part_type}#see_also".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                    in item
-                                                ):
-                                                    item_see_also = item[
-                                                        f"{has_part_type}#see_also".replace(
-                                                            "doi:", "doi:21.T11969/"
-                                                        )
-                                                    ]
+                                                item_label = self.get_property_info(
+                                                    item, "label"
+                                                )
+                                                item_see_also = self.get_property_info(
+                                                    item, "see_also"
+                                                )
                                                 has_part, created = (
                                                     DataItemComponentModel.objects.update_or_create(
                                                         label=item_label,
@@ -1145,71 +1052,24 @@ class SQLPaperRepository(PaperRepository):
                                                 has_output_has_parts.append(has_part)
 
                                         has_characteristic = None
-                                        has_output_has_characteristic = None
-                                        if (
-                                            f"{has_output_type}#has_characteristic"
-                                            in has_output
-                                        ):
-                                            has_output_has_characteristic = has_output[
-                                                f"{has_output_type}#has_characteristic"
-                                            ]
-                                        elif (
-                                            f"{has_output_type}#has_characteristic".replace(
-                                                "doi:", "doi:21.T11969/"
+                                        has_output_has_characteristic = (
+                                            self.get_property_info(
+                                                has_output, "has_characteristic"
                                             )
-                                            in has_output
-                                        ):
-                                            has_output_has_characteristic = has_output[
-                                                f"{has_output_type}#has_characteristic".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-
+                                        )
                                         if has_output_has_characteristic:
-                                            has_characteristic_type = (
-                                                has_output_has_characteristic["@type"]
+                                            has_expression_number_of_rows = (
+                                                self.get_property_info(
+                                                    has_output_has_characteristic,
+                                                    "number_of_rows",
+                                                )
                                             )
-
-                                            has_expression_number_of_rows = None
-                                            if (
-                                                f"{has_characteristic_type}#number_of_rows"
-                                                in has_output_has_characteristic
-                                            ):
-                                                has_expression_number_of_rows = has_output_has_characteristic[
-                                                    f"{has_characteristic_type}#number_of_rows"
-                                                ]
-                                            elif (
-                                                f"{has_characteristic_type}#number_of_rows".replace(
-                                                    "doi:", "doi:21.T11969/"
+                                            has_expression_number_of_columns = (
+                                                self.get_property_info(
+                                                    has_output_has_characteristic,
+                                                    "number_of_columns",
                                                 )
-                                                in has_output_has_characteristic
-                                            ):
-                                                has_expression_number_of_rows = has_output_has_characteristic[
-                                                    f"{has_characteristic_type}#number_of_rows".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
-
-                                            has_expression_number_of_columns = None
-                                            if (
-                                                f"{has_characteristic_type}#number_of_columns"
-                                                in has_output_has_characteristic
-                                            ):
-                                                has_expression_number_of_columns = has_output_has_characteristic[
-                                                    f"{has_characteristic_type}#number_of_columns"
-                                                ]
-                                            elif (
-                                                f"{has_characteristic_type}#number_of_columns".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                                in has_output_has_characteristic
-                                            ):
-                                                has_expression_number_of_columns = has_output_has_characteristic[
-                                                    f"{has_characteristic_type}#number_of_columns".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
-
+                                            )
                                             has_characteristic, created = (
                                                 MartixSizeModel.objects.update_or_create(
                                                     number_rows=has_expression_number_of_rows,
@@ -1222,70 +1082,23 @@ class SQLPaperRepository(PaperRepository):
                                             )
 
                                         has_expressions = []
-                                        has_output_has_expression = None
-                                        if (
-                                            f"{has_output_type}#has_expression"
-                                            in has_output
-                                        ):
-                                            has_output_has_expression = has_output[
-                                                f"{has_output_type}#has_expression"
-                                            ]
-                                        elif (
-                                            f"{has_output_type}#has_expression".replace(
-                                                "doi:", "doi:21.T11969/"
+                                        has_output_has_expression = (
+                                            self.get_property_info(
+                                                has_output, "has_expression"
                                             )
-                                            in has_output
-                                        ):
-                                            has_output_has_expression = has_output[
-                                                f"{has_output_type}#has_expression".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-
+                                        )
                                         if has_output_has_expression:
-                                            has_expression_type = (
-                                                has_output_has_expression["@type"]
+                                            has_expression_label = (
+                                                self.get_property_info(
+                                                    has_output_has_expression, "label"
+                                                )
                                             )
-                                            has_expression_label = ""
-                                            if (
-                                                f"{has_expression_type}#label"
-                                                in has_output_has_expression
-                                            ):
-                                                has_expression_label = (
-                                                    has_output_has_expression[
-                                                        f"{has_expression_type}#label"
-                                                    ]
+                                            has_expression_source_url = (
+                                                self.get_property_info(
+                                                    has_output_has_expression,
+                                                    "source_url",
                                                 )
-                                            elif (
-                                                f"{has_expression_type}#label".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                                in has_output_has_expression
-                                            ):
-                                                has_expression_label = has_output_has_expression[
-                                                    f"{has_expression_type}#label".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
-                                            has_expression_source_url = ""
-                                            if (
-                                                f"{has_expression_type}#source_url"
-                                                in has_output_has_expression
-                                            ):
-                                                has_expression_source_url = has_output_has_expression[
-                                                    f"{has_expression_type}#source_url"
-                                                ]
-                                            elif (
-                                                f"{has_expression_type}#source_url".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                                in has_output_has_expression
-                                            ):
-                                                has_expression_source_url = has_output_has_expression[
-                                                    f"{has_expression_type}#source_url".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
+                                            )
                                             figure, created = (
                                                 FigureModel.objects.update_or_create(
                                                     source_url=has_expression_source_url,
@@ -1301,6 +1114,10 @@ class SQLPaperRepository(PaperRepository):
                                         data_item, created = (
                                             DataItemModel.objects.update_or_create(
                                                 label=has_output_label,
+                                                source_url=has_output_source_url,
+                                                source_table=has_output_source_table,
+                                                comment=has_output_comment,
+                                                has_characteristic=has_characteristic,
                                                 defaults={
                                                     "label": has_output_label,
                                                     "source_url": has_output_source_url,
@@ -1327,100 +1144,28 @@ class SQLPaperRepository(PaperRepository):
                                     has_inputs = statement_content_item[_p]
                                     if not isinstance(has_inputs, list):
                                         has_inputs = [has_inputs]
+
                                     for has_input in has_inputs:
-                                        has_input_type = has_input["@type"]
-                                        has_input_source_table = ""
-                                        if (
-                                            f"{has_input_type}#source_table"
-                                            in has_input
-                                        ):
-                                            has_input_source_table = has_input[
-                                                f"{has_input_type}#source_table"
-                                            ]
-                                        elif (
-                                            f"{has_input_type}#source_table".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_input
-                                        ):
-                                            has_input_source_table = has_input[
-                                                f"{has_input_type}#source_table".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
+                                        has_input_source_table = self.get_property_info(
+                                            has_input, "source_table"
+                                        )
+                                        has_input_label = self.get_property_info(
+                                            has_input, "label"
+                                        )
+                                        has_input_source_url = self.get_property_info(
+                                            has_input, "source_url"
+                                        )
 
-                                        has_input_label = ""
-                                        if f"{has_input_type}#label" in has_input:
-                                            has_input_label = has_input[
-                                                f"{has_input_type}#label"
-                                            ]
-                                        elif (
-                                            f"{has_input_type}#label".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_input
-                                        ):
-                                            has_input_label = has_input[
-                                                f"{has_input_type}#label".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-
-                                        has_input_source_url = ""
-                                        if f"{has_input_type}#source_url" in has_input:
-                                            has_input_source_url = has_input[
-                                                f"{has_input_type}#source_url"
-                                            ]
-                                        elif (
-                                            f"{has_input_type}#source_url".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_input
-                                        ):
-                                            has_input_source_url = has_input[
-                                                f"{has_input_type}#source_url".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-
-                                        has_input_comment = ""
-                                        if f"{has_input_type}#comment" in has_input:
-                                            has_input_comment = has_input[
-                                                f"{has_input_type}#comment"
-                                            ]
-                                            if isinstance(has_input_comment, str):
-                                                has_input_comment = [has_input_comment]
-                                        elif (
-                                            f"{has_input_type}#comment".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_input
-                                        ):
-                                            has_input_comment = has_input[
-                                                f"{has_input_type}#comment".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-                                            if isinstance(has_input_comment, str):
-                                                has_input_comment = [has_input_comment]
+                                        has_input_comment = self.get_property_info(
+                                            has_input, "comment"
+                                        )
+                                        if isinstance(has_input_comment, str):
+                                            has_input_comment = [has_input_comment]
 
                                         has_input_has_parts = []
-                                        has_input_has_part = None
-                                        if f"{has_input_type}#has_part" in has_input:
-                                            has_input_has_part = has_input[
-                                                f"{has_input_type}#has_part"
-                                            ]
-                                        elif (
-                                            f"{has_input_type}#has_part".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in has_input
-                                        ):
-                                            has_input_has_part = has_input[
-                                                f"{has_input_type}#has_part".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
+                                        has_input_has_part = self.get_property_info(
+                                            has_input, "has_part"
+                                        )
 
                                         if has_input_has_part:
                                             if not isinstance(
@@ -1430,39 +1175,12 @@ class SQLPaperRepository(PaperRepository):
                                                     has_input_has_part
                                                 ]
                                             for item in has_input_has_part:
-                                                has_part_type = item["@type"]
-                                                label_item = None
-                                                if f"{has_part_type}#label" in item:
-                                                    label_item = item[
-                                                        f"{has_part_type}#label"
-                                                    ]
-                                                elif (
-                                                    f"{has_part_type}#label".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                    in item
-                                                ):
-                                                    label_item = item[
-                                                        f"{has_part_type}#label".replace(
-                                                            "doi:", "doi:21.T11969/"
-                                                        )
-                                                    ]
-                                                label_see_also = None
-                                                if f"{has_part_type}#see_also" in item:
-                                                    label_see_also = item[
-                                                        f"{has_part_type}#see_also"
-                                                    ]
-                                                elif (
-                                                    f"{has_part_type}#see_also".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                    in item
-                                                ):
-                                                    label_see_also = item[
-                                                        f"{has_part_type}#see_also".replace(
-                                                            "doi:", "doi:21.T11969/"
-                                                        )
-                                                    ]
+                                                label_item = self.get_property_info(
+                                                    item, "label"
+                                                )
+                                                label_see_also = self.get_property_info(
+                                                    item, "see_also"
+                                                )
                                                 has_part, created = (
                                                     DataItemComponentModel.objects.update_or_create(
                                                         label=label_item,
@@ -1476,70 +1194,25 @@ class SQLPaperRepository(PaperRepository):
                                                 has_input_has_parts.append(has_part)
 
                                         has_characteristic = None
-                                        has_input_has_characteristic = None
-                                        if (
-                                            f"{has_input_type}#has_characteristic"
-                                            in has_input
-                                        ):
-                                            has_input_has_characteristic = has_input[
-                                                f"{has_input_type}#has_characteristic"
-                                            ]
-                                        elif (
-                                            f"{has_input_type}#has_characteristic".replace(
-                                                "doi:", "doi:21.T11969/"
+                                        has_input_has_characteristic = (
+                                            self.get_property_info(
+                                                has_input, "has_characteristic"
                                             )
-                                            in has_input
-                                        ):
-                                            has_input_has_characteristic = has_input[
-                                                f"{has_input_type}#has_characteristic".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
+                                        )
 
                                         if has_input_has_characteristic:
-                                            has_characteristic_type = (
-                                                has_input_has_characteristic["@type"]
+                                            has_expression_number_of_rows = (
+                                                self.get_property_info(
+                                                    has_input_has_characteristic,
+                                                    "number_of_rows",
+                                                )
                                             )
-
-                                            has_expression_number_of_rows = None
-                                            if (
-                                                f"{has_characteristic_type}#number_of_rows"
-                                                in has_input_has_characteristic
-                                            ):
-                                                has_expression_number_of_rows = has_input_has_characteristic[
-                                                    f"{has_characteristic_type}#number_of_rows"
-                                                ]
-                                            elif (
-                                                f"{has_characteristic_type}#number_of_rows".replace(
-                                                    "doi:", "doi:21.T11969/"
+                                            has_expression_number_of_columns = (
+                                                self.get_property_info(
+                                                    has_input_has_characteristic,
+                                                    "number_of_columns",
                                                 )
-                                                in has_input_has_characteristic
-                                            ):
-                                                has_expression_number_of_rows = has_input_has_characteristic[
-                                                    f"{has_characteristic_type}#number_of_rows".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
-
-                                            has_expression_number_of_columns = None
-                                            if (
-                                                f"{has_characteristic_type}#number_of_columns"
-                                                in has_input_has_characteristic
-                                            ):
-                                                has_expression_number_of_columns = has_input_has_characteristic[
-                                                    f"{has_characteristic_type}#number_of_columns"
-                                                ]
-                                            elif (
-                                                f"{has_characteristic_type}#number_of_columns".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                                in has_input_has_characteristic
-                                            ):
-                                                has_expression_number_of_columns = has_input_has_characteristic[
-                                                    f"{has_characteristic_type}#number_of_columns".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
+                                            )
 
                                             has_characteristic, created = (
                                                 MartixSizeModel.objects.update_or_create(
@@ -1553,69 +1226,25 @@ class SQLPaperRepository(PaperRepository):
                                             )
 
                                         has_expressions = None
-                                        has_input_has_expression = None
-                                        if (
-                                            f"{has_input_type}#has_expression"
-                                            in has_input
-                                        ):
-                                            has_input_has_expression = has_input[
-                                                f"{has_input_type}#has_expression"
-                                            ]
-                                        elif (
-                                            f"{has_input_type}#has_expression".replace(
-                                                "doi:", "doi:21.T11969/"
+                                        has_input_has_expression = (
+                                            self.get_property_info(
+                                                has_input,
+                                                "has_expression",
                                             )
-                                            in has_input
-                                        ):
-                                            has_input_has_expression = has_input[
-                                                f"{has_input_type}#has_expression".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
+                                        )
                                         if has_input_has_expression:
-                                            has_expression_type = (
-                                                has_input_has_expression["@type"]
+                                            has_expression_label = (
+                                                self.get_property_info(
+                                                    has_input_has_expression,
+                                                    "label",
+                                                )
                                             )
-                                            has_expression_label = ""
-                                            if (
-                                                f"{has_expression_type}#label"
-                                                in has_input_has_expression
-                                            ):
-                                                has_expression_label = (
-                                                    has_input_has_expression[
-                                                        f"{has_expression_type}#label"
-                                                    ]
+                                            has_expression_source_url = (
+                                                self.get_property_info(
+                                                    has_input_has_expression,
+                                                    "source_url",
                                                 )
-                                            elif (
-                                                f"{has_expression_type}#label".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                                in has_input_has_expression
-                                            ):
-                                                has_expression_label = has_input_has_expression[
-                                                    f"{has_expression_type}#label".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
-                                            has_expression_source_url = ""
-                                            if (
-                                                f"{has_expression_type}#source_url"
-                                                in has_input_has_expression
-                                            ):
-                                                has_expression_source_url = has_input_has_expression[
-                                                    f"{has_expression_type}#source_url"
-                                                ]
-                                            elif (
-                                                f"{has_expression_type}#source_url".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                                in has_input_has_expression
-                                            ):
-                                                has_expression_source_url = has_input_has_expression[
-                                                    f"{has_expression_type}#source_url".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
+                                            )
                                             figure, created = (
                                                 FigureModel.objects.update_or_create(
                                                     source_url=has_expression_source_url,
@@ -1630,6 +1259,10 @@ class SQLPaperRepository(PaperRepository):
                                         data_item, created = (
                                             DataItemModel.objects.update_or_create(
                                                 label=has_input_label,
+                                                source_url=has_input_source_url,
+                                                source_table=has_input_source_table,
+                                                comment=has_input_comment,
+                                                has_characteristic=has_characteristic,
                                                 defaults={
                                                     "label": has_input_label,
                                                     "source_url": has_input_source_url,
@@ -1660,46 +1293,17 @@ class SQLPaperRepository(PaperRepository):
                                         _p,
                                     )
                                     evaluates_for = statement_content_item[_p]
-                                    evaluates_for_type = evaluates_for["@type"]
                                     evaluates_for_see_also = []
-                                    evaluates_for_label = ""
-                                    if (
-                                        f"{evaluates_for_type}#see_also"
-                                        in evaluates_for
-                                    ):
-                                        evaluates_for_see_also.append(
-                                            evaluates_for[
-                                                f"{evaluates_for_type}#see_also"
-                                            ]
+                                    evaluates_for_see_also.append(
+                                        self.get_property_info(
+                                            evaluates_for,
+                                            "see_also",
                                         )
-                                    elif (
-                                        f"{evaluates_for_type}#see_also".replace(
-                                            "doi:", "doi:21.T11969/"
-                                        )
-                                        in evaluates_for
-                                    ):
-                                        evaluates_for_see_also.append(
-                                            evaluates_for[
-                                                f"{evaluates_for_type}#see_also".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-                                        )
-                                    if f"{evaluates_for_type}#label" in evaluates_for:
-                                        evaluates_for_label = evaluates_for[
-                                            f"{evaluates_for_type}#label"
-                                        ]
-                                    elif (
-                                        f"{evaluates_for_type}#label".replace(
-                                            "doi:", "doi:21.T11969/"
-                                        )
-                                        in evaluates_for
-                                    ):
-                                        evaluates_for_label = evaluates_for[
-                                            f"{evaluates_for_type}#label".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                        ]
+                                    )
+                                    evaluates_for_label = self.get_property_info(
+                                        evaluates_for,
+                                        "label",
+                                    )
                                     evaluates_for_item, created = (
                                         SharedTypeModel.objects.update_or_create(
                                             see_also=evaluates_for_see_also,
@@ -1719,41 +1323,17 @@ class SQLPaperRepository(PaperRepository):
                                         _p,
                                     )
                                     evaluate = statement_content_item[_p]
-                                    evaluate_type = evaluate["@type"]
                                     evaluate_see_also = []
-                                    evaluate_label = ""
-                                    if f"{evaluate_type}#see_also" in evaluate:
-                                        evaluate_see_also.append(
-                                            evaluate[f"{evaluate_type}#see_also"]
+                                    evaluate_see_also.append(
+                                        self.get_property_info(
+                                            evaluate,
+                                            "see_also",
                                         )
-                                    elif (
-                                        f"{evaluate_type}#see_also".replace(
-                                            "doi:", "doi:21.T11969/"
-                                        )
-                                        in evaluate
-                                    ):
-                                        evaluate_see_also.append(
-                                            evaluate[
-                                                f"{evaluate_type}#see_also".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-                                        )
-                                    if f"{evaluate_type}#label" in evaluate:
-                                        evaluate_label = evaluate[
-                                            f"{evaluate_type}#label"
-                                        ]
-                                    elif (
-                                        f"{evaluate_type}#label".replace(
-                                            "doi:", "doi:21.T11969/"
-                                        )
-                                        in evaluate
-                                    ):
-                                        evaluate_label = evaluate[
-                                            f"{evaluate_type}#label".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                        ]
+                                    )
+                                    evaluate_label = self.get_property_info(
+                                        evaluate,
+                                        "label",
+                                    )
                                     evaluate_item, created = (
                                         SharedTypeModel.objects.update_or_create(
                                             see_also=evaluate_see_also,
@@ -1773,116 +1353,131 @@ class SQLPaperRepository(PaperRepository):
                                         _p,
                                     )
                                     software_methods = statement_content_item[_p]
-                                    executes_type = software_methods["@type"]
-
-                                    software_libraries = software_methods[
-                                        f"{executes_type}#part_of"
-                                    ]
-                                    software_libraries_type = software_libraries[
-                                        "@type"
-                                    ]
-
-                                    software_libraries_label = software_libraries[
-                                        f"{software_libraries_type}#label"
-                                    ]
-                                    software_libraries_version_info = (
-                                        software_libraries[
-                                            f"{software_libraries_type}#version_info"
-                                        ]
-                                    )
-                                    software_libraries_has_support_url = (
-                                        software_libraries[
-                                            f"{software_libraries_type}#has_support_url"
-                                        ]
-                                    )
-                                    if isinstance(
-                                        software_libraries_has_support_url, str
-                                    ):
-                                        software_libraries_has_support_url = [
-                                            software_libraries_has_support_url
-                                        ]
-
-                                    softwares = software_libraries[
-                                        f"{software_libraries_type}#part_of"
-                                    ]
-                                    softwares_type = softwares["@type"]
-                                    softwares_has_support_url = softwares[
-                                        f"{softwares_type}#has_support_url"
-                                    ]
-                                    softwares_version_info = softwares[
-                                        f"{softwares_type}#version_info"
-                                    ]
-                                    softwares_label = softwares[
-                                        f"{softwares_type}#label"
-                                    ]
-                                    software_item, created = (
-                                        SoftwareModel.objects.update_or_create(
-                                            has_support_url=softwares_has_support_url,
-                                            version_info=softwares_version_info,
-                                            label=softwares_label,
-                                            defaults={
-                                                "has_support_url": softwares_has_support_url,
-                                                "version_info": softwares_version_info,
-                                                "label": softwares_label,
-                                            },
+                                    software_method_items = []
+                                    if not isinstance(software_methods, (list)):
+                                        software_methods = [software_methods]
+                                    for software_method in software_methods:
+                                        software_libraries = self.get_property_info(
+                                            software_method,
+                                            "part_of",
                                         )
-                                    )
-                                    software_libraries_item, created = (
-                                        SoftwareLibraryModel.objects.update_or_create(
-                                            has_support_url=software_libraries_has_support_url,
-                                            version_info=software_libraries_version_info,
-                                            label=software_libraries_label,
-                                            defaults={
-                                                "has_support_url": software_libraries_has_support_url,
-                                                "version_info": software_libraries_version_info,
-                                                "part_of": software_item,
-                                                "label": software_libraries_label,
-                                            },
+                                        software_libraries_label = (
+                                            self.get_property_info(
+                                                software_libraries,
+                                                "label",
+                                            )
                                         )
-                                    )
-                                    software_method_label = software_methods[
-                                        f"{executes_type}#label"
-                                    ]
-                                    software_method_is_implemented_by = (
-                                        software_methods[
-                                            f"{executes_type}#is_implemented_by"
-                                        ]
-                                    )
-                                    if isinstance(
-                                        software_method_is_implemented_by, str
-                                    ):
-                                        software_method_is_implemented_by = [
-                                            software_method_is_implemented_by
-                                        ]
-                                    software_method_has_support_url = ""
-                                    if (
-                                        f"{executes_type}#has_support_url"
-                                        in software_methods
-                                    ):
-                                        software_method_has_support_url = (
-                                            software_methods[
-                                                f"{executes_type}#has_support_url"
+                                        software_libraries_version_info = (
+                                            self.get_property_info(
+                                                software_libraries,
+                                                "version_info",
+                                            )
+                                        )
+                                        software_libraries_has_support_url = (
+                                            self.get_property_info(
+                                                software_libraries,
+                                                "has_support_url",
+                                            )
+                                        )
+
+                                        if isinstance(
+                                            software_libraries_has_support_url, str
+                                        ):
+                                            software_libraries_has_support_url = [
+                                                software_libraries_has_support_url
                                             ]
+
+                                        softwares = self.get_property_info(
+                                            software_libraries,
+                                            "part_of",
                                         )
-                                    if isinstance(software_method_has_support_url, str):
-                                        software_method_has_support_url = [
-                                            software_method_has_support_url
-                                        ]
-                                    software_method_item, created = (
-                                        SoftwareMethodModel.objects.update_or_create(
-                                            has_support_url=software_method_has_support_url,
-                                            is_implemented_by=software_method_is_implemented_by,
-                                            label=software_method_label,
-                                            defaults={
-                                                "has_support_url": software_method_has_support_url,
-                                                "is_implemented_by": software_method_is_implemented_by,
-                                                "label": software_method_label,
-                                            },
+                                        softwares_has_support_url = (
+                                            self.get_property_info(
+                                                softwares,
+                                                "has_support_url",
+                                            )
                                         )
-                                    )
-                                    software_method_item.part_of.add(
-                                        software_libraries_item
-                                    )
+                                        softwares_version_info = self.get_property_info(
+                                            softwares,
+                                            "version_info",
+                                        )
+                                        softwares_label = self.get_property_info(
+                                            softwares,
+                                            "label",
+                                        )
+
+                                        software_item, created = (
+                                            SoftwareModel.objects.update_or_create(
+                                                has_support_url=softwares_has_support_url,
+                                                version_info=softwares_version_info,
+                                                label=softwares_label,
+                                                defaults={
+                                                    "has_support_url": softwares_has_support_url,
+                                                    "version_info": softwares_version_info,
+                                                    "label": softwares_label,
+                                                },
+                                            )
+                                        )
+                                        software_libraries_item, created = (
+                                            SoftwareLibraryModel.objects.update_or_create(
+                                                has_support_url=software_libraries_has_support_url,
+                                                version_info=software_libraries_version_info,
+                                                label=software_libraries_label,
+                                                defaults={
+                                                    "has_support_url": software_libraries_has_support_url,
+                                                    "version_info": software_libraries_version_info,
+                                                    "part_of": software_item,
+                                                    "label": software_libraries_label,
+                                                },
+                                            )
+                                        )
+                                        software_method_label = self.get_property_info(
+                                            software_method,
+                                            "label",
+                                        )
+                                        software_method_is_implemented_by = (
+                                            self.get_property_info(
+                                                software_method,
+                                                "is_implemented_by",
+                                            )
+                                        )
+                                        if isinstance(
+                                            software_method_is_implemented_by, str
+                                        ):
+                                            software_method_is_implemented_by = [
+                                                software_method_is_implemented_by
+                                            ]
+                                        software_method_has_support_url = (
+                                            self.get_property_info(
+                                                software_method,
+                                                "has_support_url",
+                                            )
+                                        )
+
+                                        if isinstance(
+                                            software_method_has_support_url, str
+                                        ):
+                                            software_method_has_support_url = [
+                                                software_method_has_support_url
+                                            ]
+                                        software_method_item, created = (
+                                            SoftwareMethodModel.objects.update_or_create(
+                                                has_support_url=software_method_has_support_url,
+                                                is_implemented_by=software_method_is_implemented_by,
+                                                label=software_method_label,
+                                                defaults={
+                                                    "has_support_url": software_method_has_support_url,
+                                                    "is_implemented_by": software_method_is_implemented_by,
+                                                    "label": software_method_label,
+                                                },
+                                            )
+                                        )
+                                        software_method_item.part_of.add(
+                                            software_libraries_item
+                                        )
+                                        software_method_items.append(
+                                            software_method_item.id
+                                        )
                                 elif _p.endswith("#targets"):
                                     print(
                                         f"Line: {sys._getframe(0).f_lineno}",
@@ -1890,40 +1485,18 @@ class SQLPaperRepository(PaperRepository):
                                         _p,
                                     )
                                     target = statement_content_item[_p]
-                                    target_type = target["@type"]
                                     target_see_also = []
-                                    target_label = ""
+                                    target_see_also.append(
+                                        self.get_property_info(
+                                            target,
+                                            "see_also",
+                                        )
+                                    )
+                                    target_label = self.get_property_info(
+                                        target,
+                                        "label",
+                                    )
 
-                                    if f"{target_type}#see_also" in target:
-                                        target_see_also.append(
-                                            target[f"{target_type}#see_also"]
-                                        )
-                                    elif (
-                                        f"{target_type}#see_also".replace(
-                                            "doi:", "doi:21.T11969/"
-                                        )
-                                        in target
-                                    ):
-                                        target_see_also.append(
-                                            target[
-                                                f"{target_type}#see_also".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
-                                        )
-                                    if f"{target_type}#label" in target:
-                                        target_label = target[f"{target_type}#label"]
-                                    elif (
-                                        f"{target_type}#label".replace(
-                                            "doi:", "doi:21.T11969/"
-                                        )
-                                        in target
-                                    ):
-                                        target_label = target[
-                                            f"{target_type}#label".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                        ]
                                     target_item, created = (
                                         SharedTypeModel.objects.update_or_create(
                                             see_also=target_see_also,
@@ -1957,40 +1530,19 @@ class SQLPaperRepository(PaperRepository):
                                         print('------------level["@type"]-----------')
                                         print(levels)
                                         print(level)
-                                        level_type = level["@type"]
                                         level_see_also = []
                                         level_label = ""
+                                        level_see_also.append(
+                                            self.get_property_info(
+                                                level,
+                                                "see_also",
+                                            )
+                                        )
+                                        level_label = self.get_property_info(
+                                            level,
+                                            "label",
+                                        )
 
-                                        if f"{level_type}#see_also" in level:
-                                            level_see_also.append(
-                                                level[f"{level_type}#see_also"]
-                                            )
-                                        elif (
-                                            f"{level_type}#see_also".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in level
-                                        ):
-                                            level_see_also.append(
-                                                level[
-                                                    f"{level_type}#see_also".replace(
-                                                        "doi:", "doi:21.T11969/"
-                                                    )
-                                                ]
-                                            )
-                                        if f"{level_type}#label" in level:
-                                            level_label = level[f"{level_type}#label"]
-                                        elif (
-                                            f"{level_type}#label".replace(
-                                                "doi:", "doi:21.T11969/"
-                                            )
-                                            in level
-                                        ):
-                                            level_label = level[
-                                                f"{level_type}#label".replace(
-                                                    "doi:", "doi:21.T11969/"
-                                                )
-                                            ]
                                         level_item, created = (
                                             SharedTypeModel.objects.update_or_create(
                                                 see_also=level_see_also,
@@ -2029,14 +1581,13 @@ class SQLPaperRepository(PaperRepository):
                             # print("_type_info: ", _type_info)
 
                             print(_type_info.name)
+                            print(software_method_items)
                             if _type_info.name == "Multilevel analysis":
                                 MultilevelAnalysis, created = (
                                     MultilevelAnalysisModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "MultilevelAnalysis",
@@ -2046,20 +1597,22 @@ class SQLPaperRepository(PaperRepository):
                                 )
                                 if target_item:
                                     MultilevelAnalysis.targets.add(target_item)
+                                if software_method_items:
+                                    MultilevelAnalysis.executes.set(
+                                        software_method_items
+                                    )
                                 if level_items:
                                     MultilevelAnalysis.level.set(level_items)
                                 if has_output_items:
                                     MultilevelAnalysis.has_outputs.set(has_output_items)
                                 if has_input_items:
                                     MultilevelAnalysis.has_inputs.set(has_input_items)
-                            if _type_info.name == "Class prediction":
+                            elif _type_info.name == "Class prediction":
                                 ClassPrediction, created = (
                                     ClassPredictionModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "ClassPrediction",
@@ -2069,18 +1622,18 @@ class SQLPaperRepository(PaperRepository):
                                 )
                                 if target_item:
                                     ClassPrediction.targets.add(target_item)
+                                if software_method_items:
+                                    ClassPrediction.executes.set(software_method_items)
                                 if has_output_items:
                                     ClassPrediction.has_outputs.set(has_output_items)
                                 if has_input_items:
                                     ClassPrediction.has_inputs.set(has_input_items)
-                            if _type_info.name == "Factor analysis":
+                            elif _type_info.name == "Factor analysis":
                                 FactorAnalysis, created = (
                                     FactorAnalysisModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "FactorAnalysis",
@@ -2090,16 +1643,16 @@ class SQLPaperRepository(PaperRepository):
                                 )
                                 if has_output_items:
                                     FactorAnalysis.has_outputs.set(has_output_items)
+                                if software_method_items:
+                                    FactorAnalysis.executes.set(software_method_items)
                                 if has_input_items:
                                     FactorAnalysis.has_inputs.set(has_input_items)
-                            if _type_info.name == "Data preprocessing":
+                            elif _type_info.name == "Data preprocessing":
                                 DataPreprocessing, created = (
                                     DataPreprocessingModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "DataPreprocessing",
@@ -2109,16 +1662,18 @@ class SQLPaperRepository(PaperRepository):
                                 )
                                 if has_output_items:
                                     DataPreprocessing.has_outputs.set(has_output_items)
+                                if software_method_items:
+                                    DataPreprocessing.executes.set(
+                                        software_method_items
+                                    )
                                 if has_input_items:
                                     DataPreprocessing.has_inputs.set(has_input_items)
-                            if _type_info.name == "Class discovery":
+                            elif _type_info.name == "Class discovery":
                                 ClassDiscovery, created = (
                                     ClassDiscoveryModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "ClassDiscovery",
@@ -2128,16 +1683,16 @@ class SQLPaperRepository(PaperRepository):
                                 )
                                 if has_output_items:
                                     ClassDiscovery.has_outputs.set(has_output_items)
+                                if software_method_items:
+                                    ClassDiscovery.executes.set(software_method_items)
                                 if has_input_items:
                                     ClassDiscovery.has_inputs.set(has_input_items)
-                            if _type_info.name == "Correlation analysis":
+                            elif _type_info.name == "Correlation analysis":
                                 CorrelationAnalysis, created = (
                                     CorrelationAnalysisModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "CorrelationAnalysis",
@@ -2149,16 +1704,18 @@ class SQLPaperRepository(PaperRepository):
                                     CorrelationAnalysis.has_outputs.set(
                                         has_output_items
                                     )
+                                if software_method_items:
+                                    CorrelationAnalysis.executes.set(
+                                        software_method_items
+                                    )
                                 if has_input_items:
                                     CorrelationAnalysis.has_inputs.set(has_input_items)
-                            if _type_info.name == "Group comparison":
+                            elif _type_info.name == "Group comparison":
                                 GroupComparison, created = (
                                     GroupComparisonModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "GroupComparison",
@@ -2168,18 +1725,18 @@ class SQLPaperRepository(PaperRepository):
                                 )
                                 if target_item:
                                     GroupComparison.targets.add(target_item)
+                                if software_method_items:
+                                    GroupComparison.executes.set(software_method_items)
                                 if has_output_items:
                                     GroupComparison.has_outputs.set(has_output_items)
                                 if has_input_items:
                                     GroupComparison.has_inputs.set(has_input_items)
-                            if _type_info.name == "Regression analysis":
+                            elif _type_info.name == "Regression analysis":
                                 RegressionAnalysis, created = (
                                     RegressionAnalysisModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "RegressionAnalysis",
@@ -2189,18 +1746,20 @@ class SQLPaperRepository(PaperRepository):
                                 )
                                 if target_item:
                                     RegressionAnalysis.targets.add(target_item)
+                                if software_method_items:
+                                    RegressionAnalysis.executes.set(
+                                        software_method_items
+                                    )
                                 if has_output_items:
                                     RegressionAnalysis.has_outputs.set(has_output_items)
                                 if has_input_items:
                                     RegressionAnalysis.has_inputs.set(has_input_items)
-                            if _type_info.name == "Descriptive statistics":
+                            elif _type_info.name == "Descriptive statistics":
                                 DescriptiveStatistics, created = (
                                     DescriptiveStatisticsModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "DescriptiveStatistics",
@@ -2212,18 +1771,20 @@ class SQLPaperRepository(PaperRepository):
                                     DescriptiveStatistics.has_outputs.set(
                                         has_output_items
                                     )
+                                if software_method_items:
+                                    DescriptiveStatistics.executes.set(
+                                        software_method_items
+                                    )
                                 if has_input_items:
                                     DescriptiveStatistics.has_inputs.set(
                                         has_input_items
                                     )
-                            if _type_info.name == "Algorithm evaluation":
+                            elif _type_info.name == "Algorithm evaluation":
                                 AlgorithmEvaluation, created = (
                                     AlgorithmEvaluationModel.objects.update_or_create(
                                         statement_id=statement.id,
                                         label=label,
-                                        execute=software_method_item,
                                         defaults={
-                                            "execute": software_method_item,
                                             "label": label,
                                             "see_also": see_also,
                                             "type": "AlgorithmEvaluation",
@@ -2236,6 +1797,10 @@ class SQLPaperRepository(PaperRepository):
                                 if has_output_items:
                                     AlgorithmEvaluation.has_outputs.set(
                                         has_output_items
+                                    )
+                                if software_method_items:
+                                    AlgorithmEvaluation.executes.set(
+                                        software_method_items
                                     )
                                 if has_input_items:
                                     AlgorithmEvaluation.has_inputs.set(has_input_items)

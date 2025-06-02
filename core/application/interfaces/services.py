@@ -56,7 +56,7 @@ class PaperService(ABC):
         pass
 
     @abstractmethod
-    def get_statement_by_id(self, statement_id: str) -> CommonResponseDTO:
+    def get_article_statement(self, statement_id: str) -> CommonResponseDTO:
         """Get a statement by its ID."""
         pass
 

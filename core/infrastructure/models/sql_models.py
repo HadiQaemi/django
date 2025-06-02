@@ -735,11 +735,9 @@ class DataType(TimeStampedModel, PolymorphicModel):
         blank=True,
         db_index=True,
     )
-    execute = models.ForeignKey(
+    executes = models.ManyToManyField(
         SoftwareMethod,
-        on_delete=models.CASCADE,
         related_name="software_method",
-        null=True,
         blank=True,
         db_index=True,
     )
@@ -934,8 +932,7 @@ class Statistics(TimeStampedModel):
 
 class Contribution(TimeStampedModel):
     id = models.CharField(max_length=255, primary_key=True)
-    # Completely rename the paper_id field to avoid collision with the ForeignKey
-    contribution_paper_id = models.CharField(max_length=255)  # Renamed from paper_id
+    contribution_paper_id = models.CharField(max_length=255)
     json_id = models.CharField(max_length=255, null=True, blank=True)
     json_type = models.CharField(max_length=255, null=True, blank=True)
     json_context = JSONField(null=True, blank=True)
@@ -944,17 +941,11 @@ class Contribution(TimeStampedModel):
     author = JSONField(null=True, blank=True)
     info = JSONField(null=True, blank=True)
     predicates = JSONField(null=True, blank=True)
-    # article = models.ForeignKey(
-    #     Article,
-    #     on_delete=models.CASCADE,
-    #     related_name="contributions",
-    #     to_field="article_id",
-    # )
 
     class Meta:
         db_table = "contributions"
         indexes = [
-            models.Index(fields=["contribution_paper_id"]),  # Updated index name
+            models.Index(fields=["contribution_paper_id"]),
             models.Index(fields=["json_id"]),
         ]
 

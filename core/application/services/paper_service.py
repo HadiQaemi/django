@@ -176,6 +176,184 @@ class PaperServiceImpl(PaperServiceInterface):
                 success=False, message=f"Failed to query data: {str(e)}"
             )
 
+    def statement_data_type(self, statement: str) -> any:
+        data_type = []
+        implement_statements = statement.implement_statements.all()
+        implements = []
+        for implement_statement in implement_statements:
+            implements.append(implement_statement.url)
+        for data_type_statement in statement.data_type_statement.all():
+            executes = []
+            for software_method in data_type_statement.executes.all():
+                if software_method:
+                    execute_part_ofs = software_method.part_of.all()
+                    software_libraries = []
+                    for software_library in execute_part_ofs:
+                        software = software_library.part_of
+                        software_libraries.append(
+                            {
+                                "label": software_library.label,
+                                "version_info": software_library.version_info,
+                                "has_support_url": software_library.has_support_url,
+                                "part_of": {
+                                    "label": software.label,
+                                    "version_info": software.version_info,
+                                    "has_support_url": software.has_support_url,
+                                },
+                            }
+                        )
+                    executes.append(
+                        {
+                            "part_of": software_libraries,
+                            "label": software_method.label,
+                            "is_implemented_by": software_method.is_implemented_by,
+                            "has_support_url": software_method.has_support_url,
+                        }
+                    )
+            has_inputs = []
+            for has_input in data_type_statement.has_inputs.all():
+                has_characteristic = None
+                if has_input.has_characteristic:
+                    has_characteristic = {
+                        "number_rows": has_input.has_characteristic.number_rows,
+                        "number_columns": has_input.has_characteristic.number_columns,
+                    }
+                has_expressions = []
+                for has_expression in has_input.has_expression.all():
+                    has_expressions.append(
+                        {
+                            "label": has_expression.label,
+                            "source_url": has_expression.source_url,
+                        }
+                    )
+                has_parts = []
+                for has_part in has_input.has_part.all():
+                    has_parts.append(
+                        {
+                            "label": has_part.label,
+                            "see_alsol": has_part.see_also,
+                        }
+                    )
+                has_inputs.append(
+                    {
+                        "label": has_input.label,
+                        "source_url": has_input.source_url,
+                        "comment": has_input.comment,
+                        "source_table": has_input.source_table,
+                        "has_characteristic": has_characteristic,
+                        "has_expressions": has_expressions,
+                        "has_parts": has_parts,
+                    }
+                )
+            has_outputs = []
+            for has_output in data_type_statement.has_outputs.all():
+                has_characteristic = None
+                if has_output.has_characteristic:
+                    has_characteristic = {
+                        "number_rows": has_output.has_characteristic.number_rows,
+                        "number_columns": has_output.has_characteristic.number_columns,
+                    }
+                has_expressions = []
+                for has_expression in has_output.has_expression.all():
+                    has_expressions.append(
+                        {
+                            "label": has_expression.label,
+                            "source_url": has_expression.source_url,
+                        }
+                    )
+                has_parts = []
+                for has_part in has_output.has_part.all():
+                    has_parts.append(
+                        {
+                            "label": has_part.label,
+                            "see_alsol": has_part.see_also,
+                        }
+                    )
+                has_outputs.append(
+                    {
+                        "label": has_output.label,
+                        "source_url": has_output.source_url,
+                        "comment": has_output.comment,
+                        "source_table": has_output.source_table,
+                        "has_characteristic": has_characteristic,
+                        "has_expressions": has_expressions,
+                        "has_parts": has_parts,
+                    }
+                )
+            dt = {
+                "label": data_type_statement.label,
+                "type": data_type_statement.type,
+                "see_also": data_type_statement.see_also,
+                "executes": executes,
+                "has_input": has_inputs,
+                "has_output": has_outputs,
+            }
+            if data_type_statement.type == "AlgorithmEvaluation":
+                if data_type_statement.evaluate:
+                    dt["evaluates"] = {
+                        "label": data_type_statement.evaluate.label,
+                        "type": data_type_statement.evaluate.type,
+                        "see_also": data_type_statement.evaluate.see_also,
+                    }
+                if data_type_statement.evaluates_for:
+                    dt["evaluates_for"] = {
+                        "label": data_type_statement.evaluates_for.label,
+                        "type": data_type_statement.evaluates_for.type,
+                        "see_also": data_type_statement.evaluates_for.see_also,
+                    }
+            if data_type_statement.type == "MultilevelAnalysis":
+                targets = []
+                for target in data_type_statement.targets.all():
+                    targets.append(
+                        {
+                            "label": target.label,
+                            "type": target.type,
+                            "see_also": target.see_also,
+                        }
+                    )
+                if targets:
+                    dt["targets"] = targets
+                levels = []
+                for level in data_type_statement.level.all():
+                    levels.append(
+                        {
+                            "label": level.label,
+                            "type": level.type,
+                            "see_also": level.see_also,
+                        }
+                    )
+                if levels:
+                    dt["level"] = levels
+            if data_type_statement.type == "GroupComparison":
+                targets = []
+                for target in data_type_statement.targets.all():
+                    targets.append(
+                        {
+                            "label": target.label,
+                            "type": target.type,
+                            "see_also": target.see_also,
+                        }
+                    )
+                if targets:
+                    dt["targets"] = targets
+            has_part = statement.has_part_statements.first()
+            data_type.append(
+                {
+                    "has_part": dt,
+                    "is_implemented_by": implements,
+                    "type": {
+                        "name": has_part.schema_type.name,
+                        "description": has_part.schema_type.description,
+                        "type_id": has_part.schema_type.type_id,
+                        "properties": [
+                            s.split("#", 1)[1] if "#" in s else ""
+                            for s in has_part.schema_type.property
+                        ],
+                    },
+                }
+            )
+        return data_type
+
     def get_statement(self, statement_id: str) -> CommonResponseDTO:
         """Get a statement with related data."""
         print("-------------------get_statement-----------------", __file__)
@@ -192,177 +370,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 )
             data_type = []
             if statement_id == statement.statement_id:
-                implement_statements = statement.implement_statements.all()
-                implements = []
-                for implement_statement in implement_statements:
-                    implements.append(implement_statement.url)
-                for data_type_statement in statement.data_type_statement.all():
-                    execute = None
-                    if data_type_statement.execute:
-                        execute_part_ofs = data_type_statement.execute.part_of.all()
-                        software_libraries = []
-                        for software_library in execute_part_ofs:
-                            software = software_library.part_of
-                            software_libraries.append(
-                                {
-                                    "label": software_library.label,
-                                    "version_info": software_library.version_info,
-                                    "has_support_url": software_library.has_support_url,
-                                    "part_of": {
-                                        "label": software.label,
-                                        "version_info": software.version_info,
-                                        "has_support_url": software.has_support_url,
-                                    },
-                                }
-                            )
-                        execute = {
-                            "part_of": software_libraries,
-                            "label": data_type_statement.execute.label,
-                            "is_implemented_by": data_type_statement.execute.is_implemented_by,
-                            "has_support_url": data_type_statement.execute.has_support_url,
-                        }
-                    has_inputs = []
-                    for has_input in data_type_statement.has_inputs.all():
-                        has_characteristic = None
-                        if has_input.has_characteristic:
-                            has_characteristic = {
-                                "number_rows": has_input.has_characteristic.number_rows,
-                                "number_columns": has_input.has_characteristic.number_columns,
-                            }
-                        has_expressions = []
-                        for has_expression in has_input.has_expression.all():
-                            has_expressions.append(
-                                {
-                                    "label": has_expression.label,
-                                    "source_url": has_expression.source_url,
-                                }
-                            )
-                        has_parts = []
-                        for has_part in has_input.has_part.all():
-                            has_parts.append(
-                                {
-                                    "label": has_part.label,
-                                    "see_alsol": has_part.see_also,
-                                }
-                            )
-                        has_inputs.append(
-                            {
-                                "label": has_input.label,
-                                "source_url": has_input.source_url,
-                                "comment": has_input.comment,
-                                "source_table": has_input.source_table,
-                                "has_characteristic": has_characteristic,
-                                "has_expressions": has_expressions,
-                                "has_parts": has_parts,
-                            }
-                        )
-                    has_outputs = []
-                    for has_output in data_type_statement.has_outputs.all():
-                        has_characteristic = None
-                        if has_output.has_characteristic:
-                            has_characteristic = {
-                                "number_rows": has_output.has_characteristic.number_rows,
-                                "number_columns": has_output.has_characteristic.number_columns,
-                            }
-                        has_expressions = []
-                        for has_expression in has_output.has_expression.all():
-                            has_expressions.append(
-                                {
-                                    "label": has_expression.label,
-                                    "source_url": has_expression.source_url,
-                                }
-                            )
-                        has_parts = []
-                        for has_part in has_output.has_part.all():
-                            has_parts.append(
-                                {
-                                    "label": has_part.label,
-                                    "see_alsol": has_part.see_also,
-                                }
-                            )
-                        has_outputs.append(
-                            {
-                                "label": has_output.label,
-                                "source_url": has_output.source_url,
-                                "comment": has_output.comment,
-                                "source_table": has_output.source_table,
-                                "has_characteristic": has_characteristic,
-                                "has_expressions": has_expressions,
-                                "has_parts": has_parts,
-                            }
-                        )
-                    dt = {
-                        "label": data_type_statement.label,
-                        "type": data_type_statement.type,
-                        "see_also": data_type_statement.see_also,
-                        "executes": execute,
-                        "has_input": has_inputs,
-                        "has_output": has_outputs,
-                    }
-                    if data_type_statement.type == "AlgorithmEvaluation":
-                        if data_type_statement.evaluate:
-                            dt["evaluates"] = {
-                                "label": data_type_statement.evaluate.label,
-                                "type": data_type_statement.evaluate.type,
-                                "see_also": data_type_statement.evaluate.see_also,
-                            }
-                        if data_type_statement.evaluates_for:
-                            dt["evaluates_for"] = {
-                                "label": data_type_statement.evaluates_for.label,
-                                "type": data_type_statement.evaluates_for.type,
-                                "see_also": data_type_statement.evaluates_for.see_also,
-                            }
-                    if data_type_statement.type == "MultilevelAnalysis":
-                        targets = []
-                        for target in data_type_statement.targets.all():
-                            targets.append(
-                                {
-                                    "label": target.label,
-                                    "type": target.type,
-                                    "see_also": target.see_also,
-                                }
-                            )
-                        if targets:
-                            dt["targets"] = targets
-                        levels = []
-                        for level in data_type_statement.level.all():
-                            levels.append(
-                                {
-                                    "label": level.label,
-                                    "type": level.type,
-                                    "see_also": level.see_also,
-                                }
-                            )
-                        if levels:
-                            dt["level"] = levels
-                    if data_type_statement.type == "GroupComparison":
-                        targets = []
-                        for target in data_type_statement.targets.all():
-                            targets.append(
-                                {
-                                    "label": target.label,
-                                    "type": target.type,
-                                    "see_also": target.see_also,
-                                }
-                            )
-                        if targets:
-                            dt["targets"] = targets
-                    has_part = statement.has_part_statements.first()
-                    data_type.append(
-                        {
-                            "has_part": dt,
-                            "is_implemented_by": implements,
-                            "type": {
-                                "name": has_part.schema_type.name,
-                                "description": has_part.schema_type.description,
-                                "type_id": has_part.schema_type.type_id,
-                                "properties": [
-                                    s.split("#", 1)[1] if "#" in s else ""
-                                    for s in has_part.schema_type.property
-                                ],
-                            },
-                        }
-                    )
+                data_type = self.statement_data_type(statement)
             result = CommonResponseDTO(
                 success=True,
                 result={
@@ -378,19 +386,19 @@ class PaperServiceImpl(PaperServiceInterface):
                 success=False, message=f"Failed to retrieve statement: {str(e)}"
             )
 
-    def get_statement_by_id(self, statement_id: str) -> CommonResponseDTO:
+    def get_article_statement(self, statement_id: str) -> CommonResponseDTO:
         """Get a statement by its ID."""
         try:
-            print("-------------------get_statement_by_id-----------------", __file__)
-            # print(statement_id, __file__)
             statement_in_paper = (
                 self.statement_repository.find_paper_with_statement_details(
                     statement_id
                 )
             )
             print("------------get_statement_by_id-----------statement---------------")
+            paper = None
             if statement_in_paper:
                 paper = self.paper_repository.find_by_id(statement_in_paper.article_id)
+            if paper:
                 paper_dto = self._map_paper_to_dto(paper)
                 authors = []
                 for author in paper_dto.authors:
@@ -452,190 +460,16 @@ class PaperServiceImpl(PaperServiceInterface):
                                 "see_also": concept.see_also,
                             }
                         )
-                    data_type = []
+                    data_type = {}
                     if statement_id == statement.statement_id:
-                        statement = self.statement_repository.find_by_id(statement_id)
-                        implement_statements = statement.implement_statements.all()
-                        implements = []
-                        for implement_statement in implement_statements:
-                            implements.append(implement_statement.url)
-                        for data_type_statement in statement.data_type_statement.all():
-                            execute = None
-                            if data_type_statement.execute:
-                                execute_part_ofs = data_type_statement.execute.part_of.all()
-                                software_libraries = []
-                                for software_library in execute_part_ofs:
-                                    software = software_library.part_of
-                                    software_libraries.append(
-                                        {
-                                            "label": software_library.label,
-                                            "version_info": software_library.version_info,
-                                            "has_support_url": software_library.has_support_url,
-                                            "part_of": {
-                                                "label": software.label,
-                                                "version_info": software.version_info,
-                                                "has_support_url": software.has_support_url,
-                                            },
-                                        }
-                                    )
-                                execute = {
-                                    "part_of": software_libraries,
-                                    "label": data_type_statement.execute.label,
-                                    "is_implemented_by": data_type_statement.execute.is_implemented_by,
-                                    "has_support_url": data_type_statement.execute.has_support_url,
-                                }
-                            has_inputs = []
-                            for has_input in data_type_statement.has_inputs.all():
-                                has_characteristic = None
-                                if has_input.has_characteristic:
-                                    has_characteristic = {
-                                        "number_rows": has_input.has_characteristic.number_rows,
-                                        "number_columns": has_input.has_characteristic.number_columns,
-                                    }
-                                has_expressions = []
-                                for has_expression in has_input.has_expression.all():
-                                    has_expressions.append(
-                                        {
-                                            "label": has_expression.label,
-                                            "source_url": has_expression.source_url,
-                                        }
-                                    )
-                                has_parts = []
-                                for has_part in has_input.has_part.all():
-                                    has_parts.append(
-                                        {
-                                            "label": has_part.label,
-                                            "see_alsol": has_part.see_also,
-                                        }
-                                    )
-                                has_inputs.append(
-                                    {
-                                        "label": has_input.label,
-                                        "source_url": has_input.source_url,
-                                        "comment": has_input.comment,
-                                        "source_table": has_input.source_table,
-                                        "has_characteristic": has_characteristic,
-                                        "has_expressions": has_expressions,
-                                        "has_parts": has_parts,
-                                    }
-                                )
-                            has_outputs = []
-                            for has_output in data_type_statement.has_outputs.all():
-                                has_characteristic = None
-                                if has_output.has_characteristic:
-                                    has_characteristic = {
-                                        "number_rows": has_output.has_characteristic.number_rows,
-                                        "number_columns": has_output.has_characteristic.number_columns,
-                                    }
-                                has_expressions = []
-                                for has_expression in has_output.has_expression.all():
-                                    has_expressions.append(
-                                        {
-                                            "label": has_expression.label,
-                                            "source_url": has_expression.source_url,
-                                        }
-                                    )
-                                has_parts = []
-                                for has_part in has_output.has_part.all():
-                                    has_parts.append(
-                                        {
-                                            "label": has_part.label,
-                                            "see_alsol": has_part.see_also,
-                                        }
-                                    )
-                                has_outputs.append(
-                                    {
-                                        "label": has_output.label,
-                                        "source_url": has_output.source_url,
-                                        "comment": has_output.comment,
-                                        "source_table": has_output.source_table,
-                                        "has_characteristic": has_characteristic,
-                                        "has_expressions": has_expressions,
-                                        "has_parts": has_parts,
-                                    }
-                                )
-                            dt = {
-                                "label": data_type_statement.label,
-                                "type": data_type_statement.type,
-                                "see_also": data_type_statement.see_also,
-                                "executes": execute,
-                                "has_input": has_inputs,
-                                "has_output": has_outputs,
-                            }
-                            if data_type_statement.type == "AlgorithmEvaluation":
-                                if data_type_statement.evaluate:
-                                    dt["evaluates"] = {
-                                        "label": data_type_statement.evaluate.label,
-                                        "type": data_type_statement.evaluate.type,
-                                        "see_also": data_type_statement.evaluate.see_also,
-                                    }
-                                if data_type_statement.evaluates_for:
-                                    dt["evaluates_for"] = {
-                                        "label": data_type_statement.evaluates_for.label,
-                                        "type": data_type_statement.evaluates_for.type,
-                                        "see_also": data_type_statement.evaluates_for.see_also,
-                                    }
-                            if data_type_statement.type == "MultilevelAnalysis":
-                                targets = []
-                                for target in data_type_statement.targets.all():
-                                    targets.append(
-                                        {
-                                            "label": target.label,
-                                            "type": target.type,
-                                            "see_also": target.see_also,
-                                        }
-                                    )
-                                if targets:
-                                    dt["targets"] = targets
-                                levels = []
-                                for level in data_type_statement.level.all():
-                                    levels.append(
-                                        {
-                                            "label": level.label,
-                                            "type": level.type,
-                                            "see_also": level.see_also,
-                                        }
-                                    )
-                                if levels:
-                                    dt["level"] = levels
-                            if data_type_statement.type == "GroupComparison":
-                                targets = []
-                                for target in data_type_statement.targets.all():
-                                    targets.append(
-                                        {
-                                            "label": target.label,
-                                            "type": target.type,
-                                            "see_also": target.see_also,
-                                        }
-                                    )
-                                if targets:
-                                    dt["targets"] = targets
-                            has_part = statement.has_part_statements.first()
-                            data_type.append(
-                                {
-                                    "has_part": dt,
-                                    "is_implemented_by": implements,
-                                    "type": {
-                                        "name": has_part.schema_type.name,
-                                        "description": has_part.schema_type.description,
-                                        "type_id": has_part.schema_type.type_id,
-                                        "properties": [
-                                            s.split("#", 1)[1] if "#" in s else ""
-                                            for s in has_part.schema_type.property
-                                        ],
-                                    },
-                                }
-                            )
-            
+                        data_type = self.statement_data_type(statement)
                     statements.append(
                         {
                             "statement_id": statement.statement_id,
                             "label": statement.label,
                             "authors": authors,
                             "concepts": concepts,
-                            "statement": data_type
-                            if statement.statement_id == statement_id
-                            else None,
+                            "data_type": data_type,
                             "type": {
                                 "name": has_part.schema_type.name,
                                 "description": has_part.schema_type.description,
@@ -657,21 +491,18 @@ class PaperServiceImpl(PaperServiceInterface):
                 )
                 return result
 
-            if statement:
-                statement_dto = self._map_statement_to_dto(statement)
-
-                return CommonResponseDTO(
-                    success=True, result={"statement": statement_dto}, total_count=1
-                )
+            # Cache for 15 minutes
+            # cache.set(cache_key, result, settings.CACHE_TTL)
+            # return result
 
             return CommonResponseDTO(
-                success=False, message=f"Statement with ID {statement_id} not found"
+                success=False, message=f"Paper with ID {statement_id} not found"
             )
 
         except Exception as e:
-            logger.error(f"Error in get_statement_by_id: {str(e)}")
+            logger.error(f"Error in get_paper_by_id: {str(e)}")
             return CommonResponseDTO(
-                success=False, message=f"Failed to retrieve statement: {str(e)}"
+                success=False, message=f"Failed to retrieve paper: {str(e)}"
             )
 
     def get_paper_by_id(self, paper_id: str) -> CommonResponseDTO:
@@ -764,7 +595,6 @@ class PaperServiceImpl(PaperServiceInterface):
                             },
                         }
                     )
-                print("-------------statements-------------")
                 result = CommonResponseDTO(
                     success=True,
                     result={

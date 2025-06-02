@@ -107,38 +107,38 @@ class PaperViewSet(viewsets.GenericViewSet):
     # @method_decorator(cache_page(1 * 1))
     # @method_decorator(vary_on_cookie)
     def list(self, request: Request) -> Response:
-        # try:
-        page = request.query_params.get("page", 1)
-        page_size = request.query_params.get("page_size", 10)
-        print("----------paper_viewsets-----list-----------", __file__)
-        # Validate and convert to integers
         try:
-            page = int(page)
-            page_size = int(page_size)
-        except ValueError:
-            page = 1
-            page_size = 10
+            page = request.query_params.get("page", 1)
+            page_size = request.query_params.get("page_size", 10)
+            print("----------paper_viewsets-----list-----------", __file__)
+            # Validate and convert to integers
+            try:
+                page = int(page)
+                page_size = int(page_size)
+            except ValueError:
+                page = 1
+                page_size = 10
 
-        result = self.paper_service.get_all_papers(page, page_size)
+            result = self.paper_service.get_all_papers(page, page_size)
 
-        return Response(
-            {
-                "content": result.content,
-                "total_elements": result.total_elements,
-                "page": result.page,
-                "page_size": result.page_size,
-                "total_pages": result.total_pages,
-                "has_next": result.has_next,
-                "has_previous": result.has_previous,
-            }
-        )
+            return Response(
+                {
+                    "content": result.content,
+                    "total_elements": result.total_elements,
+                    "page": result.page,
+                    "page_size": result.page_size,
+                    "total_pages": result.total_pages,
+                    "has_next": result.has_next,
+                    "has_previous": result.has_previous,
+                }
+            )
 
-        # except Exception as e:
-        #     logger.error(f"Error in list: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve papers"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+        except Exception as e:
+            logger.error(f"Error in list: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve papers"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     # @method_decorator(cache_page(60 * 15))
     # @method_decorator(vary_on_cookie)
@@ -285,7 +285,6 @@ class PaperViewSet(viewsets.GenericViewSet):
             paper_id = request.query_params.get("id")
             print("--------get_article----statement_id-----")
             print("--------statement_id---------")
-            print(paper_id)
 
             result = self.paper_service.get_paper_by_id(paper_id)
 
@@ -322,6 +321,39 @@ class PaperViewSet(viewsets.GenericViewSet):
 
             result = self.paper_service.get_statement(statement_id)
 
+            if not result.success:
+                return Response(
+                    {"error": result.message or "Statement not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(result.result)
+
+        except Exception as e:
+            logger.error(f"Error in get_statement: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve statement"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    # @action(detail=True, methods=["get"], url_path="statement")
+    # @method_decorator(cache_page(60 * 15))
+    # @method_decorator(vary_on_cookie)
+    # def get_statement(self, request: Request, pk=None) -> Response:
+    @action(detail=False, methods=["get"])
+    def get_article_statement(self, request: Request) -> Response:
+        """Get a statement by ID."""
+        print("--------------get_article_statement-----------------", __file__)
+        try:
+            statement_id = request.query_params.get("id")
+            print(statement_id)
+            if not statement_id:
+                return Response(
+                    {"error": "ID parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # result = self.paper_service.get_statement(statement_id)
+            result = self.paper_service.get_article_statement(statement_id)
             if not result.success:
                 return Response(
                     {"error": result.message or "Statement not found"},
@@ -511,46 +543,46 @@ class PaperViewSet(viewsets.GenericViewSet):
     @method_decorator(vary_on_cookie)
     def get_latest_statements(self, request: Request) -> Response:
         """Get latest statements with filters."""
-        # try:
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("limit", 10))
-        sort_order = request.query_params.get("sort", "a-z")
-        search_query = request.query_params.get("search", "")
-        research_fields = request.query_params.getlist("research_fields[]")
+        try:
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("limit", 10))
+            sort_order = request.query_params.get("sort", "a-z")
+            search_query = request.query_params.get("search", "")
+            research_fields = request.query_params.getlist("research_fields[]")
 
-        result = self.paper_service.get_latest_statements(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            page=page,
-            page_size=page_size,
-        )
-
-        items = []
-        print("--------------get_latest_statements-----------", __file__)
-        for statement in result.content:
-            author_name = ""
-            if hasattr(statement, "authors") and statement.authors:
-                author_name = statement.authors[0].label
-            items.append(
-                {
-                    "statement_id": statement.statement_id,
-                    "name": statement.label,
-                    "author": author_name,
-                    "academic_publication": statement.journal_conference,
-                    "article": statement.article_name,
-                    "date_published": statement.date_published.year,
-                }
+            result = self.paper_service.get_latest_statements(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                page=page,
+                page_size=page_size,
             )
 
-        return Response({"items": items, "total": result.total_elements})
+            items = []
+            print("--------------get_latest_statements-----------", __file__)
+            for statement in result.content:
+                author_name = ""
+                if hasattr(statement, "authors") and statement.authors:
+                    author_name = statement.authors[0].label
+                items.append(
+                    {
+                        "statement_id": statement.statement_id,
+                        "name": statement.label,
+                        "author": author_name,
+                        "academic_publication": statement.journal_conference,
+                        "article": statement.article_name,
+                        "date_published": statement.date_published.year,
+                    }
+                )
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_statements: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve latest statements"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+            return Response({"items": items, "total": result.total_elements})
+
+        except Exception as e:
+            logger.error(f"Error in get_latest_statements: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve latest statements"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=False, methods=["get"])
     # @method_decorator(cache_page(60 * 15))
