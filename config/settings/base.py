@@ -111,7 +111,7 @@ elif DATABASE_TYPE == "postgres":
             "NAME": os.environ.get("PG_DATABASE", "postgres"),
             "USER": os.environ.get("PG_USER", "postgres"),
             "PASSWORD": os.environ.get("PG_PASSWORD", "postgres"),
-            "HOST": os.environ.get("PG_HOST", "localhost"),
+            "HOST": os.environ.get("PG_HOST", "postgres-container"),
             "PORT": os.environ.get("PG_PORT", "5432"),
         }
     }

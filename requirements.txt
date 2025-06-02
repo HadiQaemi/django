@@ -50,6 +50,7 @@ Faker
 filelock
 flake8
 fsspec
+gunicorn
 huggingface-hub
 idna
 inflection

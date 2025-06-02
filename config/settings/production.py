@@ -13,7 +13,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     raise ValueError("DJANGO_SECRET_KEY environment variable is not set")
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '18.175.139.62', '18.175.139.62:8000']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '13.40.122.107', '13.40.122.107:8000']
 #ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 
 # Security settings
