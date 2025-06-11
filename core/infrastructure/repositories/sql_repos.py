@@ -8,6 +8,7 @@ from django.conf import settings
 import json
 import hashlib
 from datetime import datetime
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 
 from core.application.interfaces.repositories import (
     PaperRepository,
@@ -330,6 +331,29 @@ class SQLPaperRepository(PaperRepository):
             logger.error(f"Error in save: {str(e)}")
             raise DatabaseError(f"Failed to save paper: {str(e)}")
 
+    def advanced_article_search(self, query_text, research_field_ids=None):
+        if not query_text.strip():
+            return ArticleModel.objects.none()
+
+        search_vector = (
+            SearchVector("name", weight="A")
+            + SearchVector("abstract", weight="B")
+            + SearchVector("json", weight="c")
+        )
+        search_query = SearchQuery(query_text)
+
+        queryset = ArticleModel.objects.annotate(
+            search=search_vector, base_rank=SearchRank(search_vector, search_query)
+        ).filter(search=search_query)
+
+        if research_field_ids:
+            queryset = queryset.filter(
+                research_fields__id__in=research_field_ids
+            ).distinct()
+
+        queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-base_rank")
+        return queryset
+
     def get_latest_articles(
         self,
         research_fields: Optional[List[str]] = None,
@@ -340,15 +364,18 @@ class SQLPaperRepository(PaperRepository):
     ) -> Tuple[List[Paper], int]:
         """Get latest articles with filters."""
         try:
-            query = ArticleModel.objects.all()
-            print("-----------get_latest_articles---------", __file__)
+            query = None
             if search_query:
-                query = query.filter(name__icontains=search_query)
+                query = self.advanced_article_search(search_query)
+
+            if query is None:
+                query = ArticleModel.objects.all()
 
             if research_fields and len(research_fields) > 0:
-                query = query.filter(research_fields_id__overlap=research_fields)
+                query = query.filter(
+                    research_fields__research_field_id__in=research_fields
+                )
 
-            # Apply sorting
             if sort_order == "a-z":
                 query = query.order_by("name")
             elif sort_order == "z-a":
@@ -358,13 +385,10 @@ class SQLPaperRepository(PaperRepository):
             else:
                 query = query.order_by("name")
 
-            # Get total count before pagination
             total = query.count()
 
-            # Apply pagination
             paginator = Paginator(query, page_size)
             page_obj = paginator.get_page(page)
-
             papers = []
             for article in page_obj:
                 paper = self._convert_article_to_paper(article)
@@ -1994,9 +2018,10 @@ class SQLAuthorRepository(AuthorRepository):
                 )
 
             if research_fields and len(research_fields) > 0:
-                query = query.filter(research_fields_id__overlap=research_fields)
+                query = query.filter(
+                    articles__research_fields__research_field_id__in=research_fields
+                )
 
-            # Apply sorting
             if sort_order == "a-z":
                 query = query.order_by("label")
             elif sort_order == "z-a":
@@ -2006,10 +2031,8 @@ class SQLAuthorRepository(AuthorRepository):
             else:
                 query = query.order_by("label")
 
-            # Get total count before pagination
             total = query.count()
 
-            # Apply pagination
             paginator = Paginator(query, page_size)
             page_obj = paginator.get_page(page)
 
@@ -2235,9 +2258,10 @@ class SQLJournalRepository(JournalRepository):
                 query = query.filter(label__icontains=search_query)
 
             if research_fields and len(research_fields) > 0:
-                query = query.filter(research_fields_id__overlap=research_fields)
+                query = query.filter(
+                    articles__research_fields__research_field_id__in=research_fields
+                )
 
-            # Apply sorting
             if sort_order == "a-z":
                 query = query.order_by("label")
             elif sort_order == "z-a":
@@ -2247,10 +2271,8 @@ class SQLJournalRepository(JournalRepository):
             else:
                 query = query.order_by("label")
 
-            # Get total count before pagination
             total = query.count()
 
-            # Apply pagination
             paginator = Paginator(query, page_size)
             page_obj = paginator.get_page(page)
 
@@ -2468,6 +2490,27 @@ class SQLStatementRepository(StatementRepository):
             updated_at=article.updated_at,
         )
 
+    def advanced_statement_search(self, query_text, research_field_ids=None):
+        if not query_text.strip():
+            return StatementModel.objects.none()
+
+        search_vector = SearchVector("label", weight="A") + SearchVector(
+            "content", weight="B"
+        )
+        search_query = SearchQuery(query_text)
+
+        queryset = StatementModel.objects.annotate(
+            search=search_vector, base_rank=SearchRank(search_vector, search_query)
+        ).filter(search=search_query)
+
+        if research_field_ids:
+            queryset = queryset.filter(
+                research_fields__id__in=research_field_ids
+            ).distinct()
+
+        queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-base_rank")
+        return queryset
+
     def get_latest_statements(
         self,
         research_fields: Optional[List[str]] = None,
@@ -2478,23 +2521,26 @@ class SQLStatementRepository(StatementRepository):
     ) -> Tuple[List[Statement], int]:
         print("----------get_latest_statements------", __file__)
         try:
-            query = StatementModel.objects.select_related("article").all()
+            query = None
             if search_query:
-                query = query.filter(
-                    supports__contains=[{"notation": {"label": search_query}}]
-                )
+                query = self.advanced_statement_search(search_query)
+
+            if query is None:
+                query = StatementModel.objects.select_related("article").all()
 
             if research_fields and len(research_fields) > 0:
-                query = query.filter(research_fields_id__overlap=research_fields)
+                query = query.filter(
+                    article__research_fields__research_field_id__in=research_fields
+                )
 
             if sort_order == "a-z":
-                query = query.order_by("article__name")
+                query = query.order_by("label")
             elif sort_order == "z-a":
-                query = query.order_by("-article__name")
+                query = query.order_by("-label")
             elif sort_order == "newest":
                 query = query.order_by("-created_at")
             else:
-                query = query.order_by("article__name")
+                query = query.order_by("label")
 
             total = query.count()
             paginator = Paginator(query, page_size)

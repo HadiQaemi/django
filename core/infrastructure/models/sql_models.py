@@ -3,6 +3,8 @@ from django.db.models import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.utils.translation import gettext_lazy as _
 from polymorphic.models import PolymorphicModel
+from django.contrib.postgres.search import SearchVectorField, SearchVector
+from django.contrib.postgres.indexes import GinIndex
 
 
 class TimeStampedModel(models.Model):
@@ -428,13 +430,20 @@ class Article(TimeStampedModel):
         blank=True,
         db_index=True,
     )
+    search_vector = SearchVectorField(null=True)
 
     class Meta:
         db_table = "articles"
         indexes = [
-            models.Index(fields=["_id"]),
+            GinIndex(fields=["search_vector"]),
             models.Index(fields=["name"]),
         ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Article.objects.filter(pk=self.pk).update(
+            search_vector=SearchVector("name", "abstract", "json")
+        )
 
     def __str__(self):
         return self.name
@@ -502,12 +511,17 @@ class Statement(TimeStampedModel):
         blank=True,
         db_index=True,
     )
+    search_vector = SearchVectorField(null=True)
 
     class Meta:
         db_table = "statements"
-        indexes = [
-            models.Index(fields=["_id"]),
-        ]
+        indexes = [models.Index(fields=["_id"]), GinIndex(fields=["search_vector"])]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Statement.objects.filter(pk=self.pk).update(
+            search_vector=SearchVector("label", "content", "json")
+        )
 
     def __str__(self):
         return self.name

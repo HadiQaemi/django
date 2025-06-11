@@ -280,7 +280,7 @@ class PaperViewSet(viewsets.GenericViewSet):
     # @method_decorator(vary_on_cookie)
     def get_article(self, request: Request) -> Response:
         """Get latest articles with filters."""
-        print("----get_latest_articles--------")
+        print("----get_article--------")
         try:
             paper_id = request.query_params.get("id")
             print("--------get_article----statement_id-----")
@@ -589,14 +589,13 @@ class PaperViewSet(viewsets.GenericViewSet):
     # @method_decorator(vary_on_cookie)
     def get_latest_articles(self, request: Request) -> Response:
         """Get latest articles with filters."""
-        print("----get_latest_articles--------")
+        print("----get_latest_articles-----------research_fields")
         try:
             page = int(request.query_params.get("page", 1))
             page_size = int(request.query_params.get("limit", 10))
             sort_order = request.query_params.get("sort", "a-z")
             search_query = request.query_params.get("search", "")
             research_fields = request.query_params.getlist("research_fields[]")
-
             result = self.paper_service.get_latest_articles(
                 research_fields=research_fields,
                 search_query=search_query,
