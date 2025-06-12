@@ -9,9 +9,10 @@ import json
 import hashlib
 from datetime import datetime
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
-
+from django.contrib.postgres.search import TrigramSimilarity
 from core.application.interfaces.repositories import (
     PaperRepository,
+    SearchRepository,
     StatementRepository,
     AuthorRepository,
     ConceptRepository,
@@ -340,7 +341,14 @@ class SQLPaperRepository(PaperRepository):
             + SearchVector("abstract", weight="B")
             + SearchVector("json", weight="c")
         )
-        search_query = SearchQuery(query_text)
+        
+        words = query_text.split()
+        if len(words) > 1:
+            phrase_query = SearchQuery(" & ".join(words), search_type="raw")
+            words_query = SearchQuery(" | ".join(words), search_type="raw")
+            search_query = phrase_query | words_query
+        else:
+            search_query = SearchQuery(query_text)
 
         queryset = ArticleModel.objects.annotate(
             search=search_vector, base_rank=SearchRank(search_vector, search_query)
@@ -348,10 +356,18 @@ class SQLPaperRepository(PaperRepository):
 
         if research_field_ids:
             queryset = queryset.filter(
-                research_fields__id__in=research_field_ids
+                research_fields__research_field_id__in=research_field_ids
             ).distinct()
+        # queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-base_rank")
 
-        queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-base_rank")
+        queryset = queryset.annotate(
+            name_similarity=TrigramSimilarity("name", query_text),
+            abstract_similarity=TrigramSimilarity("abstract", query_text),
+        )
+        
+        queryset = queryset.annotate(
+            final_rank=F("base_rank") + (F("name_similarity") * 0.5) + (F("abstract_similarity") * 0.3)
+        ).order_by("-final_rank")
         return queryset
 
     def get_latest_articles(
@@ -361,20 +377,38 @@ class SQLPaperRepository(PaperRepository):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
+        search_type: str = "keyword",
     ) -> Tuple[List[Paper], int]:
         """Get latest articles with filters."""
         try:
-            query = None
-            if search_query:
-                query = self.advanced_article_search(search_query)
-
-            if query is None:
-                query = ArticleModel.objects.all()
-
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(
-                    research_fields__research_field_id__in=research_fields
-                )
+            if search_query and search_type in ["semantic", "hybrid"]:
+                from core.infrastructure.container import Container
+                search_repo = Container.resolve(SearchRepository)
+                
+                if search_type == "semantic":
+                    search_results = search_repo.semantic_search_articles(search_query, page_size * 2)
+                    article_ids = [result.get("id") for result in search_results if result.get("id")]
+                else:
+                    search_results, article_ids = search_repo.hybrid_search_articles(search_query, page_size * 2)
+                
+                if not article_ids:
+                    query = self.advanced_article_search(search_query, research_fields)
+                else:
+                    query = ArticleModel.objects.filter(article_id__in=article_ids)
+                    
+                    if research_fields and len(research_fields) > 0:
+                        query = query.filter(
+                            research_fields__research_field_id__in=research_fields
+                        )
+            else:
+                if search_query:
+                    query = self.advanced_article_search(search_query)
+                else:
+                    query = ArticleModel.objects.all()
+                    if research_fields and len(research_fields) > 0:
+                        query = query.filter(
+                            research_fields__research_field_id__in=research_fields
+                        )
 
             if sort_order == "a-z":
                 query = query.order_by("name")

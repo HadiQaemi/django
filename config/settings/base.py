@@ -235,6 +235,11 @@ ELASTICSEARCH_DSL = {
     "default": {"hosts": os.environ.get("ELASTIC_URL", "http://localhost:9200")},
 }
 
+# Weaviate settings
+WEAVIATE_URL = os.environ.get("WEAVIATE_URL", "http://localhost:8080")
+USE_WEAVIATE = os.environ.get("USE_WEAVIATE", "false").lower() == "true"
+WEAVIATE_BATCH_SIZE = int(os.environ.get("WEAVIATE_BATCH_SIZE", "100"))
+
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = []

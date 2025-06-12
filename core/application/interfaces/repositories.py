@@ -67,6 +67,7 @@ class PaperRepository(ABC):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
+        search_type: str = "keyword",
     ) -> Tuple[List[Paper], int]:
         pass
 

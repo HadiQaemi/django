@@ -34,6 +34,9 @@ from core.presentation.serializers.paper_serializers import (
     ScraperUrlSerializer,
 )
 
+from drf_yasg.utils import swagger_auto_schema
+from core.api.swagger_docs.search_docs import get_latest_articles_docs
+
 logger = logging.getLogger(__name__)
 
 
@@ -596,12 +599,19 @@ class PaperViewSet(viewsets.GenericViewSet):
             sort_order = request.query_params.get("sort", "a-z")
             search_query = request.query_params.get("search", "")
             research_fields = request.query_params.getlist("research_fields[]")
+            search_type = request.query_params.get("search_type", "keyword")
+            
+            if search_type not in ["keyword", "semantic", "hybrid"]:
+                search_type = "keyword"
+            print("--------search_type----------")
+            print(search_type)
             result = self.paper_service.get_latest_articles(
                 research_fields=research_fields,
                 search_query=search_query,
                 sort_order=sort_order,
                 page=page,
                 page_size=page_size,
+                search_type=search_type,
             )
 
             items = []
@@ -615,7 +625,8 @@ class PaperViewSet(viewsets.GenericViewSet):
                         "name": article.name,
                         "author": author_name,
                         "academic_publication": article.journal,
-                        "date_published": article.date_published.year,
+                        "date_published": article.date_published.year if article.date_published else None,
+                        "search_type_used": search_type,
                     }
                 )
             return Response({"items": items, "total": result.total_elements})
@@ -873,7 +884,7 @@ class SearchViewSet(viewsets.GenericViewSet):
         """Perform semantic search on statements."""
         try:
             query = request.query_params.get("search", "")
-            search_type = request.query_params.get("type", "hybrid")
+            search_type = request.query_params.get("type", "keyword")
             sort_order = request.query_params.get("sort", "a-z")
             page = int(request.query_params.get("page", 1))
             page_size = int(request.query_params.get("limit", 10))
@@ -910,7 +921,7 @@ class SearchViewSet(viewsets.GenericViewSet):
         """Perform semantic search on articles."""
         try:
             query = request.query_params.get("search", "")
-            search_type = request.query_params.get("type", "hybrid")
+            search_type = request.query_params.get("type", "keyword")
             sort_order = request.query_params.get("sort", "a-z")
             page = int(request.query_params.get("page", 1))
             page_size = int(request.query_params.get("limit", 10))

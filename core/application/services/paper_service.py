@@ -781,6 +781,7 @@ class PaperServiceImpl(PaperServiceInterface):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
+        search_type: str = "keyword",
     ) -> PaginatedResponseDTO:
         """Get latest articles with filters."""
         print("-------------get_latest_articles---------------", __file__)
@@ -797,6 +798,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 sort_order=sort_order,
                 page=page,
                 page_size=page_size,
+                search_type=search_type,
             )
             result = PaginatedResponseDTO(
                 content=[self._map_paper_to_dto(paper) for paper in papers],

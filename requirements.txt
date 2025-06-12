@@ -138,4 +138,5 @@ uritemplate
 urllib3
 vine
 wcwidth
+weaviate-client
 whitenoise

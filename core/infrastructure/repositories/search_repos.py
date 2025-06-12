@@ -1,38 +1,42 @@
-"""
-Search repository implementation for the REBORN API.
-
-These repositories implement the search repository interfaces.
-"""
-
 import logging
-from typing import List, Dict, Any, Optional, Tuple, Union, cast
+from typing import List, Dict, Any, Tuple
 import os
-import gc
-
 from core.application.interfaces.repositories import SearchRepository
 from core.infrastructure.search.semantic_engine import SemanticSearchEngine
 from core.infrastructure.search.keyword_engine import KeywordSearchEngine
 from core.infrastructure.search.hybrid_engine import HybridSearchEngine
+from core.infrastructure.search.weaviate_engine import WeaviateSearchEngine
 from core.domain.exceptions import SearchEngineError
 
 logger = logging.getLogger(__name__)
 
 
 class SearchRepositoryImpl(SearchRepository):
-    """Implementation of the search repository."""
 
     def __init__(self):
-        """Initialize the repository."""
+        self.use_weaviate = os.environ.get("USE_WEAVIATE", "false").lower() == "true"
+
         try:
-            self.semantic_engine = SemanticSearchEngine()
-            self.keyword_engine = KeywordSearchEngine()
-            self.hybrid_engine = HybridSearchEngine(
-                self.semantic_engine, self.keyword_engine
-            )
+            if self.use_weaviate:
+                logger.info("Using Weaviate for semantic search")
+                self.semantic_engine = WeaviateSearchEngine()
+                self.keyword_engine = KeywordSearchEngine()
+                self.hybrid_engine = HybridSearchEngine(
+                    self.semantic_engine, self.keyword_engine
+                )
+            else:
+                logger.info("Using default semantic search engines")
+                self.semantic_engine = SemanticSearchEngine()
+                self.keyword_engine = KeywordSearchEngine()
+                self.hybrid_engine = HybridSearchEngine(
+                    self.semantic_engine, self.keyword_engine
+                )
         except Exception as e:
             logger.error(f"Error initializing search engines: {str(e)}")
-            # Fallback to semantic engine only if keyword engine fails
-            self.semantic_engine = SemanticSearchEngine()
+            if self.use_weaviate:
+                self.semantic_engine = WeaviateSearchEngine()
+            else:
+                self.semantic_engine = SemanticSearchEngine()
             self.keyword_engine = None
             self.hybrid_engine = HybridSearchEngine(
                 self.semantic_engine, keyword_engine=False
