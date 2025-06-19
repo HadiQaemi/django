@@ -613,7 +613,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             for article in result.content:
                 author_name = ""
                 if hasattr(article, "authors") and article.authors:
-                    author_name = article.authors[0].label
+                    author_name = article.authors[0].family_name
                 items.append(
                     {
                         "article_id": article.article_id,
