@@ -616,7 +616,7 @@ class DataItemComponent(TimeStampedModel):
 
 class Figure(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
     source_url = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:

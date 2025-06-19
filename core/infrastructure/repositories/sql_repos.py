@@ -885,7 +885,9 @@ class SQLPaperRepository(PaperRepository):
         if not article_data:
             logger.error("No ScholarlyArticle found in data")
             return False
-
+        date_value = article_data.get("datePublished", "")
+        if isinstance(date_value, (int, float)):
+            date_value = str(int(date_value))
         article, created = ArticleModel.objects.update_or_create(
             _id=article_data.get("@id", ""),
             defaults={
@@ -893,11 +895,7 @@ class SQLPaperRepository(PaperRepository):
                 "article_id": generate_static_id(article_data.get("name", "")),
                 "json": article_data,
                 "abstract": article_data.get("abstract", ""),
-                "date_published": datetime.strptime(
-                    article_data.get("datePublished", ""), "%Y"
-                )
-                if isinstance(article_data.get("datePublished"), str)
-                else None,
+                "date_published": datetime.strptime(date_value, "%Y"),
                 "identifier": article_data.get("identifier", ""),
                 "reborn_doi": fetch_reborn_doi(article_data.get("@id", "")),
                 "publisher_id": publisher_id,
@@ -1290,7 +1288,7 @@ class SQLPaperRepository(PaperRepository):
                                                 )
                                             )
 
-                                        has_expressions = None
+                                        has_expressions = []
                                         has_input_has_expression = (
                                             self.get_property_info(
                                                 has_input,
