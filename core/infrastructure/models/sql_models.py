@@ -411,7 +411,7 @@ class Article(TimeStampedModel):
     reborn_doi = models.CharField(max_length=255, null=True, blank=True)
     paper_type = models.CharField(max_length=255, null=True, blank=True)
     concepts = models.ManyToManyField(Concept, related_name="articles", blank=True)
-    authors = models.ManyToManyField(Author, related_name="articles", blank=True)
+    authors = models.ManyToManyField(Author, related_name="articles", blank=True, through='ArticleAuthor')
     research_fields = models.ManyToManyField(
         ResearchField, related_name="articles", blank=True
     )
@@ -449,7 +449,18 @@ class Article(TimeStampedModel):
     def __str__(self):
         return self.name
 
+class ArticleAuthor(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        db_table = "articles_authors"
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.article.name} - {self.author.family_name} ({self.order})"
+    
 class SchemaType(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     type_id = models.CharField(max_length=255, unique=True)

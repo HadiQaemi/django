@@ -1062,7 +1062,7 @@ class PaperServiceImpl(PaperServiceInterface):
             if isinstance(author, dict):
                 authors.append(
                     ShortAuthorOutputDTO(
-                        label=author.get("label", ""),
+                        label=author.get("family_name", ""),
                         orcid=author.get("orcid", ""),
                         author_id=author.get("author_id", ""),
                     )
@@ -1070,7 +1070,7 @@ class PaperServiceImpl(PaperServiceInterface):
             else:
                 authors.append(
                     ShortAuthorOutputDTO(
-                        label=author.label,
+                        label=author.family_name,
                         orcid=author.orcid,
                         author_id=author.author_id,
                     )

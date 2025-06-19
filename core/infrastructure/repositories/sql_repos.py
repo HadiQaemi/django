@@ -903,8 +903,8 @@ class SQLPaperRepository(PaperRepository):
                 "paper_type": "conference" if conference_id else "journal",
             },
         )
-        for author in authors:
-            article.authors.add(author)
+        for index, author in enumerate(authors):
+            article.authors.add(author, through_defaults={"order": index + 1})
         # article.authors.set(authors)
         article.concepts.set(concepts)
         article.research_fields.set(research_fields)
@@ -1925,7 +1925,7 @@ class SQLPaperRepository(PaperRepository):
     def _convert_article_to_paper(self, article: ArticleModel) -> Paper:
         authors = []
         print("--------_convert_article_to_paper-----------", __file__)
-        for author in article.authors.all():
+        for author in article.authors.all().order_by("articleauthor"):
             authors.append(
                 Author(
                     id=author.id,
