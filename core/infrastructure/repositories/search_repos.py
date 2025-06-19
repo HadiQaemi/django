@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class SearchRepositoryImpl(SearchRepository):
     def __init__(self):
-        self.use_weaviate = os.environ.get("USE_WEAVIATE", "false").lower() == "true"
+        self.use_weaviate = os.environ.get("USE_WEAVIATE", "true").lower() == "true"
 
         try:
             if self.use_weaviate:
