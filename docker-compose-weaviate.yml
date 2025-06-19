@@ -18,12 +18,20 @@ services:
     depends_on:
       - t2v-transformers
     restart: on-failure:0
-  
+    networks:
+      - reborn_network
+
   t2v-transformers:
     image: cr.weaviate.io/semitechnologies/transformers-inference:sentence-transformers-all-mpnet-base-v2
     environment:
       ENABLE_CUDA: '0'
     restart: on-failure:0
+    networks:
+      - reborn_network
 
 volumes:
   weaviate_data:
+
+networks:
+  reborn_network:
+    external: true

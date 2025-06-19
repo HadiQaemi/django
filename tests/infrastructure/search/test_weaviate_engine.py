@@ -17,7 +17,7 @@ class TestWeaviateSearchEngine(unittest.TestCase):
         mock_transformer.return_value = self.mock_model
 
         self.engine = WeaviateSearchEngine(
-            host="http://localhost:8080",
+            host="http://weaviate:8080",
             # model_name="all-MiniLM-L6-v2",
             model_name="sentence-transformers-all-mpnet-base-v2",
             articles_class_name="TestArticle",

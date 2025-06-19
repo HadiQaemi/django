@@ -23,7 +23,7 @@ class WeaviateSearchEngine:
         batch_size: int = 100,
         auto_connect: bool = True,
     ):
-        self.host = host or os.environ.get("WEAVIATE_URL", "http://localhost:8080")
+        self.host = host or os.environ.get("WEAVIATE_URL", "http://weaviate:8080")
         self.grpc_port = int(os.environ.get("WEAVIATE_GRPC_PORT", str(grpc_port)))
         self.articles_class_name = articles_class_name
         self.statements_class_name = statements_class_name
