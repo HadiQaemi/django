@@ -1,14 +1,7 @@
-"""
-Paper service implementation for the REBORN API.
-
-This service handles all paper-related operations.
-"""
-
 import logging
 import math
-from typing import List, Dict, Any, Optional, Tuple, Union, cast
+from typing import List, Dict, Any, Optional
 from django.core.cache import cache
-from django.conf import settings
 from django.utils.timezone import localtime
 from core.application.interfaces.services import PaperService as PaperServiceInterface
 from core.application.interfaces.repositories import (
@@ -20,7 +13,6 @@ from core.application.interfaces.repositories import (
     JournalRepository,
 )
 from core.application.dtos.input_dtos import (
-    PaperInputDTO,
     QueryFilterInputDTO,
     ScraperUrlInputDTO,
 )
@@ -31,20 +23,14 @@ from core.application.dtos.output_dtos import (
     AuthorOutputDTO,
     ShortAuthorOutputDTO,
     ShortStatementOutputDTO,
-    ShortResearchFieldOutputDTO,
     ConceptOutputDTO,
     CommonResponseDTO,
     PaginatedResponseDTO,
-    ResearchFieldOutputDTO,
 )
 from core.domain.exceptions import (
-    EntityNotFound,
-    InvalidInput,
-    ScraperError,
     DatabaseError,
 )
 from core.infrastructure.scrapers.node_extractor import NodeExtractor
-import re
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +164,61 @@ class PaperServiceImpl(PaperServiceInterface):
 
     def statement_data_type(self, statement: str) -> any:
         data_type = []
+        components = []
+        print("-----statement.components.all()-------")
+        for component in statement.components.all():
+            units = []
+            for unit in component.units.all():
+                units.append(
+                    {
+                        "label": unit.label,
+                        "type": unit.type,
+                        "exact_match": unit.exact_match,
+                        "close_match": unit.close_match,
+                    }
+                )
+            properties = []
+            for property in component.properties.all():
+                properties.append(
+                    {
+                        "label": property.label,
+                        "exact_match": property.exact_match,
+                        "close_match": property.close_match,
+                    }
+                )
+            matrices = []
+            for matrix in component.matrices.all():
+                matrices.append(
+                    {
+                        "label": matrix.label,
+                        "type": matrix.type,
+                        "exact_match": matrix.exact_match,
+                        "close_match": matrix.close_match,
+                    }
+                )
+            object_of_interests = []
+            for object_of_interest in component.object_of_interests.all():
+                object_of_interests.append(
+                    {
+                        "label": object_of_interest.label,
+                        "type": object_of_interest.type,
+                        "exact_match": object_of_interest.exact_match,
+                        "close_match": object_of_interest.close_match,
+                    }
+                )
+            components.append(
+                {
+                    "string_match": component.string_match,
+                    "exact_match": component.exact_match,
+                    "close_match": component.close_match,
+                    "label": component.label,
+                    "type": component.type,
+                    "units": units,
+                    "properties": properties,
+                    "matrices": matrices,
+                    "object_of_interests": object_of_interests,
+                }
+            )
         implement_statements = statement.implement_statements.all()
         implements = []
         for implement_statement in implement_statements:
@@ -231,7 +272,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     has_parts.append(
                         {
                             "label": has_part.label,
-                            "see_alsol": has_part.see_also,
+                            "see_also": has_part.see_also,
                         }
                     )
                 has_inputs.append(
@@ -266,7 +307,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     has_parts.append(
                         {
                             "label": has_part.label,
-                            "see_alsol": has_part.see_also,
+                            "see_also": has_part.see_also,
                         }
                     )
                 has_outputs.append(
@@ -341,6 +382,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 {
                     "has_part": dt,
                     "is_implemented_by": implements,
+                    "components": components,
                     "type": {
                         "name": has_part.schema_type.name,
                         "description": has_part.schema_type.description,
@@ -741,6 +783,7 @@ class PaperServiceImpl(PaperServiceInterface):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
+        search_type: str = "keyword",
     ) -> PaginatedResponseDTO:
         """Get latest statements with filters."""
         # cache_key = f"latest_statements_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
@@ -756,6 +799,7 @@ class PaperServiceImpl(PaperServiceInterface):
             sort_order=sort_order,
             page=page,
             page_size=page_size,
+            search_type=search_type,
         )
 
         result = PaginatedResponseDTO(

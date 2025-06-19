@@ -1,14 +1,17 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from core.presentation.viewsets.paper_viewsets import PaperViewSet, SearchViewSet
+from core.presentation.viewsets.paper_viewsets import (
+    PaperViewSet,
+    SearchViewSet,
+    AutoCompleteViewSet,
+)
 
-# Create a router for viewsets
 router = DefaultRouter()
 router.register(r"articles", PaperViewSet, basename="paper")
 router.register(r"search", SearchViewSet, basename="search")
+router.register(r"auto-complete", AutoCompleteViewSet, basename="auto-complete")
 
-# URL patterns for API v1
 urlpatterns = [
     # Include router URLs
     path("", include(router.urls)),

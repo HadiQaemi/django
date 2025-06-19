@@ -1,13 +1,14 @@
-"""
-Base settings for the REBORN API project.
-"""
-
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+env_file = os.path.join(BASE_DIR, '.env')
+if os.path.exists(env_file):
+    load_dotenv(env_file)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -237,6 +238,7 @@ ELASTICSEARCH_DSL = {
 
 # Weaviate settings
 WEAVIATE_URL = os.environ.get("WEAVIATE_URL", "http://localhost:8080")
+WEAVIATE_GRPC_PORT = int(os.environ.get("WEAVIATE_GRPC_PORT", "50051"))
 USE_WEAVIATE = os.environ.get("USE_WEAVIATE", "false").lower() == "true"
 WEAVIATE_BATCH_SIZE = int(os.environ.get("WEAVIATE_BATCH_SIZE", "100"))
 

@@ -1,15 +1,11 @@
 import logging
-import math
 import sys
-from typing import List, Dict, Any, Optional, Tuple, Union, cast
-from django.db.models import Q, F, Count
+from typing import List, Dict, Any, Optional, Tuple
+from django.db.models import Q, F, Case, When
 from django.core.paginator import Paginator
-from django.conf import settings
-import json
 import hashlib
 from datetime import datetime
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
-from django.contrib.postgres.search import TrigramSimilarity
 from core.application.interfaces.repositories import (
     PaperRepository,
     SearchRepository,
@@ -20,14 +16,6 @@ from core.application.interfaces.repositories import (
     JournalRepository,
 )
 from core.infrastructure.clients.type_registry_client import TypeRegistryClient
-from core.application.mappers.entity_mappers import (
-    PaperMapper,
-    StatementMapper,
-    AuthorMapper,
-    ConceptMapper,
-    ResearchFieldMapper,
-)
-from core.application.dtos.output_dtos import ShortPaperOutputDTO, ShortAuthorOutputDTO
 from core.domain.entities import (
     Paper,
     Statement,
@@ -35,11 +23,8 @@ from core.domain.entities import (
     Concept,
     ResearchField,
     Journal,
-    Conference,
-    Notation,
-    Contribution,
 )
-from core.domain.exceptions import EntityNotFound, DatabaseError
+from core.domain.exceptions import DatabaseError
 from core.infrastructure.models.sql_models import (
     Article as ArticleModel,
     Statement as StatementModel,
@@ -339,10 +324,10 @@ class SQLPaperRepository(PaperRepository):
         search_vector = (
             SearchVector("name", weight="A")
             + SearchVector("abstract", weight="B")
-            + SearchVector("json", weight="c")
+            + SearchVector("json", weight="C")
         )
-        
         words = query_text.split()
+
         if len(words) > 1:
             phrase_query = SearchQuery(" & ".join(words), search_type="raw")
             words_query = SearchQuery(" | ".join(words), search_type="raw")
@@ -358,16 +343,9 @@ class SQLPaperRepository(PaperRepository):
             queryset = queryset.filter(
                 research_fields__research_field_id__in=research_field_ids
             ).distinct()
-        # queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-base_rank")
 
-        queryset = queryset.annotate(
-            name_similarity=TrigramSimilarity("name", query_text),
-            abstract_similarity=TrigramSimilarity("abstract", query_text),
-        )
-        
-        queryset = queryset.annotate(
-            final_rank=F("base_rank") + (F("name_similarity") * 0.5) + (F("abstract_similarity") * 0.3)
-        ).order_by("-final_rank")
+        queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-final_rank")
+
         return queryset
 
     def get_latest_articles(
@@ -383,41 +361,67 @@ class SQLPaperRepository(PaperRepository):
         try:
             if search_query and search_type in ["semantic", "hybrid"]:
                 from core.infrastructure.container import Container
+
                 search_repo = Container.resolve(SearchRepository)
-                
+                print("------------search_type-----------")
+                print(search_type)
                 if search_type == "semantic":
-                    search_results = search_repo.semantic_search_articles(search_query, page_size * 2)
-                    article_ids = [result.get("id") for result in search_results if result.get("id")]
+                    search_results = search_repo.semantic_search_articles(
+                        search_query, page_size * 2
+                    )
+                    article_ids = [
+                        result.get("article_id")
+                        for result in search_results
+                        if result.get("article_id")
+                    ]
                 else:
-                    search_results, article_ids = search_repo.hybrid_search_articles(search_query, page_size * 2)
-                
+                    search_results = search_repo.hybrid_search_articles(
+                        search_query, page_size * 2
+                    )
+                    print("--------get_latest_articles----------")
+                    print(search_results)
+                    article_ids = [
+                        result.get("article_id")
+                        for result in search_results
+                        if result.get("article_id")
+                    ]
+                print(article_ids)
                 if not article_ids:
                     query = self.advanced_article_search(search_query, research_fields)
                 else:
-                    query = ArticleModel.objects.filter(article_id__in=article_ids)
-                    
-                    if research_fields and len(research_fields) > 0:
-                        query = query.filter(
-                            research_fields__research_field_id__in=research_fields
-                        )
+                    preserved_order = Case(
+                        *[
+                            When(article_id=id, then=pos)
+                            for pos, id in enumerate(article_ids)
+                        ]
+                    )
+                    query = ArticleModel.objects.filter(
+                        article_id__in=article_ids
+                    ).order_by(preserved_order)
+
+                if research_fields and len(research_fields) > 0:
+                    query = query.filter(
+                        research_fields__research_field_id__in=research_fields
+                    )
             else:
                 if search_query:
                     query = self.advanced_article_search(search_query)
                 else:
                     query = ArticleModel.objects.all()
-                    if research_fields and len(research_fields) > 0:
-                        query = query.filter(
-                            research_fields__research_field_id__in=research_fields
-                        )
 
-            if sort_order == "a-z":
-                query = query.order_by("name")
-            elif sort_order == "z-a":
-                query = query.order_by("-name")
-            elif sort_order == "newest":
-                query = query.order_by("-created_at")
-            else:
-                query = query.order_by("name")
+                if research_fields and len(research_fields) > 0:
+                    query = query.filter(
+                        research_fields__research_field_id__in=research_fields
+                    )
+            if search_type not in ["semantic", "hybrid"]:
+                if sort_order == "a-z":
+                    query = query.order_by("name")
+                elif sort_order == "z-a":
+                    query = query.order_by("-name")
+                elif sort_order == "newest":
+                    query = query.order_by("-created_at")
+                else:
+                    query = query.order_by("name")
 
             total = query.count()
 
@@ -749,6 +753,7 @@ class SQLPaperRepository(PaperRepository):
                     defaults={
                         "json": component,
                         "type": component.get("@type", ""),
+                        "label": component.get("label", ""),
                         "string_match": component.get("stringMatch", "")
                         if len(component.get("stringMatch", "")) > 0
                         else [],
@@ -900,7 +905,9 @@ class SQLPaperRepository(PaperRepository):
                 "paper_type": "conference" if conference_id else "journal",
             },
         )
-        article.authors.set(authors)
+        for author in authors:
+            article.authors.add(author)
+        # article.authors.set(authors)
         article.concepts.set(concepts)
         article.research_fields.set(research_fields)
 
@@ -1012,7 +1019,7 @@ class SQLPaperRepository(PaperRepository):
                         has_parts = statement_content[p]
                         if isinstance(statement_content[p], dict):
                             has_parts = [statement_content[p]]
-
+                        software_method_items = []
                         for statement_content_item in has_parts:
                             _type_info, _info = self.type_registry_client.get_type_info(
                                 statement_content_item["@type"].replace("doi:", "")
@@ -1638,8 +1645,8 @@ class SQLPaperRepository(PaperRepository):
                                 #     )
                             # print("_type_info: ", _type_info)
 
-                            print(_type_info.name)
-                            print(software_method_items)
+                            # print(_type_info.name)
+                            # print(software_method_items)
                             if _type_info.name == "Multilevel analysis":
                                 MultilevelAnalysis, created = (
                                     MultilevelAnalysisModel.objects.update_or_create(
@@ -1983,31 +1990,32 @@ class SQLPaperRepository(PaperRepository):
 class SQLAuthorRepository(AuthorRepository):
     """PostgreSQL implementation of the Author repository."""
 
-    def find_by_name(self, name: str) -> List[Author]:
+    def get_authors_by_name(
+        self, search_query: str, page: int, page_size: int
+    ) -> List[Author]:
         """Find authors by name."""
-        try:
-            authors_queryset = AuthorModel.objects.filter(
-                Q(label__icontains=name)
-                | Q(given_name__icontains=name)
-                | Q(family_name__icontains=name)
-            ).order_by("label")[:10]  # Limit to 10 authors
+        print("-------get_authors_by_name-------", __file__)
+        # try:
+        authors_queryset = AuthorModel.objects.filter(
+            Q(label__icontains=search_query)
+            | Q(given_name__icontains=search_query)
+            | Q(family_name__icontains=search_query)
+        ).order_by("label")[:10]
+        authors = []
+        for author_model in authors_queryset:
+            author = Author(
+                author_id=author_model.author_id,
+                orcid=author_model.orcid,
+                given_name=author_model.given_name,
+                family_name=author_model.family_name,
+                label=author_model.label,
+            )
+            authors.append(author)
+        return authors
 
-            authors = []
-            for author_model in authors_queryset:
-                author = Author(
-                    id=author_model.id,
-                    orcid=author_model.orcid,
-                    given_name=author_model.given_name,
-                    family_name=author_model.family_name,
-                    label=author_model.label,
-                )
-                authors.append(author)
-
-            return authors
-
-        except Exception as e:
-            logger.error(f"Error in find_by_name: {str(e)}")
-            raise DatabaseError(f"Failed to find authors: {str(e)}")
+        # except Exception as e:
+        #     logger.error(f"Error in find_by_name: {str(e)}")
+        #     raise DatabaseError(f"Failed to find authors: {str(e)}")
 
     def save(self, author: Author) -> Author:
         """Save an author."""
@@ -2091,6 +2099,29 @@ class SQLAuthorRepository(AuthorRepository):
 
 class SQLConceptRepository(ConceptRepository):
     """PostgreSQL implementation of the Concept repository."""
+
+    def get_keywords_by_label(
+        self, search_query: str, page: int, page_size: int
+    ) -> List[Concept]:
+        """Find concepts by label."""
+        print("-------concepts-------", __file__)
+        try:
+            concepts_queryset = ConceptModel.objects.filter(
+                label__icontains=search_query
+            ).order_by("label")[:10]
+            concepts = []
+            for concept_model in concepts_queryset:
+                concept = Concept(
+                    id=concept_model.id,
+                    label=concept_model.label,
+                    concept_id=concept_model.concept_id,
+                )
+                concepts.append(concept)
+            return concepts
+
+        except Exception as e:
+            logger.error(f"Error in find_by_name: {str(e)}")
+            raise DatabaseError(f"Failed to find authors: {str(e)}")
 
     def find_by_label(self, label: str) -> List[Concept]:
         """Find concepts by label."""
@@ -2206,6 +2237,29 @@ class SQLConceptRepository(ConceptRepository):
 class SQLResearchFieldRepository(ResearchFieldRepository):
     """PostgreSQL implementation of the ResearchField repository."""
 
+    def get_research_fields_by_name(
+        self, search_query: str, page: int, page_size: int
+    ) -> List[ResearchField]:
+        """Find research fields by label."""
+        print("-------research_fields-------", __file__)
+        try:
+            research_fields_queryset = ResearchFieldModel.objects.filter(
+                label__icontains=search_query
+            ).order_by("label")[:10]
+            research_fields = []
+            for research_model in research_fields_queryset:
+                research_field = ResearchField(
+                    id=research_model.id,
+                    label=research_model.label,
+                    research_field_id=research_model.research_field_id,
+                )
+                research_fields.append(research_field)
+            return research_fields
+
+        except Exception as e:
+            logger.error(f"Error in get_research_fields_by_name: {str(e)}")
+            raise DatabaseError(f"Failed to find research fields by name: {str(e)}")
+
     def find_by_label(self, label: str) -> List[ResearchField]:
         """Find research fields by label."""
         try:
@@ -2253,27 +2307,29 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
 class SQLJournalRepository(JournalRepository):
     """PostgreSQL implementation of the Journal repository."""
 
-    def find_by_name(self, name: str) -> List[Dict[str, Any]]:
-        """Find journals by name."""
+    def get_academic_publishers_by_name(
+        self, search_query: str, page: int, page_size: int
+    ) -> List[Journal]:
+        """Find academic publishers by name."""
+        print("-------get_academic_publishers_by_name-------", __file__)
         try:
             journals_queryset = JournalConferenceModel.objects.filter(
-                label__icontains=name
-            ).order_by("label")[:10]  # Limit to 10 journals
-
+                label__icontains=search_query
+            ).order_by("label")[:10]
             journals = []
             for journal_model in journals_queryset:
-                journal_dict = {
-                    "id": journal_model.id,
-                    "label": journal_model.label,
-                    "publisher": journal_model.publisher,
-                }
-                journals.append(journal_dict)
-
+                journal = Journal(
+                    id=journal_model.id,
+                    label=journal_model.label,
+                    journal_conference_id=journal_model.journal_conference_id,
+                    publisher=journal_model.publisher_id,
+                )
+                journals.append(journal)
             return journals
 
         except Exception as e:
-            logger.error(f"Error in find_by_name: {str(e)}")
-            raise DatabaseError(f"Failed to find journals: {str(e)}")
+            logger.error(f"Error in get_academic_publishers_by_name: {str(e)}")
+            raise DatabaseError(f"Failed to find academic publishers: {str(e)}")
 
     def get_latest_journals(
         self,
@@ -2388,7 +2444,6 @@ class SQLStatementRepository(StatementRepository):
             statement_model = StatementModel.objects.filter(
                 statement_id=statement_id
             ).first()
-
             # if statement_model:
             #     return self._convert_statement_to_entity(statement_model)
 
@@ -2525,24 +2580,41 @@ class SQLStatementRepository(StatementRepository):
         )
 
     def advanced_statement_search(self, query_text, research_field_ids=None):
+        print("-----advanced_statement_search------------")
         if not query_text.strip():
             return StatementModel.objects.none()
 
-        search_vector = SearchVector("label", weight="A") + SearchVector(
-            "content", weight="B"
+        search_vector = (
+            SearchVector("label", weight="A")
+            + SearchVector("content", weight="B")
+            + SearchVector("article__name", weight="C")
+            + SearchVector("article__abstract", weight="D")
         )
-        search_query = SearchQuery(query_text)
 
-        queryset = StatementModel.objects.annotate(
-            search=search_vector, base_rank=SearchRank(search_vector, search_query)
-        ).filter(search=search_query)
+        words = query_text.split()
+        if len(words) > 1:
+            phrase_query = SearchQuery(" & ".join(words), search_type="raw")
+            words_query = SearchQuery(" | ".join(words), search_type="raw")
+
+            search_query = phrase_query | words_query
+        else:
+            search_query = SearchQuery(query_text)
+
+        queryset = (
+            StatementModel.objects.select_related("article")
+            .annotate(
+                search=search_vector, base_rank=SearchRank(search_vector, search_query)
+            )
+            .filter(search=search_query)
+        )
 
         if research_field_ids:
             queryset = queryset.filter(
-                research_fields__id__in=research_field_ids
+                article__research_fields__research_field_id__in=research_field_ids
             ).distinct()
 
-        queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-base_rank")
+        queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-final_rank")
+
         return queryset
 
     def get_latest_statements(
@@ -2552,29 +2624,74 @@ class SQLStatementRepository(StatementRepository):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
+        search_type: str = "keyword",
     ) -> Tuple[List[Statement], int]:
         print("----------get_latest_statements------", __file__)
         try:
-            query = None
-            if search_query:
-                query = self.advanced_statement_search(search_query)
+            if search_query and search_type in ["semantic", "hybrid"]:
+                from core.infrastructure.container import Container
 
-            if query is None:
-                query = StatementModel.objects.select_related("article").all()
+                search_repo = Container.resolve(SearchRepository)
 
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(
-                    article__research_fields__research_field_id__in=research_fields
-                )
+                if search_type == "semantic":
+                    search_results = search_repo.semantic_search_statements(
+                        search_query, page_size * 2
+                    )
+                    statement_ids = [
+                        result.get("statement_id")
+                        for result in search_results
+                        if result.get("statement_id")
+                    ]
+                else:
+                    search_results = search_repo.hybrid_search_statements(
+                        search_query, page_size * 2
+                    )
+                    statement_ids = [
+                        result.get("statement_id")
+                        for result in search_results
+                        if result.get("statement_id")
+                    ]
 
-            if sort_order == "a-z":
-                query = query.order_by("label")
-            elif sort_order == "z-a":
-                query = query.order_by("-label")
-            elif sort_order == "newest":
-                query = query.order_by("-created_at")
+                if not statement_ids:
+                    query = self.advanced_statement_search(
+                        search_query, research_fields
+                    )
+                else:
+                    preserved_order = Case(
+                        *[
+                            When(statement_id=id, then=pos)
+                            for pos, id in enumerate(statement_ids)
+                        ]
+                    )
+                    query = StatementModel.objects.filter(
+                        statement_id__in=statement_ids
+                    ).order_by(preserved_order)
+
+                if research_fields and len(research_fields) > 0:
+                    query = query.filter(
+                        article__research_fields__research_field_id__in=research_fields
+                    )
             else:
-                query = query.order_by("label")
+                if search_query:
+                    query = self.advanced_statement_search(
+                        search_query, research_fields
+                    )
+                else:
+                    query = StatementModel.objects.select_related("article").all()
+
+                if research_fields and len(research_fields) > 0:
+                    query = query.filter(
+                        article__research_fields__research_field_id__in=research_fields
+                    )
+            if search_type not in ["semantic", "hybrid"]:
+                if sort_order == "a-z":
+                    query = query.order_by("label")
+                elif sort_order == "z-a":
+                    query = query.order_by("-label")
+                elif sort_order == "newest":
+                    query = query.order_by("-created_at")
+                else:
+                    query = query.order_by("label")
 
             total = query.count()
             paginator = Paginator(query, page_size)
@@ -2632,10 +2749,8 @@ class SQLStatementRepository(StatementRepository):
     def _convert_statement_to_entity(
         self, statement_model: StatementModel
     ) -> Statement:
-        print("----------_convert_statement_to_entity------", __file__)
         authors = []
         for author in statement_model.authors.all():
-            print(author.author_id)
             authors.append(
                 Author(
                     id=author.id,

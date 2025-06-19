@@ -1,9 +1,3 @@
-"""
-Domain entities for the REBORN API.
-
-These are pure domain entities independent of any infrastructure concerns.
-"""
-
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 from datetime import datetime
@@ -13,11 +7,11 @@ from datetime import datetime
 class Author:
     """Author of a research paper or contribution."""
 
-    id: str
-    given_name: str
-    family_name: str
-    orcid: str
-    author_id: str
+    id: Optional[str] = None
+    given_name: Optional[str] = None
+    family_name: Optional[str] = None
+    orcid: Optional[str] = None
+    author_id: Optional[str] = None
     label: Optional[str] = None
 
     @property
@@ -55,6 +49,7 @@ class Concept:
 
     id: str
     label: str
+    concept_id: Optional[str] = None
     identifier: Optional[str] = None
 
 

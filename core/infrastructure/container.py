@@ -1,11 +1,4 @@
-"""
-Dependency injection container for the REBORN API.
-
-This module provides a dependency injection container for the application.
-"""
-
-from typing import Dict, Any, Optional, Type, TypeVar, cast
-import importlib
+from typing import Dict, Any, Type, TypeVar, cast
 import inspect
 import logging
 from django.conf import settings
@@ -19,9 +12,15 @@ from core.application.interfaces.repositories import (
     JournalRepository,
     SearchRepository,
 )
-from core.application.interfaces.services import PaperService, SearchService
+from core.application.interfaces.services import (
+    PaperService,
+    SearchService,
+    AutoCompleteService,
+)
 from core.application.services.paper_service import PaperServiceImpl
 from core.application.services.search_service import SearchServiceImpl
+from core.application.services.auto_complete_service import AutoCompleteServiceImpl
+
 from core.infrastructure.clients.type_registry_client import TypeRegistryClient
 from core.application.interfaces.repositories import CacheRepository
 from core.infrastructure.repositories.cache_repos import SQLCacheRepository
@@ -50,7 +49,6 @@ class Container:
     @classmethod
     def configure(cls) -> None:
         """Configure the container based on settings."""
-        # Repository mapping
         cls._repositories = {
             PaperRepository: MongoDBPaperRepository,
             StatementRepository: MongoDBStatementRepository,
@@ -61,16 +59,15 @@ class Container:
             SearchRepository: SearchRepositoryImpl,
         }
 
-        # Service mapping
         cls._services = {
             PaperService: PaperServiceImpl,
             SearchService: SearchServiceImpl,
+            AutoCompleteService: AutoCompleteServiceImpl,
         }
         db_type = getattr(settings, "DATABASE_TYPE", "postgres")
         print(db_type)
         if db_type == "postgres":
-            # try:
-                # Import SQL repositories
+            try:
                 from core.infrastructure.repositories.sql_repos import (
                     SQLPaperRepository,
                     SQLStatementRepository,
@@ -80,7 +77,6 @@ class Container:
                     SQLJournalRepository,
                 )
 
-                # Update repository mapping
                 cls._repositories.update(
                     {
                         PaperRepository: SQLPaperRepository,
@@ -94,10 +90,10 @@ class Container:
                 )
 
                 logger.info("Using PostgreSQL repositories")
-            # except ImportError:
-            #     logger.warning(
-            #         "SQL repositories not available, falling back to MongoDB"
-            #     )
+            except ImportError:
+                logger.warning(
+                    "SQL repositories not available, falling back to MongoDB"
+                )
         else:
             logger.info("Using MongoDB repositories")
         cache_repo = cls.resolve(CacheRepository)
@@ -109,24 +105,18 @@ class Container:
         if not cls._repositories or not cls._services:
             cls.configure()
 
-        # Check if instance already exists
         if interface in cls._instances:
             return cast(T, cls._instances[interface])
-
         implementation = None
 
-        # Get implementation from repository mapping
         if interface in cls._repositories:
             implementation = cls._repositories[interface]
-
-        # Get implementation from service mapping
         elif interface in cls._services:
             implementation = cls._services[interface]
 
         if not implementation:
             raise ValueError(f"No implementation found for {interface}")
 
-        # Check if implementation requires dependencies
         try:
             if hasattr(implementation, "__init__"):
                 init_signature = inspect.signature(implementation.__init__)
@@ -162,3 +152,8 @@ class Container:
     def get_search_service(cls) -> SearchService:
         """Get the search service."""
         return cls.resolve(SearchService)
+
+    @classmethod
+    def get_auto_complete_service(cls) -> AutoCompleteService:
+        """Get the auto-complete service."""
+        return cls.resolve(AutoCompleteService)

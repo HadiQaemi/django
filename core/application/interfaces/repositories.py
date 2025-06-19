@@ -1,22 +1,16 @@
-"""
-Repository interfaces for the REBORN API.
-
-These interfaces define the contract for data access in the application.
-"""
-
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Tuple, Union
+from typing import List, Dict, Any, Optional, Tuple
 from core.domain.entities import (
     Paper,
-    Contribution,
     Statement,
     Author,
+    Journal,
     Concept,
     ResearchField,
 )
 
-class CacheRepository(ABC):
 
+class CacheRepository(ABC):
     @abstractmethod
     def get_schema_by_type_id(self, type_id: str) -> Optional[Any]:
         pass
@@ -25,8 +19,8 @@ class CacheRepository(ABC):
     def save_schema(self, type_id: str, schema_data: Dict[str, Any]) -> Any:
         pass
 
-class PaperRepository(ABC):
 
+class PaperRepository(ABC):
     @abstractmethod
     def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Paper], int]:
         pass
@@ -109,6 +103,7 @@ class StatementRepository(ABC):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
+        search_type: str = "keyword",
     ) -> Tuple[List[Statement], int]:
         pass
 
@@ -125,7 +120,7 @@ class StatementRepository(ABC):
 
 class AuthorRepository(ABC):
     @abstractmethod
-    def find_by_name(self, name: str) -> List[Author]:
+    def get_authors_by_name(self, name: str) -> List[Author]:
         pass
 
     @abstractmethod
@@ -171,7 +166,7 @@ class ConceptRepository(ABC):
 
 class ResearchFieldRepository(ABC):
     @abstractmethod
-    def find_by_label(self, label: str) -> List[ResearchField]:
+    def get_research_fields_by_name(self, label: str) -> List[ResearchField]:
         pass
 
     @abstractmethod
@@ -181,7 +176,7 @@ class ResearchFieldRepository(ABC):
 
 class JournalRepository(ABC):
     @abstractmethod
-    def find_by_name(self, name: str) -> List[Dict[str, Any]]:
+    def get_academic_publishers_by_name(self, name: str) -> List[Journal]:
         pass
 
     @abstractmethod
@@ -216,15 +211,11 @@ class SearchRepository(ABC):
         pass
 
     @abstractmethod
-    def hybrid_search_statements(
-        self, query: str, k: int = 5
-    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+    def hybrid_search_statements(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    def hybrid_search_articles(
-        self, query: str, k: int = 5
-    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+    def hybrid_search_articles(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -237,4 +228,20 @@ class SearchRepository(ABC):
 
     @abstractmethod
     def delete_indices(self) -> bool:
+        pass
+
+    @abstractmethod
+    def delete_article(self, article_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    def delete_statement(self, statement_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    def update_article(self, article: Dict[str, str]) -> bool:
+        pass
+
+    @abstractmethod
+    def update_statement(self, statement: Dict[str, str]) -> bool:
         pass

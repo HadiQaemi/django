@@ -1,17 +1,11 @@
-"""
-Celery tasks for the REBORN API.
-
-This module defines background tasks for data processing and search index maintenance.
-"""
-
 import logging
 from celery import shared_task
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import time
 
 from core.infrastructure.container import Container
-from core.application.interfaces.services import PaperService, SearchService
 from core.application.dtos.input_dtos import ScraperUrlInputDTO
+from core.application.interfaces.repositories import SearchRepository
 
 logger = logging.getLogger(__name__)
 

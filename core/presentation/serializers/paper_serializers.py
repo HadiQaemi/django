@@ -155,6 +155,23 @@ class SearchQuerySerializer(serializers.Serializer):
     )
 
 
+class AutoCompleteSerializer(serializers.Serializer):
+    """Serializer for search queries."""
+
+    query = serializers.CharField()
+    search_type = serializers.ChoiceField(
+        choices=["hybrid", "semantic", "keyword"], default="hybrid"
+    )
+    sort_order = serializers.ChoiceField(
+        choices=["a-z", "z-a", "newest"], default="a-z"
+    )
+    page = serializers.IntegerField(default=1)
+    page_size = serializers.IntegerField(default=10)
+    research_fields = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+
+
 def validate_domain(value):
     tib_pattern = r"^https?://service\.tib\.eu/ldmservice/dataset/[\w-]+$"
     local_pattern = r"^https?://localhost/data/[\w-]+/?$"

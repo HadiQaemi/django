@@ -94,5 +94,11 @@ class SearchInputDTO(BaseModel):
     research_fields: Optional[List[str]] = Field(default_factory=list)
 
 
+class AutoCompleteInputDTO(BaseModel):
+    query: Optional[str] = ""
+    page: Optional[int] = 1
+    page_size: Optional[int] = 10
+
+
 class ScraperUrlInputDTO(BaseModel):
     url: HttpUrl

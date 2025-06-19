@@ -1,27 +1,19 @@
-"""
-API viewsets for the REBORN API.
-
-This module provides viewsets for the REST API.
-"""
-
-from rest_framework import viewsets, status, mixins
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.pagination import PageNumberPagination
-from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
-from typing import Dict, Any, List, Optional
 import logging
 
 from core.infrastructure.container import Container
-from core.application.interfaces.services import PaperService, SearchService
 from core.application.dtos.input_dtos import (
     QueryFilterInputDTO,
     SearchInputDTO,
+    AutoCompleteInputDTO,
     ScraperUrlInputDTO,
 )
 from core.presentation.serializers.paper_serializers import (
@@ -31,11 +23,10 @@ from core.presentation.serializers.paper_serializers import (
     StatementSerializer,
     PaperFilterSerializer,
     SearchQuerySerializer,
+    AutoCompleteSerializer,
     ScraperUrlSerializer,
 )
 
-from drf_yasg.utils import swagger_auto_schema
-from core.api.swagger_docs.search_docs import get_latest_articles_docs
 
 logger = logging.getLogger(__name__)
 
@@ -286,9 +277,6 @@ class PaperViewSet(viewsets.GenericViewSet):
         print("----get_article--------")
         try:
             paper_id = request.query_params.get("id")
-            print("--------get_article----statement_id-----")
-            print("--------statement_id---------")
-
             result = self.paper_service.get_paper_by_id(paper_id)
 
             if not result.success:
@@ -323,7 +311,6 @@ class PaperViewSet(viewsets.GenericViewSet):
                 )
 
             result = self.paper_service.get_statement(statement_id)
-
             if not result.success:
                 return Response(
                     {"error": result.message or "Statement not found"},
@@ -552,6 +539,10 @@ class PaperViewSet(viewsets.GenericViewSet):
             sort_order = request.query_params.get("sort", "a-z")
             search_query = request.query_params.get("search", "")
             research_fields = request.query_params.getlist("research_fields[]")
+            search_type = request.query_params.get("search_type", "keyword")
+
+            if search_type not in ["keyword", "semantic", "hybrid"]:
+                search_type = "keyword"
 
             result = self.paper_service.get_latest_statements(
                 research_fields=research_fields,
@@ -559,6 +550,7 @@ class PaperViewSet(viewsets.GenericViewSet):
                 sort_order=sort_order,
                 page=page,
                 page_size=page_size,
+                search_type=search_type,
             )
 
             items = []
@@ -574,7 +566,10 @@ class PaperViewSet(viewsets.GenericViewSet):
                         "author": author_name,
                         "academic_publication": statement.journal_conference,
                         "article": statement.article_name,
-                        "date_published": statement.date_published.year,
+                        "date_published": statement.date_published.year
+                        if statement.date_published
+                        else None,
+                        "search_type_used": search_type,
                     }
                 )
 
@@ -600,7 +595,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             search_query = request.query_params.get("search", "")
             research_fields = request.query_params.getlist("research_fields[]")
             search_type = request.query_params.get("search_type", "keyword")
-            
+
             if search_type not in ["keyword", "semantic", "hybrid"]:
                 search_type = "keyword"
             print("--------search_type----------")
@@ -625,7 +620,9 @@ class PaperViewSet(viewsets.GenericViewSet):
                         "name": article.name,
                         "author": author_name,
                         "academic_publication": article.journal,
-                        "date_published": article.date_published.year if article.date_published else None,
+                        "date_published": article.date_published.year
+                        if article.date_published
+                        else None,
                         "search_type_used": search_type,
                     }
                 )
@@ -841,6 +838,164 @@ class PaperViewSet(viewsets.GenericViewSet):
             logger.error(f"Error in delete_database: {str(e)}")
             return Response(
                 {"error": "Failed to delete database"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class AutoCompleteViewSet(viewsets.GenericViewSet):
+    """API viewset for search."""
+
+    permission_classes = [AllowAny]
+    pagination_class = StandardResultsSetPagination
+    queryset = []
+    serializer_class = AutoCompleteSerializer
+
+    def __init__(self, **kwargs):
+        """Initialize the viewset."""
+        super().__init__(**kwargs)
+        self.auto_complete_service = Container.get_auto_complete_service()
+
+    def get_queryset(self):
+        """Return an empty queryset for schema generation."""
+        if getattr(self, "swagger_fake_view", False):
+            return []
+        return []
+
+    def get_serializer_class(self):
+        """Return the appropriate serializer class."""
+        action_serializer_map = {
+            "get_authors_by_name": AutoCompleteSerializer,
+            "get_academic_publishers_by_name": AutoCompleteSerializer,
+            "get_research_fields_by_name": AutoCompleteSerializer,
+            "get_keywords_by_label": AutoCompleteSerializer,
+        }
+        return action_serializer_map.get(self.action, AutoCompleteSerializer)
+
+    def get_serializer(self, *args, **kwargs):
+        """Get serializer instance with proper context."""
+        serializer_class = self.get_serializer_class()
+        kwargs.setdefault("context", self.get_serializer_context())
+        return serializer_class(*args, **kwargs)
+
+    @action(detail=False, methods=["get"])
+    def get_authors_by_name(self, request: Request) -> Response:
+        """Get authors by name."""
+        print("-------get_authors_by_name-------", __file__)
+        try:
+            query = request.query_params.get("search", "")
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("limit", 10))
+
+            if not query:
+                return Response(
+                    {"error": "Search query parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            search_dto = AutoCompleteInputDTO(
+                query=query,
+                page=page,
+                page_size=page_size,
+            )
+            result = self.auto_complete_service.get_authors_by_name(search_dto)
+            return Response({"items": result})
+
+        except Exception as e:
+            logger.error(f"Error in search authers by name: {str(e)}")
+            return Response(
+                {"error": "Failed to perform search authers by name"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"])
+    def get_academic_publishers_by_name(self, request: Request) -> Response:
+        """Get academic publishers by name."""
+        print("-------get_academic_publishers_by_name-------", __file__)
+        try:
+            query = request.query_params.get("search", "")
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("limit", 10))
+
+            if not query:
+                return Response(
+                    {"error": "Search query parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            search_dto = AutoCompleteInputDTO(
+                query=query,
+                page=page,
+                page_size=page_size,
+            )
+            result = self.auto_complete_service.get_academic_publishers_by_name(
+                search_dto
+            )
+            return Response({"items": result})
+
+        except Exception as e:
+            logger.error(f"Error in search academic publishers by name: {str(e)}")
+            return Response(
+                {"error": "Failed to perform search academic publishers by name"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"])
+    def get_keywords_by_label(self, request: Request) -> Response:
+        """Get keywords by name."""
+        print("-------get_keywords_by_label-------", __file__)
+        try:
+            query = request.query_params.get("search", "")
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("limit", 10))
+
+            if not query:
+                return Response(
+                    {"error": "Search query parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            search_dto = AutoCompleteInputDTO(
+                query=query,
+                page=page,
+                page_size=page_size,
+            )
+            result = self.auto_complete_service.get_keywords_by_label(search_dto)
+            return Response({"items": result})
+
+        except Exception as e:
+            logger.error(f"Error in search keywords by label: {str(e)}")
+            return Response(
+                {"error": "Failed to perform search keywords"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"])
+    def get_research_fields_by_name(self, request: Request) -> Response:
+        """Get research fields by name."""
+        print("-------get_research_fields_by_name-------", __file__)
+        try:
+            query = request.query_params.get("search", "")
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("limit", 10))
+
+            if not query:
+                return Response(
+                    {"error": "Search query parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            search_dto = AutoCompleteInputDTO(
+                query=query,
+                page=page,
+                page_size=page_size,
+            )
+            result = self.auto_complete_service.get_research_fields_by_name(search_dto)
+            return Response({"items": result})
+
+        except Exception as e:
+            logger.error(f"Error in search keywords by label: {str(e)}")
+            return Response(
+                {"error": "Failed to perform search keywords"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

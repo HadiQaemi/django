@@ -966,26 +966,13 @@ class MongoDBAuthorRepository(AuthorRepository):
         self.client = MongoClient(settings.MONGODB_URI)
         self.db = self.client[settings.MONGODB_DB]
 
-    def find_by_name(self, name: str) -> List[Author]:
+    def get_authors_by_name(self, name: str) -> List[Author]:
         """Find authors by name."""
-        try:
-            collection = self.db["authors"]
-            regex = Regex(name, "i")
-            query = {"label": regex}
+        pass
 
-            cursor = collection.find(query).limit(10)
-            authors = []
-
-            for document in cursor:
-                document_json = json.loads(json_util.dumps(document))
-                author = AuthorMapper.from_dict(document_json)
-                authors.append(author)
-
-            return authors
-
-        except Exception as e:
-            logger.error(f"Error in find_by_name: {str(e)}")
-            raise DatabaseError(f"Failed to find authors: {str(e)}")
+    def get_academic_publishers_by_name(self, name: str) -> List[Author]:
+        """Find academic publishers by name."""
+        pass
 
     def save(self, author: Author) -> Author:
         """Save an author."""

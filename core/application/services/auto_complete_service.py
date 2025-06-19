@@ -1,0 +1,161 @@
+import logging
+import math
+from django.core.cache import cache
+from django.conf import settings
+
+from core.application.interfaces.services import (
+    AutoCompleteService as AutoCompleteServiceInterface,
+)
+from core.application.interfaces.repositories import (
+    AuthorRepository,
+    ConceptRepository,
+    ResearchFieldRepository,
+    JournalRepository,
+)
+from core.application.dtos.input_dtos import AutoCompleteInputDTO
+from core.application.dtos.output_dtos import (
+    SearchResultsDTO,
+    SearchResultItemDTO,
+    CommonResponseDTO,
+)
+from core.domain.exceptions import SearchEngineError
+
+logger = logging.getLogger(__name__)
+
+
+class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
+    def __init__(
+        self,
+        author_repository: AuthorRepository,
+        concept_repository: ConceptRepository,
+        research_field_repository: ResearchFieldRepository,
+        journal_repository: JournalRepository,
+    ):
+        self.author_repository = author_repository
+        self.concept_repository = concept_repository
+        self.research_field_repository = research_field_repository
+        self.journal_repository = journal_repository
+
+    def get_authors_by_name(self, search_dto: AutoCompleteInputDTO) -> SearchResultsDTO:
+        """Perform search on authors by name."""
+        # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
+        # cached_result = cache.get(cache_key)
+
+        # if cached_result:
+        #     return cached_result
+
+        try:
+            query = search_dto.query
+            page = search_dto.page
+            page_size = search_dto.page_size
+            print("-------get_authors_by_name-------", __file__)
+
+            authors = self.author_repository.get_authors_by_name(
+                search_query=query,
+                page=page,
+                page_size=page_size,
+            )
+            print(authors)
+            # cache.set(cache_key, authors, settings.CACHE_TTL)
+            return [{"author_id": au.author_id, "name": au.label} for au in authors]
+
+        except Exception as e:
+            logger.error(f"Error in search authers by name {str(e)}")
+            raise SearchEngineError(
+                f"Failed to perform search authers by name: {str(e)}"
+            )
+
+    def get_academic_publishers_by_name(
+        self, search_dto: AutoCompleteInputDTO
+    ) -> SearchResultsDTO:
+        """Perform search on academic publishers by name."""
+        # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
+        # cached_result = cache.get(cache_key)
+
+        # if cached_result:
+        #     return cached_result
+
+        try:
+            query = search_dto.query
+            page = search_dto.page
+            page_size = search_dto.page_size
+
+            academic_publishers = (
+                self.journal_repository.get_academic_publishers_by_name(
+                    search_query=query,
+                    page=page,
+                    page_size=page_size,
+                )
+            )
+            print(academic_publishers)
+            # cache.set(cache_key, authors, settings.CACHE_TTL)
+            return [
+                {"academic_publisher_id": ap.journal_conference_id, "label": ap.label}
+                for ap in academic_publishers
+            ]
+
+        except Exception as e:
+            logger.error(f"Error in search authers by name {str(e)}")
+            raise SearchEngineError(
+                f"Failed to perform search authers by name: {str(e)}"
+            )
+
+    def get_keywords_by_label(
+        self, search_dto: AutoCompleteInputDTO
+    ) -> SearchResultsDTO:
+        """Perform search on academic publishers by name."""
+        # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
+        # cached_result = cache.get(cache_key)
+
+        # if cached_result:
+        #     return cached_result
+
+        try:
+            query = search_dto.query
+            page = search_dto.page
+            page_size = search_dto.page_size
+
+            keywords = self.concept_repository.get_keywords_by_label(
+                search_query=query,
+                page=page,
+                page_size=page_size,
+            )
+            print(keywords)
+            # cache.set(cache_key, authors, settings.CACHE_TTL)
+            return [{"concept_id": ks.concept_id, "label": ks.label} for ks in keywords]
+
+        except Exception as e:
+            logger.error(f"Error in search authers by name {str(e)}")
+            raise SearchEngineError(
+                f"Failed to perform search authers by name: {str(e)}"
+            )
+
+    def get_research_fields_by_name(
+        self, search_dto: AutoCompleteInputDTO
+    ) -> CommonResponseDTO:
+        """Perform search on research fields by name."""
+        # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
+        # cached_result = cache.get(cache_key)
+
+        # if cached_result:
+        #     return cached_result
+
+        try:
+            query = search_dto.query
+            page = search_dto.page
+            page_size = search_dto.page_size
+
+            research_fields = self.research_field_repository.get_research_fields_by_name(
+                search_query=query,
+                page=page,
+                page_size=page_size,
+            )
+            print(research_fields)
+            # cache.set(cache_key, authors, settings.CACHE_TTL)
+            return [{"research_field_id": ks.research_field_id, "label": ks.label} for ks in research_fields]
+
+        except Exception as e:
+            logger.error(f"Error in search authers by name {str(e)}")
+            raise SearchEngineError(
+                f"Failed to perform search authers by name: {str(e)}"
+            )
