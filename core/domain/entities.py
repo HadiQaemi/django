@@ -59,6 +59,7 @@ class ResearchField:
 
     id: str
     label: str
+    related_identifier: Optional[str] = None
     research_field_id: Optional[str] = None
 
 

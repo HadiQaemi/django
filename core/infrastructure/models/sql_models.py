@@ -39,6 +39,9 @@ class Author(TimeStampedModel):
 class ResearchField(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    related_identifier = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
     research_field_id = models.CharField(max_length=255, null=True)
     label = models.CharField(max_length=255)
     json = JSONField(null=True, blank=True)
@@ -411,7 +414,9 @@ class Article(TimeStampedModel):
     reborn_doi = models.CharField(max_length=255, null=True, blank=True)
     paper_type = models.CharField(max_length=255, null=True, blank=True)
     concepts = models.ManyToManyField(Concept, related_name="articles", blank=True)
-    authors = models.ManyToManyField(Author, related_name="articles", blank=True, through='ArticleAuthor')
+    authors = models.ManyToManyField(
+        Author, related_name="articles", blank=True, through="ArticleAuthor"
+    )
     research_fields = models.ManyToManyField(
         ResearchField, related_name="articles", blank=True
     )
@@ -456,7 +461,7 @@ class ArticleAuthor(models.Model):
 
     class Meta:
         db_table = "articles_authors"
-        ordering = ['order']
+        ordering = ["order"]
 
     def __str__(self):
         return f"{self.article.name} - {self.author.family_name} ({self.order})"

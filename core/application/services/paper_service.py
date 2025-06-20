@@ -130,31 +130,40 @@ class PaperServiceImpl(PaperServiceInterface):
             logger.error(f"Error in search_by_title: {str(e)}")
             raise DatabaseError(f"Failed to search papers: {str(e)}")
 
-    def query_data(self, query_filter: QueryFilterInputDTO) -> CommonResponseDTO:
+    def query_data(self, query_filter: QueryFilterInputDTO) -> PaginatedResponseDTO:
         """Query data with filters."""
         try:
             papers, total = self.paper_repository.query_papers(
+                title=query_filter.title,
                 start_year=query_filter.start_year,
                 end_year=query_filter.end_year,
                 author_ids=query_filter.author_ids,
-                journal_names=query_filter.journal_names,
+                scientific_venue_ids=query_filter.scientific_venue_ids,
                 concept_ids=query_filter.concept_ids,
-                conference_names=query_filter.conference_names,
-                title=query_filter.title,
-                research_fields=query_filter.research_fields,
+                research_field_ids=query_filter.research_field_ids,
                 page=query_filter.page,
                 page_size=query_filter.per_page,
             )
 
-            # Group articles by ID
-            grouped_data = {}
-            for paper in papers:
-                if paper.id not in grouped_data:
-                    grouped_data[paper.id] = self._map_paper_to_dto(paper)
-
-            return CommonResponseDTO(
-                success=True, result=grouped_data, total_count=total
+            result = PaginatedResponseDTO(
+                content=[self._map_paper_to_dto(paper) for paper in papers],
+                total_elements=total,
+                page=query_filter.page,
+                page_size=query_filter.per_page,
+                total_pages=math.ceil(total / query_filter.per_page),
             )
+            return result
+            # print("----------result--of---paper_repository.query_papers---------")
+            # print(papers)
+            # # Group articles by ID
+            # grouped_data = {}
+            # for paper in papers:
+            #     if paper.id not in grouped_data:
+            #         grouped_data[paper.id] = self._map_paper_to_dto(paper)
+
+            # return CommonResponseDTO(
+            #     success=True, result=grouped_data, total_count=total
+            # )
 
         except Exception as e:
             logger.error(f"Error in query_data: {str(e)}")
@@ -476,7 +485,9 @@ class PaperServiceImpl(PaperServiceInterface):
                     "reborn_date": localtime(paper_dto.created_at).strftime(
                         "%B %d, %Y"
                     ),
-                    "date_published": localtime(paper_dto.created_at).strftime("%Y"),
+                    "date_published": localtime(paper_dto.date_published).strftime(
+                        "%Y"
+                    ),
                 }
                 statements = []
                 for statement in paper.statements.all():
@@ -593,7 +604,9 @@ class PaperServiceImpl(PaperServiceInterface):
                     "reborn_date": localtime(paper_dto.created_at).strftime(
                         "%B %d, %Y"
                     ),
-                    "date_published": localtime(paper_dto.created_at).strftime("%Y"),
+                    "date_published": localtime(paper_dto.date_published).strftime(
+                        "%Y"
+                    ),
                 }
                 statements = []
                 for statement in paper.statements.all():
@@ -740,7 +753,11 @@ class PaperServiceImpl(PaperServiceInterface):
             print(research_fields)
             print("---------research_fields----------")
             return [
-                {"research_field_id": rf.research_field_id, "label": rf.label}
+                {
+                    "research_field_id": rf.research_field_id,
+                    "related_identifier": rf.related_identifier,
+                    "label": rf.label,
+                }
                 for rf in research_fields
             ]
 
@@ -1084,6 +1101,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     {
                         "label": research_field.label,
                         "research_field_id": research_field.research_field_id,
+                        "related_identifier": research_field.related_identifier,
                     }
                 )
         academic_publication = None

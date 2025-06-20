@@ -77,10 +77,9 @@ class QueryFilterInputDTO(BaseModel):
     start_year: Optional[int] = 2000
     end_year: Optional[int] = datetime.now().year
     author_ids: Optional[List[str]] = Field(default_factory=list)
-    journal_names: Optional[List[str]] = Field(default_factory=list)
-    conference_names: Optional[List[str]] = Field(default_factory=list)
+    scientific_venue_ids: Optional[List[str]] = Field(default_factory=list)
     concept_ids: Optional[List[str]] = Field(default_factory=list)
-    research_fields: Optional[List[str]] = Field(default_factory=list)
+    research_field_ids: Optional[List[str]] = Field(default_factory=list)
     page: int = 1
     per_page: int = 10
 

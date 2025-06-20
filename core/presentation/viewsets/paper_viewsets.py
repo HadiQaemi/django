@@ -76,7 +76,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             "list": PaperSerializer,
             "retrieve": PaperSerializer,
             "search_by_title": PaperSerializer,
-            "query_data": PaperFilterSerializer,
+            "advanced_search": PaperFilterSerializer,
             "add_paper": ScraperUrlSerializer,
             "add_all_papers": ScraperUrlSerializer,
             "get_authors": AuthorSerializer,
@@ -188,8 +188,9 @@ class PaperViewSet(viewsets.GenericViewSet):
             )
 
     @action(detail=False, methods=["post"])
-    def query_data(self, request: Request) -> Response:
+    def advanced_search(self, request: Request) -> Response:
         """Query data with filters."""
+        print("------------query_data-----------")
         try:
             serializer = PaperFilterSerializer(data=request.data)
 
@@ -198,30 +199,32 @@ class PaperViewSet(viewsets.GenericViewSet):
                     {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Convert to DTO
             filter_dto = QueryFilterInputDTO(
                 title=serializer.validated_data.get("title"),
                 start_year=serializer.validated_data.get("time_range", {}).get("start"),
                 end_year=serializer.validated_data.get("time_range", {}).get("end"),
                 author_ids=serializer.validated_data.get("authors", []),
-                journal_names=serializer.validated_data.get("journals", []),
+                scientific_venue_ids=serializer.validated_data.get(
+                    "scientific_venues", []
+                ),
                 concept_ids=serializer.validated_data.get("concepts", []),
-                conference_names=serializer.validated_data.get("conferences", []),
-                research_fields=serializer.validated_data.get("research_fields", []),
+                research_field_ids=serializer.validated_data.get("research_fields", []),
                 page=serializer.validated_data.get("page", 1),
                 per_page=serializer.validated_data.get("per_page", 10),
             )
 
-            result = self.paper_service.query_data(filter_dto)
+            print(filter_dto)
 
+            result = self.paper_service.query_data(filter_dto)
             return Response(
                 {
-                    "content": result.result,
-                    "total_elements": result.total_count,
-                    "page": filter_dto.page,
-                    "per_page": filter_dto.per_page,
-                    "total_pages": (result.total_count + filter_dto.per_page - 1)
-                    // filter_dto.per_page,
+                    "content": result.content,
+                    "total_elements": result.total_elements,
+                    "page": result.page,
+                    "page_size": result.page_size,
+                    "total_pages": result.total_pages,
+                    "has_next": result.has_next,
+                    "has_previous": result.has_previous,
                 }
             )
 

@@ -162,55 +162,101 @@ class SQLPaperRepository(PaperRepository):
 
     def query_papers(
         self,
+        title: Optional[str] = None,
         start_year: Optional[int] = None,
         end_year: Optional[int] = None,
         author_ids: Optional[List[str]] = None,
-        journal_names: Optional[List[str]] = None,
+        scientific_venue_ids: Optional[List[str]] = None,
         concept_ids: Optional[List[str]] = None,
-        conference_names: Optional[List[str]] = None,
-        title: Optional[str] = None,
-        research_fields: Optional[List[str]] = None,
+        research_field_ids: Optional[List[str]] = None,
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Paper], int]:
         """Query papers with filters."""
         try:
+            from django.contrib.postgres.search import SearchQuery, SearchRank
+            from django.db.models import Q, F
+            from datetime import datetime
+
+            # Start with base queryset
             query = ArticleModel.objects.all()
 
+            # Handle title search using full-text search
             if title:
-                query = query.filter(
-                    Q(name__icontains=title)
-                    | Q(statements__supports__contains=[{"notation": {"label": title}}])
+                # Use the existing search_vector field for full-text search
+                search_query = SearchQuery(title)
+                query = query.filter(search_vector=search_query)
+
+                # Add search ranking for better ordering
+                query = query.annotate(
+                    search_rank=SearchRank("search_vector", search_query)
                 )
 
+                # Also include fallback for partial matches in name
+                query = query.filter(
+                    Q(search_vector=search_query) | Q(name__icontains=title)
+                )
+
+            # Filter by author IDs
             if author_ids and len(author_ids) > 0:
-                query = query.filter(authors__id__in=author_ids)
+                query = query.filter(authors__author_id__in=author_ids)
 
-            if journal_names and len(journal_names) > 0:
-                # Filter based on journal data in JSONField
-                journals_filter = Q()
-                for name in journal_names:
-                    journals_filter |= Q(journal__label__icontains=name)
-                query = query.filter(journals_filter)
+            if scientific_venue_ids and len(scientific_venue_ids) > 0:
+                query = query.filter(
+                    journal_conference__journal_conference_id__in=scientific_venue_ids
+                )
 
+            # Filter by concept IDs
             if concept_ids and len(concept_ids) > 0:
-                query = query.filter(concepts__id__in=concept_ids)
+                query = query.filter(concepts__concept_id__in=concept_ids)
 
+            # Filter by date range
             if start_year and end_year:
                 start_date = datetime(int(start_year), 1, 1)
-                end_date = datetime(int(end_year), 12, 31)
+                end_date = datetime(int(end_year), 12, 31, 23, 59, 59)
                 query = query.filter(date_published__range=[start_date, end_date])
+            elif start_year:
+                start_date = datetime(int(start_year), 1, 1)
+                query = query.filter(date_published__gte=start_date)
+            elif end_year:
+                end_date = datetime(int(end_year), 12, 31, 23, 59, 59)
+                query = query.filter(date_published__lte=end_date)
 
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(research_fields_id__overlap=research_fields)
+            # Filter by research fields
+            if research_field_ids and len(research_field_ids) > 0:
+                query = query.filter(
+                    research_fields__research_field_id__in=research_field_ids
+                )
+
+            # Remove duplicates that might occur due to many-to-many relationships
+            query = query.distinct()
+
+            # Optimize database queries
+            query = query.select_related("journal_conference").prefetch_related(
+                "authors", "concepts", "research_fields"
+            )
+
+            # Apply ordering - prioritize search rank if title search was used
+            if title:
+                query = query.order_by("-search_rank", "-date_published", "name")
+            else:
+                query = query.order_by("-date_published", "name")
 
             # Get total count before pagination
             total = query.count()
 
             # Apply pagination
-            paginator = Paginator(query.order_by("name"), page_size)
+            paginator = Paginator(query, page_size)
+
+            # Handle invalid page numbers
+            if page < 1:
+                page = 1
+            elif page > paginator.num_pages and paginator.num_pages > 0:
+                page = paginator.num_pages
+
             page_obj = paginator.get_page(page)
 
+            # Convert articles to papers
             papers = []
             for article in page_obj:
                 paper = self._convert_article_to_paper(article)
@@ -547,6 +593,7 @@ class SQLPaperRepository(PaperRepository):
                 research_field_id=generate_static_id(research_field["label"]),
                 defaults={
                     "label": research_field["label"],
+                    "related_identifier": research_field.get("relatedIdentifier", ""),
                     "json": research_field,
                     "research_field_id": generate_static_id(research_field["label"]),
                 },
@@ -1956,6 +2003,7 @@ class SQLPaperRepository(PaperRepository):
                 ResearchField(
                     id=research_field.id,
                     label=research_field.label,
+                    related_identifier=research_field.related_identifier,
                     research_field_id=research_field.research_field_id,
                 )
             )
@@ -2250,6 +2298,7 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
                     id=research_model.id,
                     label=research_model.label,
                     research_field_id=research_model.research_field_id,
+                    related_identifier=research_model.related_identifier,
                 )
                 research_fields.append(research_field)
             return research_fields
@@ -2271,6 +2320,7 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
                     id=rf_model.id,
                     label=rf_model.label,
                     research_field_id=rf_model.research_field_id,
+                    related_identifier=rf_model.related_identifier,
                 )
                 research_fields.append(research_field)
 

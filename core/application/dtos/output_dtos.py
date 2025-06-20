@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 class ShortAuthorOutputDTO(BaseModel):
     label: str
-    family_name: str
+    family_name: Optional[str] = None
     orcid: Optional[str] = None
     author_id: Optional[str] = None
 

@@ -52,7 +52,7 @@ class PaperService(ABC):
         pass
 
     @abstractmethod
-    def query_data(self, query_filter: QueryFilterInputDTO) -> CommonResponseDTO:
+    def query_data(self, query_filter: QueryFilterInputDTO) -> PaginatedResponseDTO:
         """Query data with filters."""
         pass
 

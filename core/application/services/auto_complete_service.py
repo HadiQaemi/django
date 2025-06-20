@@ -57,7 +57,7 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             )
             print(authors)
             # cache.set(cache_key, authors, settings.CACHE_TTL)
-            return [{"author_id": au.author_id, "name": au.label} for au in authors]
+            return [{"id": au.author_id, "name": au.label} for au in authors]
 
         except Exception as e:
             logger.error(f"Error in search authers by name {str(e)}")
@@ -90,7 +90,7 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             print(academic_publishers)
             # cache.set(cache_key, authors, settings.CACHE_TTL)
             return [
-                {"academic_publisher_id": ap.journal_conference_id, "label": ap.label}
+                {"id": ap.journal_conference_id, "name": ap.label}
                 for ap in academic_publishers
             ]
 
@@ -122,7 +122,7 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             )
             print(keywords)
             # cache.set(cache_key, authors, settings.CACHE_TTL)
-            return [{"concept_id": ks.concept_id, "label": ks.label} for ks in keywords]
+            return [{"id": ks.concept_id, "name": ks.label} for ks in keywords]
 
         except Exception as e:
             logger.error(f"Error in search authers by name {str(e)}")
@@ -145,14 +145,18 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             page = search_dto.page
             page_size = search_dto.page_size
 
-            research_fields = self.research_field_repository.get_research_fields_by_name(
-                search_query=query,
-                page=page,
-                page_size=page_size,
+            research_fields = (
+                self.research_field_repository.get_research_fields_by_name(
+                    search_query=query,
+                    page=page,
+                    page_size=page_size,
+                )
             )
             print(research_fields)
             # cache.set(cache_key, authors, settings.CACHE_TTL)
-            return [{"research_field_id": ks.research_field_id, "label": ks.label} for ks in research_fields]
+            return [
+                {"id": ks.research_field_id, "name": ks.label} for ks in research_fields
+            ]
 
         except Exception as e:
             logger.error(f"Error in search authers by name {str(e)}")
