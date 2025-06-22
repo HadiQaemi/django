@@ -128,8 +128,9 @@ class PaperFilterSerializer(serializers.Serializer):
     title = serializers.CharField(allow_null=True, required=False)
     time_range = TimeRangeSerializer(allow_null=True, required=False)
     authors = serializers.ListField(child=serializers.CharField(), required=False)
-    journals = serializers.ListField(child=serializers.CharField(), required=False)
-    conferences = serializers.ListField(child=serializers.CharField(), required=False)
+    scientific_venues = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
     concepts = serializers.ListField(child=serializers.CharField(), required=False)
     research_fields = serializers.ListField(
         child=serializers.CharField(), required=False

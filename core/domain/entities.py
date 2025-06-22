@@ -32,6 +32,7 @@ class Journal:
     label: str
     publisher: Optional[Dict[str, Any]] = None
     journal_conference_id: Optional[str] = None
+    _id: Optional[str] = None
 
 
 @dataclass

@@ -55,7 +55,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
                 page=page,
                 page_size=page_size,
             )
-            print(authors)
             # cache.set(cache_key, authors, settings.CACHE_TTL)
             return [{"id": au.author_id, "name": au.label} for au in authors]
 
@@ -87,7 +86,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
                     page_size=page_size,
                 )
             )
-            print(academic_publishers)
             # cache.set(cache_key, authors, settings.CACHE_TTL)
             return [
                 {"id": ap.journal_conference_id, "name": ap.label}
@@ -120,7 +118,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
                 page=page,
                 page_size=page_size,
             )
-            print(keywords)
             # cache.set(cache_key, authors, settings.CACHE_TTL)
             return [{"id": ks.concept_id, "name": ks.label} for ks in keywords]
 
@@ -152,7 +149,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
                     page_size=page_size,
                 )
             )
-            print(research_fields)
             # cache.set(cache_key, authors, settings.CACHE_TTL)
             return [
                 {"id": ks.research_field_id, "name": ks.label} for ks in research_fields

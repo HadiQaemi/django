@@ -27,10 +27,12 @@ from core.application.dtos.output_dtos import (
     CommonResponseDTO,
     PaginatedResponseDTO,
 )
+from rest_framework.response import Response
 from core.domain.exceptions import (
     DatabaseError,
 )
 from core.infrastructure.scrapers.node_extractor import NodeExtractor
+from core.presentation.serializers.paper_serializers import PaperSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -132,44 +134,214 @@ class PaperServiceImpl(PaperServiceInterface):
 
     def query_data(self, query_filter: QueryFilterInputDTO) -> PaginatedResponseDTO:
         """Query data with filters."""
-        try:
-            papers, total = self.paper_repository.query_papers(
-                title=query_filter.title,
-                start_year=query_filter.start_year,
-                end_year=query_filter.end_year,
-                author_ids=query_filter.author_ids,
-                scientific_venue_ids=query_filter.scientific_venue_ids,
-                concept_ids=query_filter.concept_ids,
-                research_field_ids=query_filter.research_field_ids,
-                page=query_filter.page,
-                page_size=query_filter.per_page,
+        print("------query_data------", __file__)
+        # try:
+        papers, total = self.paper_repository.query_papers(
+            title=query_filter.title,
+            start_year=query_filter.start_year,
+            end_year=query_filter.end_year,
+            author_ids=query_filter.author_ids,
+            scientific_venue_ids=query_filter.scientific_venue_ids,
+            concept_ids=query_filter.concept_ids,
+            research_field_ids=query_filter.research_field_ids,
+            page=query_filter.page,
+            page_size=query_filter.per_page,
+        )
+
+        # Convert Paper objects to serializable dictionaries
+        serialized_papers = []
+        for paper in papers:
+            # Extract authors safely
+            authors = []
+            if hasattr(paper, "authors") and paper.authors:
+                if hasattr(paper.authors, "all"):  # QuerySet
+                    authors = [
+                        {"id": author.author_id, "label": str(author.label)}
+                        for author in paper.authors.all()
+                    ]
+                elif isinstance(paper.authors, list):  # List
+                    authors = [
+                        {
+                            "id": author.author_id,
+                            "label": str(author.label),
+                            "orcid": author.orcid,
+                        }
+                        for author in paper.authors
+                    ]
+                else:  # Single author
+                    authors = [
+                        {
+                            "id": getattr(paper.authors, "id", ""),
+                            "label": str(paper.authors),
+                        }
+                    ]
+
+            # Extract concepts safely
+            concepts = []
+            if hasattr(paper, "concepts") and paper.concepts:
+                if hasattr(paper.concepts, "all"):  # QuerySet
+                    concepts = [
+                        {"id": concept.id, "label": concept.label}
+                        for concept in paper.concepts.all()
+                    ]
+                elif isinstance(paper.concepts, list):  # List
+                    concepts = [
+                        {
+                            "id": getattr(concept, "id", ""),
+                            "label": getattr(concept, "label", str(concept)),
+                        }
+                        for concept in paper.concepts
+                    ]
+
+            # Extract research fields safely
+            research_fields = []
+            if hasattr(paper, "research_fields") and paper.research_fields:
+                if hasattr(paper.research_fields, "all"):  # QuerySet
+                    research_fields = [
+                        {
+                            "id": rf.research_field_id,
+                            "label": rf.label,
+                            "identifier": getattr(rf, "_id", str(rf)),
+                        }
+                        for rf in paper.research_fields.all()
+                    ]
+                elif isinstance(paper.research_fields, list):  # List
+                    research_fields = [
+                        {
+                            "id": getattr(rf, "research_field_id", ""),
+                            "label": getattr(rf, "label", str(rf)),
+                            "related_identifier": getattr(
+                                rf, "related_identifier", str(rf)
+                            ),
+                        }
+                        for rf in paper.research_fields
+                    ]
+
+            # Extract journal/conference safely
+            journal_conference = None
+            if hasattr(paper, "journal_conference") and paper.journal_conference:
+                journal_conference = {
+                    "id": getattr(paper.journal_conference, "id", ""),
+                    "label": getattr(
+                        paper.journal_conference,
+                        "label",
+                        str(paper.journal_conference),
+                    ),
+                    "identifier": getattr(paper.journal_conference, "_id", ""),
+                }
+            elif hasattr(paper, "journal") and paper.journal:
+                journal_conference = {
+                    "id": getattr(paper.journal, "journal_conference_id", ""),
+                    "identifier": getattr(paper.journal, "_id", ""),
+                    "label": getattr(paper.journal, "label", str(paper.journal)),
+                }
+
+            publisher = None
+            if hasattr(paper, "publisher") and paper.publisher:
+                publisher = paper.publisher.label
+            paper_dict = {
+                "article_id": getattr(paper, "article_id", ""),
+                "name": getattr(paper, "name", getattr(paper, "title", "")),
+                "abstract": getattr(paper, "abstract", ""),
+                "date_published": paper.date_published.year
+                if hasattr(paper, "date_published")
+                and localtime(paper.date_published).strftime("%Y")
+                else None,
+                "dois": getattr(paper, "dois", ""),
+                "reborn_doi": getattr(paper, "reborn_doi", ""),
+                "authors": authors,
+                "concepts": concepts,
+                "research_fields": research_fields,
+                "scientific_venue": journal_conference,
+                "publisher": publisher,
+                "reborn_date": localtime(paper.created_at).strftime("%B %d, %Y")
+                if hasattr(paper, "created_at") and paper.created_at
+                else None,
+            }
+            statements = []
+            for statement in paper.statements.all():
+                has_part = statement.has_part_statements.first()
+                authors = []
+                for author in statement.authors.all():
+                    authors.append(
+                        {
+                            "name": author.label,
+                            "author_id": author.author_id,
+                            "orcid": author._id
+                            if author._id.startswith("https://orcid.org/")
+                            else None,
+                        }
+                    )
+
+                concepts = []
+                for concept in statement.concepts.all():
+                    concepts.append(
+                        {
+                            "label": concept.label,
+                            "concept_id": concept.concept_id,
+                            "see_also": concept.see_also,
+                        }
+                    )
+                print(has_part)
+                statements.append(
+                    {
+                        "statement_id": statement.statement_id,
+                        "label": statement.label,
+                        "authors": authors,
+                        "concepts": concepts,
+                        "type": {
+                            "name": has_part.schema_type.name,
+                            "description": has_part.schema_type.description,
+                            "type_id": has_part.schema_type.type_id,
+                            "properties": [
+                                s.split("#", 1)[1] if "#" in s else ""
+                                for s in has_part.schema_type.property
+                            ],
+                        },
+                    }
+                )
+            # Create serializable paper dictionary
+
+            serialized_papers.append(
+                {
+                    "article": paper_dict,
+                    "statements": statements,
+                }
             )
 
-            result = PaginatedResponseDTO(
-                content=[self._map_paper_to_dto(paper) for paper in papers],
-                total_elements=total,
-                page=query_filter.page,
-                page_size=query_filter.per_page,
-                total_pages=math.ceil(total / query_filter.per_page),
-            )
-            return result
-            # print("----------result--of---paper_repository.query_papers---------")
-            # print(papers)
-            # # Group articles by ID
-            # grouped_data = {}
-            # for paper in papers:
-            #     if paper.id not in grouped_data:
-            #         grouped_data[paper.id] = self._map_paper_to_dto(paper)
+        total_pages = (total + query_filter.per_page - 1) // query_filter.per_page
+        has_next = query_filter.page < total_pages
+        has_previous = query_filter.page > 1
 
-            # return CommonResponseDTO(
-            #     success=True, result=grouped_data, total_count=total
-            # )
+        return Response(
+            {
+                "results": serialized_papers,
+                "total_count": total,
+                "page": query_filter.page,
+                "page_size": query_filter.per_page,
+                "total_pages": total_pages,
+                "has_next": has_next,
+                "has_previous": has_previous,
+            }
+        )
 
-        except Exception as e:
-            logger.error(f"Error in query_data: {str(e)}")
-            return CommonResponseDTO(
-                success=False, message=f"Failed to query data: {str(e)}"
-            )
+        # print("----------result--of---paper_repository.query_papers---------")
+        # print(papers)
+        # # Group articles by ID
+        # grouped_data = {}
+        # for paper in papers:
+        #     if paper.id not in grouped_data:
+        #         grouped_data[paper.id] = self._map_paper_to_dto(paper)
+
+        # return CommonResponseDTO(
+        #     success=True, result=grouped_data, total_count=total
+        # )
+
+        # except Exception as e:
+        #     logger.error(f"Error in query_data: {str(e)}")
+        #     return CommonResponseDTO(
+        #         success=False, message=f"Failed to query data: {str(e)}"
+        #     )
 
     def statement_data_type(self, statement: str) -> any:
         data_type = []
@@ -476,7 +648,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     "abstract": paper_dto.abstract,
                     "dois": paper_dto.dois,
                     "reborn_doi": paper_dto.reborn_doi,
-                    "academic_publication": paper_dto.journal
+                    "scientific_venue": paper_dto.journal
                     if paper_dto.journal
                     else paper_dto.conference,
                     "concepts": concepts,
@@ -595,7 +767,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     "abstract": paper_dto.abstract,
                     "dois": paper_dto.dois,
                     "reborn_doi": paper_dto.reborn_doi,
-                    "academic_publication": paper_dto.journal
+                    "scientific_venue": paper_dto.journal
                     if paper_dto.journal
                     else paper_dto.conference,
                     "concepts": concepts,
@@ -737,7 +909,7 @@ class PaperServiceImpl(PaperServiceInterface):
         try:
             journals = self.journal_repository.find_by_name(search_term)
             return [
-                {"id": journal.get("id", ""), "name": journal.get("label", "")}
+                {"id": journal.get("_id", ""), "name": journal.get("label", "")}
                 for journal in journals
             ]
 
@@ -749,8 +921,6 @@ class PaperServiceImpl(PaperServiceInterface):
         """Get research fields by search term."""
         try:
             research_fields = self.research_field_repository.find_by_label(search_term)
-            print("---------research_fields----------")
-            print(research_fields)
             print("---------research_fields----------")
             return [
                 {
@@ -1003,9 +1173,8 @@ class PaperServiceImpl(PaperServiceInterface):
                 if isinstance(journal, dict):
                     content.append(
                         {
-                            "id": journal.get("id", ""),
+                            "journal_id": journal.get("journal_conference_id", ""),
                             "name": journal.get("label", ""),
-                            "_id": journal.get("journal_conference_id", ""),
                             "publisher": journal.get("publisher", {}).label
                             if journal.get("publisher")
                             else "",
@@ -1104,12 +1273,13 @@ class PaperServiceImpl(PaperServiceInterface):
                         "related_identifier": research_field.related_identifier,
                     }
                 )
-        academic_publication = None
+        scientific_venue = None
         if paper.journal:
             journal = paper.journal
-            academic_publication = {
+            scientific_venue = {
                 "label": journal.label,
-                "academic_publication_id": journal.journal_conference_id,
+                "id": journal.journal_conference_id,
+                "identifier": journal._id,
             }
 
         return ShortPaperOutputDTO(
@@ -1123,7 +1293,7 @@ class PaperServiceImpl(PaperServiceInterface):
             abstract=paper.abstract,
             publisher=paper.publisher.label,
             authors=authors,
-            journal=academic_publication,
+            journal=scientific_venue,
             date_published=paper.date_published,
         )
 

@@ -190,50 +190,36 @@ class PaperViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=["post"])
     def advanced_search(self, request: Request) -> Response:
         """Query data with filters."""
-        print("------------query_data-----------")
-        try:
-            serializer = PaperFilterSerializer(data=request.data)
-
-            if not serializer.is_valid():
-                return Response(
-                    {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-                )
-
-            filter_dto = QueryFilterInputDTO(
-                title=serializer.validated_data.get("title"),
-                start_year=serializer.validated_data.get("time_range", {}).get("start"),
-                end_year=serializer.validated_data.get("time_range", {}).get("end"),
-                author_ids=serializer.validated_data.get("authors", []),
-                scientific_venue_ids=serializer.validated_data.get(
-                    "scientific_venues", []
-                ),
-                concept_ids=serializer.validated_data.get("concepts", []),
-                research_field_ids=serializer.validated_data.get("research_fields", []),
-                page=serializer.validated_data.get("page", 1),
-                per_page=serializer.validated_data.get("per_page", 10),
-            )
-
-            print(filter_dto)
-
-            result = self.paper_service.query_data(filter_dto)
+        print("------------query_data---------1--")
+        # try:
+        serializer = PaperFilterSerializer(data=request.data)
+        print("------------query_data---------2--")
+        if not serializer.is_valid():
             return Response(
-                {
-                    "content": result.content,
-                    "total_elements": result.total_elements,
-                    "page": result.page,
-                    "page_size": result.page_size,
-                    "total_pages": result.total_pages,
-                    "has_next": result.has_next,
-                    "has_previous": result.has_previous,
-                }
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
             )
+        print("------------query_data---------3--")
+        filter_dto = QueryFilterInputDTO(
+            title=serializer.validated_data.get("title"),
+            start_year=serializer.validated_data.get("time_range", {}).get("start"),
+            end_year=serializer.validated_data.get("time_range", {}).get("end"),
+            author_ids=serializer.validated_data.get("authors", []),
+            scientific_venue_ids=serializer.validated_data.get("scientific_venues", []),
+            concept_ids=serializer.validated_data.get("concepts", []),
+            research_field_ids=serializer.validated_data.get("research_fields", []),
+            page=serializer.validated_data.get("page", 1),
+            per_page=serializer.validated_data.get("per_page", 10),
+        )
 
-        except Exception as e:
-            logger.error(f"Error in query_data: {str(e)}")
-            return Response(
-                {"error": "Failed to query data"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        result = self.paper_service.query_data(filter_dto)
+        return result
+
+        # except Exception as e:
+        #     logger.error(f"Error in query_data: {str(e)}")
+        #     return Response(
+        #         {"error": "Failed to query data"},
+        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #     )
 
     @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
@@ -489,27 +475,27 @@ class PaperViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=False, methods=["get"])
-    @method_decorator(cache_page(60 * 15))
-    @method_decorator(vary_on_cookie)
-    def get_journals(self, request: Request) -> Response:
-        """Get journals by name."""
-        try:
-            name = request.query_params.get("name", "")
+    # @action(detail=False, methods=["get"])
+    # @method_decorator(cache_page(60 * 15))
+    # @method_decorator(vary_on_cookie)
+    # def get_journals(self, request: Request) -> Response:
+    #     """Get journals by name."""
+    #     try:
+    #         name = request.query_params.get("name", "")
 
-            if not name:
-                return Response([])
+    #         if not name:
+    #             return Response([])
 
-            journals = self.paper_service.get_journals(name)
+    #         journals = self.paper_service.get_journals(name)
 
-            return Response(journals)
+    #         return Response(journals)
 
-        except Exception as e:
-            logger.error(f"Error in get_journals: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve journals"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+    #     except Exception as e:
+    #         logger.error(f"Error in get_journals: {str(e)}")
+    #         return Response(
+    #             {"error": "Failed to retrieve journals"},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         )
 
     @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
@@ -567,7 +553,7 @@ class PaperViewSet(viewsets.GenericViewSet):
                         "statement_id": statement.statement_id,
                         "name": statement.label,
                         "author": author_name,
-                        "academic_publication": statement.journal_conference,
+                        "scientific_venue": statement.journal_conference,
                         "article": statement.article_name,
                         "date_published": statement.date_published.year
                         if statement.date_published
@@ -622,7 +608,7 @@ class PaperViewSet(viewsets.GenericViewSet):
                         "article_id": article.article_id,
                         "name": article.name,
                         "author": author_name,
-                        "academic_publication": article.journal,
+                        "scientific_venue": article.journal,
                         "date_published": article.date_published.year
                         if article.date_published
                         else None,

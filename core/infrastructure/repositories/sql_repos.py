@@ -173,6 +173,7 @@ class SQLPaperRepository(PaperRepository):
         page_size: int = 10,
     ) -> Tuple[List[Paper], int]:
         """Query papers with filters."""
+        print("--------query_papers-------", __file__)
         try:
             from django.contrib.postgres.search import SearchQuery, SearchRank
             from django.db.models import Q, F
@@ -261,7 +262,6 @@ class SQLPaperRepository(PaperRepository):
             for article in page_obj:
                 paper = self._convert_article_to_paper(article)
                 papers.append(paper)
-
             return papers, total
 
         except Exception as e:
@@ -410,7 +410,6 @@ class SQLPaperRepository(PaperRepository):
 
                 search_repo = Container.resolve(SearchRepository)
                 print("------------search_type-----------")
-                print(search_type)
                 if search_type == "semantic":
                     search_results = search_repo.semantic_search_articles(
                         search_query, page_size * 2
@@ -425,13 +424,11 @@ class SQLPaperRepository(PaperRepository):
                         search_query, page_size * 2
                     )
                     print("--------get_latest_articles----------")
-                    print(search_results)
                     article_ids = [
                         result.get("article_id")
                         for result in search_results
                         if result.get("article_id")
                     ]
-                print(article_ids)
                 if not article_ids:
                     query = self.advanced_article_search(search_query, research_fields)
                 else:
@@ -588,7 +585,6 @@ class SQLPaperRepository(PaperRepository):
         research_fields = []
         for research_field in data["researchField"]:
             rf, created = ResearchFieldModel.objects.get_or_create(
-                _id=research_field.get("@id", ""),
                 label=research_field["label"],
                 research_field_id=generate_static_id(research_field["label"]),
                 defaults={
@@ -1987,6 +1983,7 @@ class SQLPaperRepository(PaperRepository):
         if article.journal_conference:
             journal = Journal(
                 id=article.journal_conference.id,
+                _id=article.journal_conference._id,
                 label=article.journal_conference.label,
                 journal_conference_id=article.journal_conference.journal_conference_id,
                 publisher=article.publisher_id,
@@ -1996,7 +1993,6 @@ class SQLPaperRepository(PaperRepository):
         for concept in article.concepts.all():
             concepts.append(Concept(id=concept.concept_id, label=concept.label))
 
-        print("--------------find_by_id-----00000000000000-------", __file__)
         research_fields = []
         for research_field in article.research_fields.all():
             research_fields.append(

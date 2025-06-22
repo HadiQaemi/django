@@ -69,7 +69,7 @@ get_latest_articles_docs = {
                                 "article_id": openapi.Schema(type=openapi.TYPE_STRING),
                                 "name": openapi.Schema(type=openapi.TYPE_STRING),
                                 "author": openapi.Schema(type=openapi.TYPE_STRING),
-                                "academic_publication": openapi.Schema(
+                                "scientific_venue": openapi.Schema(
                                     type=openapi.TYPE_STRING
                                 ),
                                 "date_published": openapi.Schema(
@@ -162,7 +162,7 @@ get_latest_statements_docs = {
                                 ),
                                 "name": openapi.Schema(type=openapi.TYPE_STRING),
                                 "author": openapi.Schema(type=openapi.TYPE_STRING),
-                                "academic_publication": openapi.Schema(
+                                "scientific_venue": openapi.Schema(
                                     type=openapi.TYPE_STRING
                                 ),
                                 "article": openapi.Schema(type=openapi.TYPE_STRING),
