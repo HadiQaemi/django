@@ -736,7 +736,7 @@ class SoftwareMethod(TimeStampedModel):
         db_index=True,
     )
     is_implemented_by = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
+        models.TextField(null=True, blank=True), blank=True, null=True, default=list
     )
     has_support_url = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
@@ -755,7 +755,7 @@ class SoftwareMethod(TimeStampedModel):
 
 class DataType(TimeStampedModel, PolymorphicModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255)
+    label = models.TextField(null=True, blank=True)
     type = models.CharField(max_length=255)
     see_also = models.CharField(max_length=255)
     statement = models.ForeignKey(

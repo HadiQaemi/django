@@ -561,13 +561,15 @@ class SQLPaperRepository(PaperRepository):
             return False
 
     def get_property_info(self, info, property):
-        # print("len(info): ", len(info))
-        # print(info)
-        _type = info["@type"]
-        if f"{_type}#{property}" in info:
-            return info[f"{_type}#{property}"]
-        elif f"{_type}#{property}".replace("doi:", "doi:21.T11969/") in info:
-            return info[f"{_type}#{property}".replace("doi:", "doi:21.T11969/")]
+        try:
+            _type = info["@type"]
+            if f"{_type}#{property}" in info:
+                return info[f"{_type}#{property}"]
+            elif f"{_type}#{property}".replace("doi:", "doi:21.T11969/") in info:
+                return info[f"{_type}#{property}".replace("doi:", "doi:21.T11969/")]
+
+        except Exception as e:
+            print(f"{str(e)}")
 
     def add_article(
         self, paper_data: Dict[str, Any], json_files: Dict[str, str]
@@ -1087,7 +1089,7 @@ class SQLPaperRepository(PaperRepository):
                             )
                             label = ""
                             see_also = ""
-                            target_item = ""
+                            target_items = []
                             has_output_items = []
                             has_input_items = []
                             software_method_item = None
@@ -1590,31 +1592,35 @@ class SQLPaperRepository(PaperRepository):
                                         "Done #targets",
                                         _p,
                                     )
-                                    target = statement_content_item[_p]
-                                    target_see_also = []
-                                    target_see_also.append(
-                                        self.get_property_info(
+                                    targets = statement_content_item[_p]
+                                    if not isinstance(targets, list):
+                                        targets = [targets]
+                                    for target in targets:
+                                        target_see_also = []
+                                        target_see_also.append(
+                                            self.get_property_info(
+                                                target,
+                                                "see_also",
+                                            )
+                                        )
+                                        target_label = self.get_property_info(
                                             target,
-                                            "see_also",
+                                            "label",
                                         )
-                                    )
-                                    target_label = self.get_property_info(
-                                        target,
-                                        "label",
-                                    )
 
-                                    target_item, created = (
-                                        SharedTypeModel.objects.update_or_create(
-                                            see_also=target_see_also,
-                                            label=target_label,
-                                            type="targets",
-                                            defaults={
-                                                "label": target_label,
-                                                "see_also": target_see_also,
-                                                "type": "targets",
-                                            },
+                                        target_item, created = (
+                                            SharedTypeModel.objects.update_or_create(
+                                                see_also=target_see_also,
+                                                label=target_label,
+                                                type="targets",
+                                                defaults={
+                                                    "label": target_label,
+                                                    "see_also": target_see_also,
+                                                    "type": "targets",
+                                                },
+                                            )
                                         )
-                                    )
+                                        target_items.append(target_item.id)
                                 elif _p.endswith("#label"):
                                     print(
                                         f"Line: {sys._getframe(0).f_lineno}",
@@ -1701,8 +1707,8 @@ class SQLPaperRepository(PaperRepository):
                                         },
                                     )
                                 )
-                                if target_item:
-                                    MultilevelAnalysis.targets.add(target_item)
+                                if target_items:
+                                    MultilevelAnalysis.targets.set(target_items)
                                 if software_method_items:
                                     MultilevelAnalysis.executes.set(
                                         software_method_items
@@ -1726,8 +1732,8 @@ class SQLPaperRepository(PaperRepository):
                                         },
                                     )
                                 )
-                                if target_item:
-                                    ClassPrediction.targets.add(target_item)
+                                if target_items:
+                                    ClassPrediction.targets.set(target_items)
                                 if software_method_items:
                                     ClassPrediction.executes.set(software_method_items)
                                 if has_output_items:
@@ -1829,8 +1835,8 @@ class SQLPaperRepository(PaperRepository):
                                         },
                                     )
                                 )
-                                if target_item:
-                                    GroupComparison.targets.add(target_item)
+                                if target_items:
+                                    GroupComparison.targets.set(target_items)
                                 if software_method_items:
                                     GroupComparison.executes.set(software_method_items)
                                 if has_output_items:
@@ -1850,8 +1856,8 @@ class SQLPaperRepository(PaperRepository):
                                         },
                                     )
                                 )
-                                if target_item:
-                                    RegressionAnalysis.targets.add(target_item)
+                                if target_items:
+                                    RegressionAnalysis.targets.set(target_items)
                                 if software_method_items:
                                     RegressionAnalysis.executes.set(
                                         software_method_items
