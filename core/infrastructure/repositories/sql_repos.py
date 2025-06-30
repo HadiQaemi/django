@@ -1050,11 +1050,9 @@ class SQLPaperRepository(PaperRepository):
                         # print("#is_implemented_by")
                         # print(statement_content[p])
                         implement, created = ImplementModel.objects.update_or_create(
-                            url=statement_content[p],
                             statement_id=statement.id,
                             defaults={
                                 "url": statement_content[p],
-                                "statement_id": statement.id,
                             },
                         )
                     elif p.endswith("#has_part"):
