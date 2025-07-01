@@ -728,32 +728,41 @@ class PaperViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=["post"])
     def add_paper(self, request: Request) -> Response:
-        # try:
-        serializer = ScraperUrlSerializer(data=request.data)
+        def is_request_from_localhost(request: Request) -> bool:
+            ip = request.META.get("REMOTE_ADDR")
+            return ip == "127.0.0.1" or ip == "::1"
 
-        if not serializer.is_valid():
+        if not is_request_from_localhost(request):
             return Response(
-                {"error": serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Forbidden"},
+                status=status.HTTP_403_FORBIDDEN,
             )
+        try:
+            serializer = ScraperUrlSerializer(data=request.data)
 
-        url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
-        result = self.paper_service.extract_paper(url_dto)
+            if not serializer.is_valid():
+                return Response(
+                    {"error": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        if not result.success:
+            url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
+            result = self.paper_service.extract_paper(url_dto)
+
+            if not result.success:
+                return Response(
+                    {"error": result.message or "Failed to extract paper"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            return Response({"result": True})
+
+        except Exception as e:
+            logger.error(f"Error in add_paper: {str(e)}")
             return Response(
-                {"error": result.message or "Failed to extract paper"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Failed to add paper"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-        return Response({"result": True})
-
-    # except Exception as e:
-    #     logger.error(f"Error in add_paper: {str(e)}")
-    #     return Response(
-    #         {"error": "Failed to add paper"},
-    #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #     )
 
     @action(detail=False, methods=["post"])
     def add_all_papers(self, request: Request) -> Response:
@@ -763,35 +772,46 @@ class PaperViewSet(viewsets.GenericViewSet):
             failure_count = 0
             error_messages = []
 
-            # List of predefined URLs
             URLs = [
+                "https://service.tib.eu/ldmservice/dataset/haris-2025-1",
+                "https://service.tib.eu/ldmservice/dataset/babaei-giglou-2023-1",
                 "https://service.tib.eu/ldmservice/dataset/millan-marquez-2024-1",
                 "https://service.tib.eu/ldmservice/dataset/gentsch-2023-2",
                 "https://service.tib.eu/ldmservice/dataset/baimuratov-2024-2",
                 "https://service.tib.eu/ldmservice/dataset/perez-alvarez-2018-2",
                 "https://service.tib.eu/ldmservice/dataset/pina-ortiz-2023-1",
                 "https://service.tib.eu/ldmservice/dataset/akter-2023-1",
-                "https://service.tib.eu/ldmservice/dataset/paredes-2022-1",
                 "https://service.tib.eu/ldmservice/dataset/pina-ortiz-2024-1",
+                "https://service.tib.eu/ldmservice/dataset/paredes-2022-1",
                 "https://service.tib.eu/ldmservice/dataset/gkatzelis-2021-1",
+                "https://service.tib.eu/ldmservice/dataset/libranembid-2024-1",
+                "https://service.tib.eu/ldmservice/dataset/chausson-2024-1",
+                "https://service.tib.eu/ldmservice/dataset/thiessen-2023-2",
+                "https://service.tib.eu/ldmservice/dataset/bertuolgarcia-2023-1",
             ]
 
-            for url in URLs:
-                try:
-                    url_dto = ScraperUrlInputDTO(url=url)
-                    result = self.paper_service.extract_paper(url_dto)
+            results = []
+            errors = []
 
-                    if result.success:
-                        success_count += 1
-                    else:
-                        failure_count += 1
-                        error_messages.append(
-                            f"Failed to add paper from {url}: {result.message}"
-                        )
+            for index, item in enumerate(URLs):
+                serializer = ScraperUrlSerializer(data=item)
 
-                except Exception as e:
-                    failure_count += 1
-                    error_messages.append(f"Error adding paper from {url}: {str(e)}")
+                if not serializer.is_valid():
+                    errors.append({"index": index, "errors": serializer.errors})
+                    continue
+
+                url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
+                result = self.paper_service.extract_paper(url_dto)
+
+                if result.success:
+                    results.append({"index": index, "result": True})
+                else:
+                    errors.append(
+                        {
+                            "index": index,
+                            "error": result.message or "Failed to extract paper",
+                        }
+                    )
 
             return Response(
                 {
