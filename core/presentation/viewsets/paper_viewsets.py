@@ -728,7 +728,11 @@ class PaperViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=["post"])
     def add_paper(self, request: Request) -> Response:
-        ip = request.META.get("REMOTE_ADDR")
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
         if not (ip == "127.0.0.1" or ip == "::1"):
             return Response(
                 {"error": f"Forbidden from {ip}"},
