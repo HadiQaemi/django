@@ -728,13 +728,10 @@ class PaperViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=["post"])
     def add_paper(self, request: Request) -> Response:
-        def is_request_from_localhost(request: Request) -> bool:
-            ip = request.META.get("REMOTE_ADDR")
-            return ip == "127.0.0.1" or ip == "::1"
-
-        if not is_request_from_localhost(request):
+        ip = request.META.get("REMOTE_ADDR")
+        if not (ip == "127.0.0.1" or ip == "::1"):
             return Response(
-                {"error": "Forbidden"},
+                {"error": f"Forbidden from {ip}"},
                 status=status.HTTP_403_FORBIDDEN,
             )
         try:
