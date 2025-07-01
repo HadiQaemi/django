@@ -728,11 +728,11 @@ class PaperViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=["post"])
     def add_paper(self, request: Request) -> Response:
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0].strip()
+            ip = x_forwarded_for.split(",")[0].strip()
         else:
-            ip = request.META.get('REMOTE_ADDR')
+            ip = request.META.get("REMOTE_ADDR")
         if not (ip == "127.0.0.1" or ip == "10.114.149.127"):
             return Response(
                 {"error": f"Forbidden from {ip}"},
@@ -794,25 +794,28 @@ class PaperViewSet(viewsets.GenericViewSet):
             results = []
             errors = []
 
-            for index, item in enumerate(URLs):
-                serializer = ScraperUrlSerializer(data=item)
+            for url in URLs:
+                try:
+                    serializer = ScraperUrlSerializer(data=url)
+                    if not serializer.is_valid():
+                        errors.append({"errors": serializer.errors})
+                        continue
 
-                if not serializer.is_valid():
-                    errors.append({"index": index, "errors": serializer.errors})
-                    continue
+                    url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
+                    result = self.paper_service.extract_paper(url_dto)
 
-                url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
-                result = self.paper_service.extract_paper(url_dto)
+                    if result.success:
+                        results.append({"result": True})
+                    else:
+                        errors.append(
+                            {
+                                "error": result.message or "Failed to extract paper",
+                            }
+                        )
 
-                if result.success:
-                    results.append({"index": index, "result": True})
-                else:
-                    errors.append(
-                        {
-                            "index": index,
-                            "error": result.message or "Failed to extract paper",
-                        }
-                    )
+                except Exception as e:
+                    failure_count += 1
+                    error_messages.append(f"Error adding paper from {url}: {str(e)}")
 
             return Response(
                 {
@@ -822,7 +825,6 @@ class PaperViewSet(viewsets.GenericViewSet):
                     "error_messages": error_messages,
                 }
             )
-
         except Exception as e:
             logger.error(f"Error in add_all_papers: {str(e)}")
             return Response(
