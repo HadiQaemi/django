@@ -727,7 +727,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             )
 
     @action(detail=False, methods=["post"])
-    def add_paper(self, request: Request) -> Response:
+    def add_article_with_url(self, request: Request) -> Response:
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
             ip = x_forwarded_for.split(",")[0].strip()
