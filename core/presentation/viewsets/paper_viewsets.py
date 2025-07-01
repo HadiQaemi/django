@@ -796,7 +796,7 @@ class PaperViewSet(viewsets.GenericViewSet):
 
             for url in URLs:
                 try:
-                    serializer = ScraperUrlSerializer(data=url)
+                    serializer = ScraperUrlSerializer(data={"url": url})
                     if not serializer.is_valid():
                         errors.append({"errors": serializer.errors})
                         continue
