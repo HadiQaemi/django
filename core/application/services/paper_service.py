@@ -515,6 +515,9 @@ class PaperServiceImpl(PaperServiceInterface):
                     dt["evaluates"] = {
                         "label": data_type_statement.evaluate.label,
                         "type": data_type_statement.evaluate.type,
+                        # "see_also": data_type_statement.evaluate.see_also
+                        # if data_type_statement.evaluate.see_also[0] is not None
+                        # else [],
                         "see_also": data_type_statement.evaluate.see_also,
                     }
                 if data_type_statement.evaluates_for:
@@ -801,6 +804,7 @@ class PaperServiceImpl(PaperServiceInterface):
                             {
                                 "label": concept.label,
                                 "concept_id": concept.concept_id,
+                                "definition": concept.definition,
                                 "see_also": concept.see_also,
                             }
                         )
