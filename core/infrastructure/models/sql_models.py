@@ -21,7 +21,7 @@ class Author(TimeStampedModel):
     author_id = models.CharField(max_length=255, null=True)
     given_name = models.CharField(max_length=255)
     family_name = models.CharField(max_length=255)
-    label = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
     orcid = models.CharField(max_length=50, null=True, blank=True)
     json = JSONField(null=True, blank=True)
 
@@ -410,9 +410,9 @@ class Article(TimeStampedModel):
     name = models.CharField(max_length=255)
     abstract = models.TextField(null=True, blank=True)
     date_published = models.DateTimeField(null=True, blank=True)
-    identifier = models.CharField(max_length=255, null=True, blank=True)
-    reborn_doi = models.CharField(max_length=255, null=True, blank=True)
-    paper_type = models.CharField(max_length=255, null=True, blank=True)
+    identifier = models.TextField(null=True, blank=True)
+    reborn_doi = models.TextField(null=True, blank=True)
+    paper_type = models.TextField(null=True, blank=True)
     concepts = models.ManyToManyField(Concept, related_name="articles", blank=True)
     authors = models.ManyToManyField(
         Author, related_name="articles", blank=True, through="ArticleAuthor"
@@ -546,7 +546,7 @@ class Statement(TimeStampedModel):
 
 class Implement(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    url = models.CharField(max_length=255, null=True, blank=True)
+    url = models.TextField(null=True, blank=True)
     statement = models.ForeignKey(
         Statement,
         on_delete=models.CASCADE,
@@ -569,8 +569,8 @@ class Implement(TimeStampedModel):
 
 class HasPart(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
-    type = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
+    type = models.TextField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     statement = models.ForeignKey(
         Statement,
@@ -602,8 +602,8 @@ class HasPart(TimeStampedModel):
 
 class MartixSize(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    number_rows = models.CharField(max_length=255, null=True, blank=True)
-    number_columns = models.CharField(max_length=255, null=True, blank=True)
+    number_rows = models.TextField(null=True, blank=True)
+    number_columns = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = "martix_sizes"
@@ -617,8 +617,8 @@ class MartixSize(TimeStampedModel):
 
 class DataItemComponent(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
-    see_also = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
+    see_also = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = "data_item_components"
@@ -633,7 +633,7 @@ class DataItemComponent(TimeStampedModel):
 class Figure(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     label = models.TextField(null=True, blank=True)
-    source_url = models.CharField(max_length=255, null=True, blank=True)
+    source_url = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = "figures"
@@ -648,8 +648,8 @@ class Figure(TimeStampedModel):
 class DataItem(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     label = models.TextField(null=True, blank=True)
-    source_url = models.CharField(max_length=255, null=True, blank=True)
-    comment = models.CharField(max_length=255, null=True, blank=True)
+    source_url = models.TextField(null=True, blank=True)
+    comment = models.TextField(null=True, blank=True)
     source_table = JSONField(null=True, blank=True)
     has_characteristic = models.ForeignKey(
         MartixSize,
@@ -684,9 +684,9 @@ class DataItem(TimeStampedModel):
 
 class Software(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
-    version_info = models.CharField(max_length=255, null=True, blank=True)
-    has_support_url = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
+    version_info = models.TextField(null=True, blank=True)
+    has_support_url = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = "softwares"
@@ -701,8 +701,8 @@ class Software(TimeStampedModel):
 
 class SoftwareLibrary(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
-    version_info = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
+    version_info = models.TextField(null=True, blank=True)
     has_support_url = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
     )
@@ -728,7 +728,7 @@ class SoftwareLibrary(TimeStampedModel):
 
 class SoftwareMethod(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
     part_of = models.ManyToManyField(
         SoftwareLibrary,
         related_name="software_methods",
@@ -818,8 +818,8 @@ class DescriptiveStatistics(DataType):
 
 class SharedType(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
-    type = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
+    type = models.TextField(null=True, blank=True)
     see_also = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
     )
@@ -957,18 +957,18 @@ class FactorAnalysis(DataType):
 
 
 class Statistics(TimeStampedModel):
-    mean = models.CharField(max_length=255, null=True, blank=True)
-    standard_deviation = models.CharField(max_length=255, null=True, blank=True)
+    mean = models.TextField(null=True, blank=True)
+    standard_deviation = models.TextField(null=True, blank=True)
 
 
 class Contribution(TimeStampedModel):
     id = models.CharField(max_length=255, primary_key=True)
     contribution_paper_id = models.CharField(max_length=255)
-    json_id = models.CharField(max_length=255, null=True, blank=True)
-    json_type = models.CharField(max_length=255, null=True, blank=True)
+    json_id = models.TextField(null=True, blank=True)
+    json_type = models.TextField(null=True, blank=True)
     json_context = JSONField(null=True, blank=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
-    title = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
+    title = models.TextField(null=True, blank=True)
     author = JSONField(null=True, blank=True)
     info = JSONField(null=True, blank=True)
     predicates = JSONField(null=True, blank=True)
