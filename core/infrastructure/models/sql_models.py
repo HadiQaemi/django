@@ -647,7 +647,7 @@ class Figure(TimeStampedModel):
 
 class DataItem(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    label = models.CharField(max_length=255, null=True, blank=True)
+    label = models.TextField(null=True, blank=True)
     source_url = models.CharField(max_length=255, null=True, blank=True)
     comment = models.CharField(max_length=255, null=True, blank=True)
     source_table = JSONField(null=True, blank=True)
