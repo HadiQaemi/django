@@ -454,6 +454,7 @@ class Article(TimeStampedModel):
     def __str__(self):
         return self.name
 
+
 class ArticleAuthor(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
@@ -465,7 +466,8 @@ class ArticleAuthor(models.Model):
 
     def __str__(self):
         return f"{self.article.name} - {self.author.family_name} ({self.order})"
-    
+
+
 class SchemaType(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     type_id = models.CharField(max_length=255, unique=True)
@@ -494,6 +496,7 @@ class SchemaType(TimeStampedModel):
 
 class Statement(TimeStampedModel):
     id = models.AutoField(primary_key=True)
+    order = models.PositiveIntegerField(default=0)
     _id = models.CharField(max_length=255, null=True)
     statement_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
@@ -781,6 +784,14 @@ class DataType(TimeStampedModel, PolymorphicModel):
     has_outputs = models.ManyToManyField(
         DataItem,
         related_name="output_data",
+        blank=True,
+        db_index=True,
+    )
+    schema_type = models.ForeignKey(
+        SchemaType,
+        on_delete=models.CASCADE,
+        related_name="data_type",
+        null=True,
         blank=True,
         db_index=True,
     )

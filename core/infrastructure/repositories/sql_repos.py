@@ -975,7 +975,8 @@ class SQLPaperRepository(PaperRepository):
         # print(data["json_files"])
         # print('----------data["json_files"]------------')
         # iii = 0
-        for statement_item in data["json_files"]:
+        
+        for statement_index, statement_item in enumerate(data["json_files"]):
             # print("---------------------------------")
             # print("json file: ", statement_item.get("name", ""))
             # print("json file: ", statement_item)
@@ -1008,11 +1009,12 @@ class SQLPaperRepository(PaperRepository):
                 ]
                 statement_properties["label"] = notation["label"]
                 statement_properties["concept"] = notation["concept"]
-
+            
             statement, created = StatementModel.objects.update_or_create(
                 _id=statement_item["@id"],
                 defaults={
                     "label": statement_properties["label"],
+                    "order": statement_index + 1,
                     "statement_id": generate_static_id(statement_properties["label"]),
                     "name": json_files[statement_item.get("name", "")],
                     "json": statement_item,
@@ -1700,6 +1702,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "MultilevelAnalysis",
                                             "statement_id": statement.id,
                                         },
@@ -1725,6 +1728,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "ClassPrediction",
                                             "statement_id": statement.id,
                                         },
@@ -1746,6 +1750,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "FactorAnalysis",
                                             "statement_id": statement.id,
                                         },
@@ -1765,6 +1770,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "DataPreprocessing",
                                             "statement_id": statement.id,
                                         },
@@ -1786,6 +1792,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "ClassDiscovery",
                                             "statement_id": statement.id,
                                         },
@@ -1805,6 +1812,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "CorrelationAnalysis",
                                             "statement_id": statement.id,
                                         },
@@ -1828,6 +1836,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "GroupComparison",
                                             "statement_id": statement.id,
                                         },
@@ -1849,6 +1858,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "RegressionAnalysis",
                                             "statement_id": statement.id,
                                         },
@@ -1872,6 +1882,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "DescriptiveStatistics",
                                             "statement_id": statement.id,
                                         },
@@ -1897,6 +1908,7 @@ class SQLPaperRepository(PaperRepository):
                                         defaults={
                                             "label": label,
                                             "see_also": see_also,
+                                            "schema_type": _type_info,
                                             "type": "AlgorithmEvaluation",
                                             "statement_id": statement.id,
                                             "evaluates_for": evaluates_for_item,

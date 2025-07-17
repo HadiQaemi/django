@@ -568,12 +568,12 @@ class PaperServiceImpl(PaperServiceInterface):
                     "is_implemented_by": implements,
                     "components": components,
                     "type": {
-                        "name": has_part.schema_type.name,
-                        "description": has_part.schema_type.description,
-                        "type_id": has_part.schema_type.type_id,
+                        "name": data_type_statement.schema_type.name,
+                        "description": data_type_statement.schema_type.description,
+                        "type_id": data_type_statement.schema_type.type_id,
                         "properties": [
                             s.split("#", 1)[1] if "#" in s else ""
-                            for s in has_part.schema_type.property
+                            for s in data_type_statement.schema_type.property
                         ],
                     },
                 }
@@ -665,7 +665,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     ),
                 }
                 statements = []
-                for statement in paper.statements.all():
+                for statement in paper.statements.all().order_by('order'):
                     has_part = statement.has_part_statements.first()
                     authors = []
                     for author in statement.authors.all():
