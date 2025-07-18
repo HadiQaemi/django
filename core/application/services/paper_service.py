@@ -259,7 +259,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 else None,
             }
             statements = []
-            for statement in paper.statements.all():
+            for statement in paper.statements.all().order_by('order'):
                 has_part = statement.has_part_statements.first()
                 authors = []
                 for author in statement.authors.all():
@@ -784,7 +784,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     ),
                 }
                 statements = []
-                for statement in paper.statements.all():
+                for statement in paper.statements.all().order_by('order'):
                     has_part = statement.has_part_statements.first()
                     authors = []
                     for author in statement.authors.all():
