@@ -1,26 +1,12 @@
-"""
-Service interfaces for the REBORN API.
-
-These interfaces define the contract for application services.
-"""
-
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Tuple, Union
-from core.application.dtos.input_dtos import (
-    PaperInputDTO,
-    QueryFilterInputDTO,
-    SearchInputDTO,
-    AutoCompleteInputDTO,
-    ScraperUrlInputDTO,
-)
+from typing import List, Dict, Any, Optional
+from core.application.dtos.input_dtos import QueryFilterInputDTO, ScraperUrlInputDTO
 from core.application.dtos.output_dtos import (
-    PaperOutputDTO,
-    StatementOutputDTO,
-    SearchResultsDTO,
-    PaginatedResponseDTO,
-    CommonResponseDTO,
     AuthorOutputDTO,
+    CommonResponseDTO,
     ConceptOutputDTO,
+    PaginatedResponseDTO,
+    PaperOutputDTO,
 )
 
 
@@ -169,47 +155,4 @@ class PaperService(ABC):
     @abstractmethod
     def delete_database(self) -> CommonResponseDTO:
         """Delete the database."""
-        pass
-
-
-class SearchService(ABC):
-    """Service interface for search operations."""
-
-    @abstractmethod
-    def semantic_search_statement(self, search_dto: SearchInputDTO) -> SearchResultsDTO:
-        """Perform semantic search on statements."""
-        pass
-
-    @abstractmethod
-    def semantic_search_article(self, search_dto: SearchInputDTO) -> SearchResultsDTO:
-        """Perform semantic search on articles."""
-        pass
-
-    @abstractmethod
-    def delete_indices(self) -> CommonResponseDTO:
-        """Delete search indices."""
-        pass
-
-
-class AutoCompleteService(ABC):
-    """Service interface for auto-complete operations."""
-
-    @abstractmethod
-    def get_authors_by_name(self, search_dto: AutoCompleteInputDTO) -> SearchResultsDTO:
-        """Get authors."""
-        pass
-
-    @abstractmethod
-    def get_academic_publishers_by_name(self, search_dto: AutoCompleteInputDTO) -> SearchResultsDTO:
-        """Get academic publishers."""
-        pass
-
-    @abstractmethod
-    def get_research_fields_by_name(self, search_dto: SearchInputDTO) -> CommonResponseDTO:
-        """Get research fields."""
-        pass
-
-    @abstractmethod
-    def get_keywords_by_label(self, search_dto: SearchInputDTO) -> CommonResponseDTO:
-        """Get keywords."""
         pass

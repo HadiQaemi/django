@@ -3,36 +3,32 @@ import inspect
 import logging
 from django.conf import settings
 
-from core.application.interfaces.repositories import (
-    PaperRepository,
-    StatementRepository,
-    AuthorRepository,
-    ConceptRepository,
+from core.application.interfaces.repositories.author import AuthorRepository
+from core.application.interfaces.repositories.cache import CacheRepository
+from core.application.interfaces.repositories.concept import ConceptRepository
+from core.application.interfaces.repositories.journal import JournalRepository
+from core.application.interfaces.repositories.paper import PaperRepository
+from core.application.interfaces.repositories.research_field import (
     ResearchFieldRepository,
-    JournalRepository,
-    SearchRepository,
 )
-from core.application.interfaces.services import (
-    PaperService,
-    SearchService,
-    AutoCompleteService,
-)
+from core.application.interfaces.repositories.statement import StatementRepository
+from core.application.interfaces.services.auto_complete import AutoCompleteService
+from core.application.interfaces.services.insight import InsightService
+from core.application.interfaces.services.paper import PaperService
 from core.application.services.paper_service import PaperServiceImpl
-from core.application.services.search_service import SearchServiceImpl
 from core.application.services.auto_complete_service import AutoCompleteServiceImpl
+from core.application.services.insight_service import InsightServiceImpl
 
 from core.infrastructure.clients.type_registry_client import TypeRegistryClient
-from core.application.interfaces.repositories import CacheRepository
-from core.infrastructure.repositories.cache_repos import SQLCacheRepository
-from core.infrastructure.repositories.mongo_repos import (
-    MongoDBPaperRepository,
-    MongoDBStatementRepository,
-    MongoDBAuthorRepository,
-    MongoDBConceptRepository,
-    MongoDBResearchFieldRepository,
-    MongoDBJournalRepository,
+from core.infrastructure.repositories.sql_repos.author import SQLAuthorRepository
+from core.infrastructure.repositories.sql_repos.concept import SQLConceptRepository
+from core.infrastructure.repositories.sql_repos.journal import SQLJournalRepository
+from core.infrastructure.repositories.sql_repos.paper import SQLPaperRepository
+from core.infrastructure.repositories.sql_repos.research_field import (
+    SQLResearchFieldRepository,
 )
-from core.infrastructure.repositories.search_repos import SearchRepositoryImpl
+from core.infrastructure.repositories.sql_repos.statement import SQLStatementRepository
+from core.infrastructure.repositories.cache_repos import SQLCacheRepository
 
 logger = logging.getLogger(__name__)
 
@@ -50,33 +46,25 @@ class Container:
     def configure(cls) -> None:
         """Configure the container based on settings."""
         cls._repositories = {
-            PaperRepository: MongoDBPaperRepository,
-            StatementRepository: MongoDBStatementRepository,
-            AuthorRepository: MongoDBAuthorRepository,
-            ConceptRepository: MongoDBConceptRepository,
-            ResearchFieldRepository: MongoDBResearchFieldRepository,
-            JournalRepository: MongoDBJournalRepository,
-            SearchRepository: SearchRepositoryImpl,
+            PaperRepository: SQLPaperRepository,
+            StatementRepository: SQLStatementRepository,
+            AuthorRepository: SQLAuthorRepository,
+            ConceptRepository: SQLConceptRepository,
+            ResearchFieldRepository: SQLResearchFieldRepository,
+            JournalRepository: SQLJournalRepository,
+            CacheRepository: SQLCacheRepository,
         }
 
         cls._services = {
             PaperService: PaperServiceImpl,
-            SearchService: SearchServiceImpl,
             AutoCompleteService: AutoCompleteServiceImpl,
+            InsightService: InsightServiceImpl,
         }
         db_type = getattr(settings, "DATABASE_TYPE", "postgres")
+        print("--------db_type--------")
         print(db_type)
         if db_type == "postgres":
             try:
-                from core.infrastructure.repositories.sql_repos import (
-                    SQLPaperRepository,
-                    SQLStatementRepository,
-                    SQLAuthorRepository,
-                    SQLConceptRepository,
-                    SQLResearchFieldRepository,
-                    SQLJournalRepository,
-                )
-
                 cls._repositories.update(
                     {
                         PaperRepository: SQLPaperRepository,
@@ -149,11 +137,11 @@ class Container:
         return cls.resolve(PaperService)
 
     @classmethod
-    def get_search_service(cls) -> SearchService:
-        """Get the search service."""
-        return cls.resolve(SearchService)
-
-    @classmethod
     def get_auto_complete_service(cls) -> AutoCompleteService:
         """Get the auto-complete service."""
         return cls.resolve(AutoCompleteService)
+
+    @classmethod
+    def get_insight_service(cls) -> InsightService:
+        """Get the insight service."""
+        return cls.resolve(InsightService)

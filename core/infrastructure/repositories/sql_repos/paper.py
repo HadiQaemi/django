@@ -1,30 +1,14 @@
-import logging
 import sys
-from typing import List, Dict, Any, Optional, Tuple
-from django.db.models import Q, F, Case, When
-from django.core.paginator import Paginator
-import hashlib
-from datetime import datetime
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
-from core.application.interfaces.repositories import (
-    PaperRepository,
-    SearchRepository,
-    StatementRepository,
-    AuthorRepository,
-    ConceptRepository,
-    ResearchFieldRepository,
-    JournalRepository,
-)
+from typing import Any, Dict, List, Optional, Tuple
+from core.application.interfaces.repositories.paper import PaperRepository
+from core.application.interfaces.repositories.search import SearchRepository
+from core.domain.entities import Author, Concept, Journal, Paper, ResearchField
 from core.infrastructure.clients.type_registry_client import TypeRegistryClient
-from core.domain.entities import (
-    Paper,
-    Statement,
-    Author,
-    Concept,
-    ResearchField,
-    Journal,
+from core.infrastructure.repositories.sql_repos_helper import (
+    fetch_reborn_doi,
+    generate_static_id,
 )
-from core.domain.exceptions import DatabaseError
+from core.infrastructure.scrapers.node_extractor import NodeExtractor
 from core.infrastructure.models.sql_models import (
     Article as ArticleModel,
     Statement as StatementModel,
@@ -64,38 +48,14 @@ from core.infrastructure.models.sql_models import (
     Publisher as PublisherModel,
     Contribution as ContributionModel,
 )
-from core.infrastructure.scrapers.node_extractor import NodeExtractor
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+from django.db.models import Q, F, Case, When
+from core.domain.exceptions import DatabaseError
+from django.core.paginator import Paginator
+from datetime import datetime
+import logging
 
 logger = logging.getLogger(__name__)
-
-
-def generate_static_id(input_string: str) -> str:
-    """Generate a static ID from a string."""
-    hash_object = hashlib.sha256(input_string.encode("utf-8"))
-    return hash_object.hexdigest()[:32]
-
-
-def fetch_reborn_doi(doi: str) -> str:
-    """Fetch the reborn DOI from a regular DOI."""
-    import requests
-
-    url = "https://api.datacite.org/dois"
-    query = f'relatedIdentifiers.relatedIdentifier:"{doi.replace("https://doi.org/", "")}" AND relatedIdentifiers.relationType:IsVariantFormOf'
-    params = {"query": query}
-
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        result = response.json()
-
-        if not result.get("data"):
-            return ""
-
-        return f"https://doi.org/{result['data'][0]['id']}"
-
-    except Exception as e:
-        logger.error(f"Error fetching reborn DOI: {str(e)}")
-        return ""
 
 
 class SQLPaperRepository(PaperRepository):
@@ -127,6 +87,16 @@ class SQLPaperRepository(PaperRepository):
         # except Exception as e:
         #     logger.error(f"Error in find_all: {str(e)}")
         #     raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
+
+    def get_count_all(self) -> any:
+        """Find authors by name."""
+        print("-------get_count_all-------", __file__)
+        try:
+            return ArticleModel.objects.count()
+
+        except Exception as e:
+            logger.error(f"Error in count all articles: {str(e)}")
+            raise DatabaseError(f"Failed to count all articles: {str(e)}")
 
     def find_by_id(self, paper_id: str) -> Optional[Paper]:
         """Find a paper by its ID."""
@@ -178,27 +148,18 @@ class SQLPaperRepository(PaperRepository):
             from django.contrib.postgres.search import SearchQuery, SearchRank
             from django.db.models import Q, F
             from datetime import datetime
-
-            # Start with base queryset
             query = ArticleModel.objects.all()
 
-            # Handle title search using full-text search
             if title:
-                # Use the existing search_vector field for full-text search
                 search_query = SearchQuery(title)
                 query = query.filter(search_vector=search_query)
-
-                # Add search ranking for better ordering
                 query = query.annotate(
                     search_rank=SearchRank("search_vector", search_query)
                 )
-
-                # Also include fallback for partial matches in name
                 query = query.filter(
                     Q(search_vector=search_query) | Q(name__icontains=title)
                 )
 
-            # Filter by author IDs
             if author_ids and len(author_ids) > 0:
                 query = query.filter(authors__author_id__in=author_ids)
 
@@ -207,11 +168,9 @@ class SQLPaperRepository(PaperRepository):
                     journal_conference__journal_conference_id__in=scientific_venue_ids
                 )
 
-            # Filter by concept IDs
             if concept_ids and len(concept_ids) > 0:
                 query = query.filter(concepts__concept_id__in=concept_ids)
 
-            # Filter by date range
             if start_year and end_year:
                 start_date = datetime(int(start_year), 1, 1)
                 end_date = datetime(int(end_year), 12, 31, 23, 59, 59)
@@ -223,33 +182,22 @@ class SQLPaperRepository(PaperRepository):
                 end_date = datetime(int(end_year), 12, 31, 23, 59, 59)
                 query = query.filter(date_published__lte=end_date)
 
-            # Filter by research fields
             if research_field_ids and len(research_field_ids) > 0:
                 query = query.filter(
                     research_fields__research_field_id__in=research_field_ids
                 )
 
-            # Remove duplicates that might occur due to many-to-many relationships
             query = query.distinct()
 
-            # Optimize database queries
             query = query.select_related("journal_conference").prefetch_related(
                 "authors", "concepts", "research_fields"
             )
-
-            # Apply ordering - prioritize search rank if title search was used
             if title:
                 query = query.order_by("-search_rank", "-date_published", "name")
             else:
                 query = query.order_by("-date_published", "name")
-
-            # Get total count before pagination
             total = query.count()
-
-            # Apply pagination
             paginator = Paginator(query, page_size)
-
-            # Handle invalid page numbers
             if page < 1:
                 page = 1
             elif page > paginator.num_pages and paginator.num_pages > 0:
@@ -257,7 +205,6 @@ class SQLPaperRepository(PaperRepository):
 
             page_obj = paginator.get_page(page)
 
-            # Convert articles to papers
             papers = []
             for article in page_obj:
                 paper = self._convert_article_to_paper(article)
@@ -631,16 +578,14 @@ class SQLPaperRepository(PaperRepository):
         units_id = {}
         for unit in data["unit"]:
             unit_obj, created = UnitModel.objects.get_or_create(
-                _id=unit.get("@id", ""),
+                type=unit.get("@type", ""),
+                exact_match=unit.get("exactMatch", "")
+                if len(unit.get("exactMatch", "")) > 0
+                else [],
+                label=unit.get("label", "") if len(unit.get("label", "")) > 0 else [],
                 defaults={
+                    "_id": unit.get("@id", ""),
                     "json": unit,
-                    "type": unit.get("@type", ""),
-                    "exact_match": unit.get("exactMatch", "")
-                    if len(unit.get("exactMatch", "")) > 0
-                    else [],
-                    "label": unit.get("label", "")
-                    if len(unit.get("label", "")) > 0
-                    else [],
                 },
             )
             units_id[unit.get("@id", "")] = unit_obj.id
@@ -658,19 +603,19 @@ class SQLPaperRepository(PaperRepository):
         objectOfInterests_id = {}
         for objectOfInterest in data["objectOfInterest"]:
             objectOfInterest_obj, created = ObjectOfInterestModel.objects.get_or_create(
-                _id=objectOfInterest.get("@id", ""),
+                type=objectOfInterest.get("@type", ""),
+                exact_match=objectOfInterest.get("exactMatch", "")
+                if len(objectOfInterest.get("exactMatch", "")) > 0
+                else [],
+                close_match=objectOfInterest.get("closeMatch", "")
+                if len(objectOfInterest.get("closeMatch", "")) > 0
+                else [],
+                label=objectOfInterest.get("label", "")
+                if len(objectOfInterest.get("label", "")) > 0
+                else [],
                 defaults={
+                    "_id": objectOfInterest.get("@id", ""),
                     "json": objectOfInterest,
-                    "type": objectOfInterest.get("@type", ""),
-                    "exact_match": objectOfInterest.get("exactMatch", "")
-                    if len(objectOfInterest.get("exactMatch", "")) > 0
-                    else [],
-                    "close_match": objectOfInterest.get("closeMatch", "")
-                    if len(objectOfInterest.get("closeMatch", "")) > 0
-                    else [],
-                    "label": objectOfInterest.get("label", "")
-                    if len(objectOfInterest.get("label", "")) > 0
-                    else [],
                 },
             )
             objectOfInterests_id[objectOfInterest.get("@id", "")] = (
@@ -688,18 +633,18 @@ class SQLPaperRepository(PaperRepository):
         matrices_id = {}
         for matrix in data["matrix"]:
             matrix_obj, created = MatrixModel.objects.get_or_create(
-                _id=matrix.get("@id", ""),
+                exact_match=matrix.get("exactMatch", "")
+                if len(matrix.get("exactMatch", "")) > 0
+                else [],
+                close_match=matrix.get("closeMatch", "")
+                if len(matrix.get("closeMatch", "")) > 0
+                else [],
+                label=matrix.get("label", "")
+                if len(matrix.get("label", "")) > 0
+                else [],
                 defaults={
                     "json": matrix,
-                    "exact_match": matrix.get("exactMatch", "")
-                    if len(matrix.get("exactMatch", "")) > 0
-                    else [],
-                    "close_match": matrix.get("closeMatch", "")
-                    if len(matrix.get("closeMatch", "")) > 0
-                    else [],
-                    "label": matrix.get("label", "")
-                    if len(matrix.get("label", "")) > 0
-                    else [],
+                    "_id": matrix.get("@id", ""),
                 },
             )
             matrices_id[matrix.get("@id", "")] = matrix_obj.id
@@ -714,18 +659,18 @@ class SQLPaperRepository(PaperRepository):
         properties_id = {}
         for property in data["property"]:
             property_obj, created = PropertyModel.objects.get_or_create(
-                _id=property.get("@id", ""),
+                exact_match=property.get("exactMatch", "")
+                if len(property.get("exactMatch", "")) > 0
+                else [],
+                close_match=property.get("closeMatch", "")
+                if len(property.get("closeMatch", "")) > 0
+                else [],
+                label=property.get("label", "")
+                if len(property.get("label", "")) > 0
+                else [],
                 defaults={
                     "json": property,
-                    "exact_match": property.get("exactMatch", "")
-                    if len(property.get("exactMatch", "")) > 0
-                    else [],
-                    "close_match": property.get("closeMatch", "")
-                    if len(property.get("closeMatch", "")) > 0
-                    else [],
-                    "label": property.get("label", "")
-                    if len(property.get("label", "")) > 0
-                    else [],
+                    "_id": property.get("@id", ""),
                 },
             )
             properties_id[property.get("@id", "")] = property_obj.id
@@ -740,18 +685,18 @@ class SQLPaperRepository(PaperRepository):
         constraints_id = {}
         for constraint in data["constraint"]:
             constraint_obj, created = ConstraintModel.objects.get_or_create(
-                _id=constraint.get("@id", ""),
+                exact_match=constraint.get("exactMatch", "")
+                if len(constraint.get("exactMatch", "")) > 0
+                else [],
+                close_match=constraint.get("closeMatch", "")
+                if len(constraint.get("closeMatch", "")) > 0
+                else [],
+                label=constraint.get("label", "")
+                if len(constraint.get("label", "")) > 0
+                else [],
                 defaults={
                     "json": constraint,
-                    "exact_match": constraint.get("exactMatch", "")
-                    if len(constraint.get("exactMatch", "")) > 0
-                    else [],
-                    "close_match": constraint.get("closeMatch", "")
-                    if len(constraint.get("closeMatch", "")) > 0
-                    else [],
-                    "label": constraint.get("label", "")
-                    if len(constraint.get("label", "")) > 0
-                    else [],
+                    "_id": constraint.get("@id", ""),
                 },
             )
             constraints_id[constraint.get("@id", "")] = constraint_obj.id
@@ -766,18 +711,18 @@ class SQLPaperRepository(PaperRepository):
         operations_id = {}
         for operation in data["operation"]:
             operation_obj, created = OperationModel.objects.get_or_create(
-                _id=operation.get("@id", ""),
+                exact_match=operation.get("exactMatch", "")
+                if len(operation.get("exactMatch", "")) > 0
+                else [],
+                close_match=operation.get("closeMatch", "")
+                if len(operation.get("closeMatch", "")) > 0
+                else [],
+                label=operation.get("label", "")
+                if len(operation.get("label", "")) > 0
+                else [],
                 defaults={
                     "json": operation,
-                    "exact_match": operation.get("exactMatch", "")
-                    if len(operation.get("exactMatch", "")) > 0
-                    else [],
-                    "close_match": operation.get("closeMatch", "")
-                    if len(operation.get("closeMatch", "")) > 0
-                    else [],
-                    "label": operation.get("label", "")
-                    if len(operation.get("label", "")) > 0
-                    else [],
+                    "_id": operation.get("@id", ""),
                 },
             )
             operations_id[operation.get("@id", "")] = operation_obj.id
@@ -794,20 +739,20 @@ class SQLPaperRepository(PaperRepository):
             ]
             for component in data[_type]:
                 component_obj, created = ComponentModel.objects.get_or_create(
-                    _id=component.get("@id", ""),
+                    type=component.get("@type", ""),
+                    label=component.get("label", ""),
+                    string_match=component.get("stringMatch", "")
+                    if len(component.get("stringMatch", "")) > 0
+                    else [],
+                    exact_match=component.get("exactMatch", "")
+                    if len(component.get("exactMatch", "")) > 0
+                    else [],
+                    close_match=component.get("closeMatch", "")
+                    if len(component.get("closeMatch", "")) > 0
+                    else [],
                     defaults={
                         "json": component,
-                        "type": component.get("@type", ""),
-                        "label": component.get("label", ""),
-                        "string_match": component.get("stringMatch", "")
-                        if len(component.get("stringMatch", "")) > 0
-                        else [],
-                        "exact_match": component.get("exactMatch", "")
-                        if len(component.get("exactMatch", "")) > 0
-                        else [],
-                        "close_match": component.get("closeMatch", "")
-                        if len(component.get("closeMatch", "")) > 0
-                        else [],
+                        "_id": component.get("@id", ""),
                     },
                 )
                 items_id[component.get("@id", "")] = component_obj.id
@@ -842,11 +787,11 @@ class SQLPaperRepository(PaperRepository):
         ]
         for publisher in data["publisher"]:
             publisher_obj, created = PublisherModel.objects.get_or_create(
-                _id=publisher.get("@id", ""),
+                label=publisher.get("label", ""),
+                publisher_id=generate_static_id(publisher.get("label", "")),
                 defaults={
-                    "label": publisher.get("label", ""),
-                    "publisher_id": generate_static_id(publisher.get("label", "")),
                     "json": publisher,
+                    "_id": publisher.get("@id", ""),
                 },
             )
             publisher_id = publisher_obj.id
@@ -859,13 +804,11 @@ class SQLPaperRepository(PaperRepository):
         ]
         for journal in data["journal"]:
             journal_obj, created = JournalConferenceModel.objects.get_or_create(
-                _id=journal.get("@id", ""),
+                label=journal.get("label", ""),
+                journal_conference_id=generate_static_id(journal.get("label", "")),
                 defaults={
-                    "label": journal.get("label", ""),
-                    "journal_conference_id": generate_static_id(
-                        journal.get("label", "")
-                    ),
                     "json": journal,
+                    "_id": journal.get("@id", ""),
                     "type": "journal",
                     "publisher_id": publisher_id,
                 },
@@ -881,12 +824,10 @@ class SQLPaperRepository(PaperRepository):
         conference_id = False
         for conference in data["conference"]:
             conference_obj, created = JournalConferenceModel.objects.get_or_create(
-                _id=conference.get("@id", ""),
+                label=conference.get("label", ""),
+                journal_conference_id=generate_static_id(conference.get("label", "")),
                 defaults={
-                    "label": conference.get("label", ""),
-                    "journal_conference_id": generate_static_id(
-                        conference.get("label", "")
-                    ),
+                    "_id": conference.get("@id", ""),
                     "json": conference,
                     "type": "conference",
                     "publisher_id": publisher_id,
@@ -904,10 +845,10 @@ class SQLPaperRepository(PaperRepository):
         concepts_id = {}
         for concept in data["concept"]:
             concept_obj, created = ConceptModel.objects.get_or_create(
-                _id=concept.get("@id", ""),
                 concept_id=generate_static_id(concept.get("label", "")),
+                label=concept.get("label", ""),
                 defaults={
-                    "label": concept.get("label", ""),
+                    "_id": concept.get("@id", ""),
                     "json": concept,
                     "definition": concept.get("definition", ""),
                     "see_also": concept.get("seeAlso", ""),
@@ -948,6 +889,7 @@ class SQLPaperRepository(PaperRepository):
                 "paper_type": "conference" if conference_id else "journal",
             },
         )
+        article.articleauthor_set.all().delete()
         for index, author in enumerate(authors):
             article.authors.add(author, through_defaults={"order": index + 1})
         # article.authors.set(authors)
@@ -975,7 +917,7 @@ class SQLPaperRepository(PaperRepository):
         # print(data["json_files"])
         # print('----------data["json_files"]------------')
         # iii = 0
-        
+
         for statement_index, statement_item in enumerate(data["json_files"]):
             # print("---------------------------------")
             # print("json file: ", statement_item.get("name", ""))
@@ -1009,7 +951,7 @@ class SQLPaperRepository(PaperRepository):
                 ]
                 statement_properties["label"] = notation["label"]
                 statement_properties["concept"] = notation["concept"]
-            
+
             statement, created = StatementModel.objects.update_or_create(
                 _id=statement_item["@id"],
                 defaults={
@@ -1024,14 +966,23 @@ class SQLPaperRepository(PaperRepository):
                     "encodingFormat": statement_item["encodingFormat"],
                 },
             )
+            statement_components = []
             for component in statement_item.get("components", ""):
-                statement.components.add(items_id[component["@id"]])
+                statement_components.append(items_id[component["@id"]])
+            if statement_components:
+                statement.components.set(statement_components)
 
+            statement_concepts = []
             for concept in statement_properties["concept"]:
-                statement.concepts.add(concepts_id[concept["@id"]])
+                statement_concepts.append(concepts_id[concept["@id"]])
+            if statement_concepts:
+                statement.concepts.set(statement_concepts)
 
+            statement_authors = []
             for author in statement_properties["author"]:
-                statement.authors.add(authors_id[author["@id"]])
+                statement_authors.append(authors_id[author["@id"]])
+            if statement_authors:
+                statement.authors.set(statement_authors)
 
             type_info, _info = self.type_registry_client.get_type_info(
                 statement_content["@type"].replace("doi:", "")
@@ -1983,7 +1934,7 @@ class SQLPaperRepository(PaperRepository):
 
     def _convert_article_to_paper(self, article: ArticleModel) -> Paper:
         authors = []
-        print("--------_convert_article_to_paper-----------", __file__)
+        # print("--------_convert_article_to_paper-----------", __file__)
         for author in article.authors.all().order_by("articleauthor"):
             authors.append(
                 Author(
@@ -2042,843 +1993,4 @@ class SQLPaperRepository(PaperRepository):
             concepts=concepts,
             created_at=article.created_at,
             updated_at=article.updated_at,
-        )
-
-
-class SQLAuthorRepository(AuthorRepository):
-    """PostgreSQL implementation of the Author repository."""
-
-    def get_authors_by_name(
-        self, search_query: str, page: int, page_size: int
-    ) -> List[Author]:
-        """Find authors by name."""
-        print("-------get_authors_by_name-------", __file__)
-        # try:
-        authors_queryset = AuthorModel.objects.filter(
-            Q(label__icontains=search_query)
-            | Q(given_name__icontains=search_query)
-            | Q(family_name__icontains=search_query)
-        ).order_by("label")[:10]
-        authors = []
-        for author_model in authors_queryset:
-            author = Author(
-                author_id=author_model.author_id,
-                orcid=author_model.orcid,
-                given_name=author_model.given_name,
-                family_name=author_model.family_name,
-                label=author_model.label,
-            )
-            authors.append(author)
-        return authors
-
-        # except Exception as e:
-        #     logger.error(f"Error in find_by_name: {str(e)}")
-        #     raise DatabaseError(f"Failed to find authors: {str(e)}")
-
-    def save(self, author: Author) -> Author:
-        """Save an author."""
-        try:
-            if not author.id:
-                author.id = generate_static_id(author.given_name + author.family_name)
-
-            # Create or update author
-            author_model, created = AuthorModel.objects.update_or_create(
-                id=author.id,
-                defaults={
-                    "given_name": author.given_name,
-                    "family_name": author.family_name,
-                    "label": author.label
-                    or f"{author.given_name} {author.family_name}",
-                },
-            )
-
-            return author
-
-        except Exception as e:
-            logger.error(f"Error in save: {str(e)}")
-            raise DatabaseError(f"Failed to save author: {str(e)}")
-
-    def get_latest_authors(
-        self,
-        research_fields: Optional[List[str]] = None,
-        search_query: Optional[str] = None,
-        sort_order: str = "a-z",
-        page: int = 1,
-        page_size: int = 10,
-    ) -> Tuple[List[Author], int]:
-        """Get latest authors with filters."""
-        print("-------------get_latest_authors----------", __file__)
-        try:
-            query = AuthorModel.objects.all()
-            if search_query:
-                query = query.filter(
-                    Q(label__icontains=search_query)
-                    | Q(given_name__icontains=search_query)
-                    | Q(family_name__icontains=search_query)
-                )
-
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(
-                    articles__research_fields__research_field_id__in=research_fields
-                )
-
-            if sort_order == "a-z":
-                query = query.order_by("label")
-            elif sort_order == "z-a":
-                query = query.order_by("-label")
-            elif sort_order == "newest":
-                query = query.order_by("-id")
-            else:
-                query = query.order_by("label")
-
-            total = query.count()
-
-            paginator = Paginator(query, page_size)
-            page_obj = paginator.get_page(page)
-
-            authors = []
-            for author_model in page_obj:
-                author = Author(
-                    id=author_model.id,
-                    orcid=author_model.orcid,
-                    author_id=author_model.author_id,
-                    given_name=author_model.given_name,
-                    family_name=author_model.family_name,
-                    label=author_model.label,
-                )
-                authors.append(author)
-
-            return authors, total
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_authors: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest authors: {str(e)}")
-
-
-class SQLConceptRepository(ConceptRepository):
-    """PostgreSQL implementation of the Concept repository."""
-
-    def get_keywords_by_label(
-        self, search_query: str, page: int, page_size: int
-    ) -> List[Concept]:
-        """Find concepts by label."""
-        print("-------concepts-------", __file__)
-        try:
-            concepts_queryset = ConceptModel.objects.filter(
-                label__icontains=search_query
-            ).order_by("label")[:10]
-            concepts = []
-            for concept_model in concepts_queryset:
-                concept = Concept(
-                    id=concept_model.id,
-                    label=concept_model.label,
-                    concept_id=concept_model.concept_id,
-                )
-                concepts.append(concept)
-            return concepts
-
-        except Exception as e:
-            logger.error(f"Error in find_by_name: {str(e)}")
-            raise DatabaseError(f"Failed to find authors: {str(e)}")
-
-    def find_by_label(self, label: str) -> List[Concept]:
-        """Find concepts by label."""
-        try:
-            concepts_queryset = ConceptModel.objects.filter(
-                label__icontains=label
-            ).order_by("label")[:10]  # Limit to 10 concepts
-
-            concepts = []
-            for concept_model in concepts_queryset:
-                concept = Concept(
-                    id=concept_model.id,
-                    label=concept_model.label,
-                    identifier=concept_model.identifier,
-                )
-                concepts.append(concept)
-
-            return concepts
-
-        except Exception as e:
-            logger.error(f"Error in find_by_label: {str(e)}")
-            raise DatabaseError(f"Failed to find concepts: {str(e)}")
-
-    def save(self, concept: Concept) -> Concept:
-        """Save a concept."""
-        try:
-            if not concept.id:
-                concept.id = generate_static_id(concept.label)
-
-            # Create or update concept
-            concept_model, created = ConceptModel.objects.update_or_create(
-                id=concept.id,
-                defaults={"label": concept.label, "identifier": concept.identifier},
-            )
-
-            return concept
-
-        except Exception as e:
-            logger.error(f"Error in save: {str(e)}")
-            raise DatabaseError(f"Failed to save concept: {str(e)}")
-
-    def get_latest_concepts(self, limit: int = 8) -> List[Concept]:
-        """Get latest concepts."""
-        try:
-            concepts_queryset = ConceptModel.objects.all().order_by("-id")[:limit]
-
-            concepts = []
-            for concept_model in concepts_queryset:
-                concept = Concept(
-                    id=concept_model.id,
-                    label=concept_model.label,
-                    identifier=concept_model.identifier,
-                )
-                concepts.append(concept)
-
-            return concepts
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_concepts: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest concepts: {str(e)}")
-
-    def get_latest_keywords(
-        self,
-        research_fields: Optional[List[str]] = None,
-        search_query: Optional[str] = None,
-        sort_order: str = "a-z",
-        page: int = 1,
-        page_size: int = 10,
-    ) -> Tuple[List[Concept], int]:
-        """Get latest keywords with filters."""
-        try:
-            query = ConceptModel.objects.all()
-
-            if search_query:
-                query = query.filter(label__icontains=search_query)
-
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(research_fields_id__overlap=research_fields)
-
-            # Apply sorting
-            if sort_order == "a-z":
-                query = query.order_by("label")
-            elif sort_order == "z-a":
-                query = query.order_by("-label")
-            elif sort_order == "newest":
-                query = query.order_by("-id")
-            else:
-                query = query.order_by("label")
-
-            # Get total count before pagination
-            total = query.count()
-
-            # Apply pagination
-            paginator = Paginator(query, page_size)
-            page_obj = paginator.get_page(page)
-
-            concepts = []
-            for concept_model in page_obj:
-                concept = Concept(
-                    id=concept_model.id,
-                    label=concept_model.label,
-                    identifier=concept_model.identifier,
-                )
-                concepts.append(concept)
-
-            return concepts, total
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_keywords: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest keywords: {str(e)}")
-
-
-class SQLResearchFieldRepository(ResearchFieldRepository):
-    """PostgreSQL implementation of the ResearchField repository."""
-
-    def get_research_fields_by_name(
-        self, search_query: str, page: int, page_size: int
-    ) -> List[ResearchField]:
-        """Find research fields by label."""
-        print("-------research_fields-------", __file__)
-        try:
-            research_fields_queryset = ResearchFieldModel.objects.filter(
-                label__icontains=search_query
-            ).order_by("label")[:10]
-            research_fields = []
-            for research_model in research_fields_queryset:
-                research_field = ResearchField(
-                    id=research_model.id,
-                    label=research_model.label,
-                    research_field_id=research_model.research_field_id,
-                    related_identifier=research_model.related_identifier,
-                )
-                research_fields.append(research_field)
-            return research_fields
-
-        except Exception as e:
-            logger.error(f"Error in get_research_fields_by_name: {str(e)}")
-            raise DatabaseError(f"Failed to find research fields by name: {str(e)}")
-
-    def find_by_label(self, label: str) -> List[ResearchField]:
-        """Find research fields by label."""
-        try:
-            rf_queryset = ResearchFieldModel.objects.filter(
-                label__icontains=label
-            ).order_by("label")[:10]  # Limit to 10 research fields
-
-            research_fields = []
-            for rf_model in rf_queryset:
-                research_field = ResearchField(
-                    id=rf_model.id,
-                    label=rf_model.label,
-                    research_field_id=rf_model.research_field_id,
-                    related_identifier=rf_model.related_identifier,
-                )
-                research_fields.append(research_field)
-
-            return research_fields
-
-        except Exception as e:
-            logger.error(f"Error in find_by_label: {str(e)}")
-            raise DatabaseError(f"Failed to find research fields: {str(e)}")
-
-    def save(self, research_field: ResearchField) -> ResearchField:
-        """Save a research field."""
-        try:
-            if not research_field.id:
-                research_field.id = generate_static_id(research_field.label)
-
-            # Create or update research field
-            rf_model, created = ResearchFieldModel.objects.update_or_create(
-                id=research_field.id,
-                defaults={
-                    "label": research_field.label,
-                    "research_field_id": generate_static_id(research_field.label),
-                },
-            )
-
-            return research_field
-
-        except Exception as e:
-            logger.error(f"Error in save: {str(e)}")
-            raise DatabaseError(f"Failed to save research field: {str(e)}")
-
-
-class SQLJournalRepository(JournalRepository):
-    """PostgreSQL implementation of the Journal repository."""
-
-    def get_academic_publishers_by_name(
-        self, search_query: str, page: int, page_size: int
-    ) -> List[Journal]:
-        """Find academic publishers by name."""
-        print("-------get_academic_publishers_by_name-------", __file__)
-        try:
-            journals_queryset = JournalConferenceModel.objects.filter(
-                label__icontains=search_query
-            ).order_by("label")[:10]
-            journals = []
-            for journal_model in journals_queryset:
-                journal = Journal(
-                    id=journal_model.id,
-                    label=journal_model.label,
-                    journal_conference_id=journal_model.journal_conference_id,
-                    publisher=journal_model.publisher_id,
-                )
-                journals.append(journal)
-            return journals
-
-        except Exception as e:
-            logger.error(f"Error in get_academic_publishers_by_name: {str(e)}")
-            raise DatabaseError(f"Failed to find academic publishers: {str(e)}")
-
-    def get_latest_journals(
-        self,
-        research_fields: Optional[List[str]] = None,
-        search_query: Optional[str] = None,
-        sort_order: str = "a-z",
-        page: int = 1,
-        page_size: int = 10,
-    ) -> Tuple[List[Dict[str, Any]], int]:
-        """Get latest journals with filters."""
-        print("-------------get_latest_journals----------", __file__)
-        try:
-            query = JournalConferenceModel.objects.all()
-
-            if search_query:
-                query = query.filter(label__icontains=search_query)
-
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(
-                    articles__research_fields__research_field_id__in=research_fields
-                )
-
-            if sort_order == "a-z":
-                query = query.order_by("label")
-            elif sort_order == "z-a":
-                query = query.order_by("-label")
-            elif sort_order == "newest":
-                query = query.order_by("-id")
-            else:
-                query = query.order_by("label")
-
-            total = query.count()
-
-            paginator = Paginator(query, page_size)
-            page_obj = paginator.get_page(page)
-
-            journals = []
-            for journal_model in page_obj:
-                journal_dict = {
-                    "id": journal_model.id,
-                    "journal_conference_id": journal_model.journal_conference_id,
-                    "label": journal_model.label,
-                    "publisher": journal_model.publisher,
-                }
-                journals.append(journal_dict)
-            return journals, total
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_journals: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")
-
-
-class SQLStatementRepository(StatementRepository):
-    """PostgreSQL implementation of the Statement repository."""
-
-    def find_all(
-        self, page: int = 1, page_size: int = 10
-    ) -> Tuple[List[Statement], int]:
-        """Find all statements with pagination."""
-        try:
-            queryset = StatementModel.objects.all().order_by("id")
-            total = queryset.count()
-
-            paginator = Paginator(queryset, page_size)
-            page_obj = paginator.get_page(page)
-
-            statements = []
-            for statement_model in page_obj:
-                statement = self._convert_statement_to_entity(statement_model)
-                statements.append(statement)
-
-            return statements, total
-
-        except Exception as e:
-            logger.error(f"Error in find_all: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve statements: {str(e)}")
-
-    def find_paper_with_statement_details(
-        self, statement_id: str
-    ) -> Optional[Statement]:
-        """Find a statement by its ID."""
-        try:
-            print(
-                "--------------find_paper_with_statement_details-----find_by_id-----------------",
-                __file__,
-            )
-            statement_model = StatementModel.objects.filter(
-                statement_id=statement_id
-            ).first()
-
-            if statement_model:
-                return self._convert_article_to_paper_statement(
-                    statement_model.article, statement_id
-                )
-
-            # if statement_model:
-            #     return self._convert_statement_to_entity(statement_model)
-
-            return None
-
-        except Exception as e:
-            logger.error(f"Error in find_by_id: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve statement: {str(e)}")
-
-    def find_by_id(self, statement_id: str) -> Optional[Statement]:
-        """Find a statement by its ID."""
-        try:
-            print(
-                "--------------SQLStatementRepository-----find_by_id-----------------",
-                __file__,
-            )
-            statement_model = StatementModel.objects.filter(
-                statement_id=statement_id
-            ).first()
-            # if statement_model:
-            #     return self._convert_statement_to_entity(statement_model)
-
-            return statement_model
-
-        except Exception as e:
-            logger.error(f"Error in find_by_id: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve statement: {str(e)}")
-
-    def find_by_paper_id(self, paper_id: str) -> List[Statement]:
-        """Find statements by paper ID."""
-        try:
-            statements_queryset = StatementModel.objects.filter(article_id=paper_id)
-
-            statements = []
-            for statement_model in statements_queryset:
-                statement = self._convert_statement_to_entity(statement_model)
-                statements.append(statement)
-
-            return statements
-
-        except Exception as e:
-            logger.error(f"Error in find_by_paper_id: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve statements by paper ID: {str(e)}")
-
-    def save(self, statement: Statement) -> Statement:
-        """Save a statement."""
-        try:
-            if not statement.id:
-                statement.id = generate_static_id(
-                    statement.article_id + str(datetime.utcnow())
-                )
-
-            # Convert authors to proper format
-            author_data = []
-            for author in statement.author:
-                author_data.append(
-                    {
-                        "id": author.id,
-                        "given_name": author.given_name,
-                        "family_name": author.family_name,
-                        "label": author.label
-                        or f"{author.given_name} {author.family_name}",
-                    }
-                )
-
-            # Create or update statement
-            statement_model, created = StatementModel.objects.update_or_create(
-                id=statement.id,
-                defaults={
-                    "statement_id": statement.statement_id or statement.id,
-                    "content": statement.content,
-                    "author": author_data,
-                    "article_id": statement.article_id,
-                    "supports": statement.supports or [],
-                    "authors_id": [author.id for author in statement.author],
-                    "updated_at": datetime.utcnow(),
-                },
-            )
-
-            # Set created_at only on creation
-            if created:
-                statement_model.created_at = datetime.utcnow()
-                statement_model.save()
-
-            # Handle author relationships if they exist in database
-            author_instances = []
-            for author_entity in statement.author:
-                author = AuthorModel.objects.filter(id=author_entity.id).first()
-                if author:
-                    author_instances.append(author)
-
-            if author_instances:
-                statement_model.authors.clear()
-                statement_model.authors.add(*author_instances)
-
-            return statement
-
-        except Exception as e:
-            logger.error(f"Error in save: {str(e)}")
-            raise DatabaseError(f"Failed to save statement: {str(e)}")
-
-    def _convert_article_to_paper_statement(
-        self, article: ArticleModel, statement_id
-    ) -> Paper:
-        authors = []
-        print("--------_convert_article_to_paper_statement-----------", __file__)
-        for author in article.authors.all():
-            authors.append(
-                Author(
-                    id=author.id,
-                    orcid=author.orcid,
-                    given_name=author.given_name,
-                    family_name=author.family_name,
-                    author_id=author.author_id,
-                    label=author.label,
-                )
-            )
-        journal = None
-        if article.journal_conference:
-            journal = Journal(
-                id=article.journal_conference.id,
-                label=article.journal_conference.label,
-                publisher=article.publisher_id,
-            )
-
-        concepts = []
-        for concept in article.concepts.all():
-            concepts.append(Concept(id=concept.concept_id, label=concept.label))
-
-        print("--------------find_by_id----1111111111111--------", __file__)
-        return Paper(
-            id=article.id,
-            name=article.name,
-            authors=authors,
-            abstract=article.abstract,
-            contributions=[],
-            statements=article.statements.all(),
-            dois=article.identifier,
-            date_published=article.date_published,
-            entity=None,
-            external=None,
-            info={},
-            timeline={},
-            journal=journal,
-            publisher=article.publisher,
-            # research_fields=research_fields,
-            article_id=article.article_id,
-            reborn_doi=article.reborn_doi,
-            paper_type=article.paper_type,
-            concepts=concepts,
-            created_at=article.created_at,
-            updated_at=article.updated_at,
-        )
-
-    def advanced_statement_search(self, query_text, research_field_ids=None):
-        print("-----advanced_statement_search------------")
-        if not query_text.strip():
-            return StatementModel.objects.none()
-
-        search_vector = (
-            SearchVector("label", weight="A")
-            + SearchVector("content", weight="B")
-            + SearchVector("article__name", weight="C")
-            + SearchVector("article__abstract", weight="D")
-        )
-
-        words = query_text.split()
-        if len(words) > 1:
-            phrase_query = SearchQuery(" & ".join(words), search_type="raw")
-            words_query = SearchQuery(" | ".join(words), search_type="raw")
-
-            search_query = phrase_query | words_query
-        else:
-            search_query = SearchQuery(query_text)
-
-        queryset = (
-            StatementModel.objects.select_related("article")
-            .annotate(
-                search=search_vector, base_rank=SearchRank(search_vector, search_query)
-            )
-            .filter(search=search_query)
-        )
-
-        if research_field_ids:
-            queryset = queryset.filter(
-                article__research_fields__research_field_id__in=research_field_ids
-            ).distinct()
-
-        queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-final_rank")
-
-        return queryset
-
-    def get_latest_statements(
-        self,
-        research_fields: Optional[List[str]] = None,
-        search_query: Optional[str] = None,
-        sort_order: str = "a-z",
-        page: int = 1,
-        page_size: int = 10,
-        search_type: str = "keyword",
-    ) -> Tuple[List[Statement], int]:
-        print("----------get_latest_statements------", __file__)
-        try:
-            if search_query and search_type in ["semantic", "hybrid"]:
-                from core.infrastructure.container import Container
-
-                search_repo = Container.resolve(SearchRepository)
-
-                if search_type == "semantic":
-                    search_results = search_repo.semantic_search_statements(
-                        search_query, page_size * 2
-                    )
-                    statement_ids = [
-                        result.get("statement_id")
-                        for result in search_results
-                        if result.get("statement_id")
-                    ]
-                else:
-                    search_results = search_repo.hybrid_search_statements(
-                        search_query, page_size * 2
-                    )
-                    statement_ids = [
-                        result.get("statement_id")
-                        for result in search_results
-                        if result.get("statement_id")
-                    ]
-
-                if not statement_ids:
-                    query = self.advanced_statement_search(
-                        search_query, research_fields
-                    )
-                else:
-                    preserved_order = Case(
-                        *[
-                            When(statement_id=id, then=pos)
-                            for pos, id in enumerate(statement_ids)
-                        ]
-                    )
-                    query = StatementModel.objects.filter(
-                        statement_id__in=statement_ids
-                    ).order_by(preserved_order)
-
-                if research_fields and len(research_fields) > 0:
-                    query = query.filter(
-                        article__research_fields__research_field_id__in=research_fields
-                    )
-            else:
-                if search_query:
-                    query = self.advanced_statement_search(
-                        search_query, research_fields
-                    )
-                else:
-                    query = StatementModel.objects.select_related("article").all()
-
-                if research_fields and len(research_fields) > 0:
-                    query = query.filter(
-                        article__research_fields__research_field_id__in=research_fields
-                    )
-            if search_type not in ["semantic", "hybrid"]:
-                if sort_order == "a-z":
-                    query = query.order_by("label")
-                elif sort_order == "z-a":
-                    query = query.order_by("-label")
-                elif sort_order == "newest":
-                    query = query.order_by("-created_at")
-                else:
-                    query = query.order_by("label")
-
-            total = query.count()
-            paginator = Paginator(query, page_size)
-            page_obj = paginator.get_page(page)
-
-            statements = []
-            for statement_model in page_obj:
-                statement = self._convert_statement_to_entity(statement_model)
-                statements.append(statement)
-            return statements, total
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_statements: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest statements: {str(e)}")
-
-    def get_semantics_statements(
-        self,
-        ids: List[str],
-        sort_order: str = "a-z",
-        page: int = 1,
-        page_size: int = 10,
-    ) -> Tuple[List[Statement], int]:
-        """Get statements by IDs from semantic search."""
-        try:
-            query = StatementModel.objects.filter(id__in=ids).select_related("article")
-
-            # Apply sorting
-            if sort_order == "a-z":
-                query = query.order_by("article__name")
-            elif sort_order == "z-a":
-                query = query.order_by("-article__name")
-            elif sort_order == "newest":
-                query = query.order_by("-created_at")
-            else:
-                query = query.order_by("article__name")
-
-            # Get total count before pagination (limited to 10 as in the original)
-            total = min(query.count(), 10)
-
-            # Apply pagination
-            paginator = Paginator(query, page_size)
-            page_obj = paginator.get_page(page)
-
-            statements = []
-            for statement_model in page_obj:
-                statement = self._convert_statement_to_entity(statement_model)
-                statements.append(statement)
-
-            return statements, total
-
-        except Exception as e:
-            logger.error(f"Error in get_semantics_statements: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve statements by IDs: {str(e)}")
-
-    def _convert_statement_to_entity(
-        self, statement_model: StatementModel
-    ) -> Statement:
-        authors = []
-        for author in statement_model.authors.all():
-            authors.append(
-                Author(
-                    id=author.id,
-                    author_id=author.author_id,
-                    given_name=author.given_name,
-                    orcid=author.orcid,
-                    family_name=author.family_name,
-                    label=author.label,
-                )
-            )
-        if not authors and statement_model.author:
-            for author_data in statement_model.author:
-                authors.append(
-                    Author(
-                        id=author_data.get("id", ""),
-                        given_name=author_data.get("given_name", ""),
-                        orcid=author.orcid,
-                        family_name=author_data.get("family_name", ""),
-                        label=author_data.get("label", ""),
-                    )
-                )
-
-        article_authors = []
-        for author in statement_model.article.authors.all():
-            article_authors.append(
-                Author(
-                    id=author.id,
-                    orcid=author.orcid,
-                    given_name=author.given_name,
-                    family_name=author.family_name,
-                    author_id=author.author_id,
-                    label=author.label,
-                )
-            )
-        journal = None
-        if statement_model.article.journal_conference:
-            journal = Journal(
-                id=statement_model.article.journal_conference.id,
-                label=statement_model.article.journal_conference.label,
-                publisher=statement_model.article.publisher_id,
-            )
-
-        article_concepts = []
-        for concept in statement_model.article.concepts.all():
-            article_concepts.append(Concept(id=concept.concept_id, label=concept.label))
-        article = {
-            "concepts": article_concepts,
-            "journal": journal,
-            "authors": article_authors,
-            "abstract": statement_model.article.abstract,
-            "dois": statement_model.article.identifier,
-            "date_published": statement_model.article.date_published,
-            "publisher": statement_model.article.publisher,
-            "article_id": statement_model.article.article_id,
-            "reborn_doi": statement_model.article.reborn_doi,
-            "created_at": statement_model.article.created_at,
-        }
-
-        return Statement(
-            id=statement_model.id,
-            label=statement_model.label,
-            article=article,
-            author=authors,
-            article_id=statement_model.article_id,
-            article_name=statement_model.article.name,
-            date_published=statement_model.article.date_published,
-            journal_conference=statement_model.article.journal_conference.label,
-            statement_id=statement_model.statement_id,
-            created_at=statement_model.created_at,
-            updated_at=statement_model.updated_at,
         )

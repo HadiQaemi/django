@@ -5,24 +5,22 @@ These repositories implement the repository interfaces using MongoDB.
 """
 
 import logging
-import math
-from typing import List, Dict, Any, Optional, Tuple, Union, cast
+from typing import List, Dict, Any, Optional, Tuple
 from pymongo import MongoClient
-from pymongo.database import Database
 from bson import ObjectId, json_util, Regex
 from django.conf import settings
 import json
 import hashlib
 from datetime import datetime
 
-from core.application.interfaces.repositories import (
-    PaperRepository,
-    StatementRepository,
-    AuthorRepository,
-    ConceptRepository,
+from core.application.interfaces.repositories.author import AuthorRepository
+from core.application.interfaces.repositories.concept import ConceptRepository
+from core.application.interfaces.repositories.journal import JournalRepository
+from core.application.interfaces.repositories.paper import PaperRepository
+from core.application.interfaces.repositories.research_field import (
     ResearchFieldRepository,
-    JournalRepository,
 )
+from core.application.interfaces.repositories.statement import StatementRepository
 from core.application.mappers.entity_mappers import (
     PaperMapper,
     StatementMapper,
@@ -36,21 +34,8 @@ from core.domain.entities import (
     Author,
     Concept,
     ResearchField,
-    Journal,
-    Conference,
-    Notation,
-    Contribution,
 )
-from core.domain.exceptions import EntityNotFound, DatabaseError
-from core.infrastructure.models.mongo_models import (
-    Article,
-    Statement as StatementModel,
-    Author as AuthorModel,
-    Concept as ConceptModel,
-    ResearchField as ResearchFieldModel,
-    JournalConference,
-    Contribution as ContributionModel,
-)
+from core.domain.exceptions import DatabaseError
 from core.infrastructure.scrapers.node_extractor import NodeExtractor
 
 logger = logging.getLogger(__name__)
@@ -436,235 +421,229 @@ class MongoDBPaperRepository(PaperRepository):
     ) -> bool:
         # """Add an article from scraped data."""
         # try:
-            scraper = NodeExtractor()
-            graph_data = paper_data.get("@graph", [])
-            data = {}
+        scraper = NodeExtractor()
+        graph_data = paper_data.get("@graph", [])
+        data = {}
 
-            data["Dataset"] = [
-                item for item in graph_data if "Dataset" in item.get("@type", [])
-            ]
+        data["Dataset"] = [
+            item for item in graph_data if "Dataset" in item.get("@type", [])
+        ]
 
-            data["researchField"] = [
-                item for item in graph_data if "ResearchField" in item.get("@type", [])
-            ]
-            research_fields = []
-            research_field_ids = []
+        data["researchField"] = [
+            item for item in graph_data if "ResearchField" in item.get("@type", [])
+        ]
+        research_fields = []
+        research_field_ids = []
 
-            for research_field in data["researchField"]:
-                research_field_id = generate_static_id(research_field["label"])
+        for research_field in data["researchField"]:
+            research_field_id = generate_static_id(research_field["label"])
+            item_check = self.db.research_fields.find_one({"@id": research_field_id})
+
+            if item_check is None:
+                research_field["@id"] = research_field_id
+                self.db.research_fields.insert_one(research_field)
                 item_check = self.db.research_fields.find_one(
                     {"@id": research_field_id}
                 )
 
-                if item_check is None:
-                    research_field["@id"] = research_field_id
-                    self.db.research_fields.insert_one(research_field)
-                    item_check = self.db.research_fields.find_one(
-                        {"@id": research_field_id}
-                    )
+            research_fields.append(item_check)
+            research_field_ids.append(research_field_id)
+        print("research_fields:")
+        print(research_fields)
+        data["author"] = [item for item in graph_data if item.get("@type") == "Person"]
+        authors = []
 
-                research_fields.append(item_check)
-                research_field_ids.append(research_field_id)
-            print("research_fields:")
-            print(research_fields)
-            data["author"] = [
-                item for item in graph_data if item.get("@type") == "Person"
+        for author in data["author"]:
+            temp = author.copy()
+            temp["research_fields_id"] = research_fields
+            temp["label"] = (
+                f"{author.get('givenName', '')} {author.get('familyName', '')}"
+            )
+            author_id = generate_static_id(author["@id"])
+            temp["id"] = author_id
+
+            item_check = self.db.authors.find_one({"id": author_id})
+            if item_check is None:
+                self.db.authors.insert_one(temp)
+
+            authors.append(author_id)
+        print("authors:")
+        print(authors)
+        data["publisher"] = [
+            item for item in graph_data if "Publisher" in item.get("@type", [])
+        ]
+
+        data["journal"] = [
+            item for item in graph_data if "Journal" in item.get("@type", [])
+        ]
+        journals_conferences = []
+
+        for journal in data["journal"]:
+            journal["research_fields_id"] = research_field_ids
+            journal["publisher"] = data["publisher"]
+            result = self.db.journals_conferences.insert_one(journal)
+            journals_conferences.append(result.inserted_id)
+
+        print("journals_conferences:")
+        print(journals_conferences)
+
+        data["conference"] = [
+            item for item in graph_data if "Conference" in item.get("@type", [])
+        ]
+
+        for conference in data["conference"]:
+            conference["research_fields_id"] = research_field_ids
+            conference["publisher"] = data["publisher"]
+            result = self.db.journals_conferences.insert_one(conference)
+            journals_conferences.append(result.inserted_id)
+
+        print("journals_conferences:")
+        print(journals_conferences)
+
+        data["concept"] = [
+            item for item in graph_data if "Concept" in item.get("@type", [])
+        ]
+        data["concept"] = [
+            item for item in graph_data if "Concept" in item.get("@type", [])
+        ]
+        concepts = []
+        print('data["concept"]:')
+        print(data["concept"])
+        for concept in data["concept"]:
+            concept_id = generate_static_id(concept["label"])
+            item_check = self.db.concepts.find_one({"id": concept_id})
+
+            if item_check is None:
+                concept["id"] = concept_id
+                concept["research_fields_id"] = research_field_ids
+                result = self.db.concepts.insert_one(concept)
+                concept_id = result.inserted_id
+            else:
+                concept_id = item_check["_id"]
+
+            concepts.append(concept_id)
+
+        # Process other entity types
+        for entity_type in [
+            "ObjectOfInterest",
+            "matrix",
+            "property",
+            "constraint",
+            "operation",
+            "unit",
+        ]:
+            data[entity_type] = [
+                item
+                for item in graph_data
+                if entity_type.title() in item.get("@type", [])
             ]
-            authors = []
+            print(f"entity_type:${entity_type}")
+            print(data[entity_type])
+            print(entity_type.lower() + "s")
+            if data[entity_type]:
+                self.db[entity_type.lower() + "s"].insert_many(data[entity_type])
 
-            for author in data["author"]:
-                temp = author.copy()
-                temp["research_fields_id"] = research_fields
-                temp["label"] = (
-                    f"{author.get('givenName', '')} {author.get('familyName', '')}"
-                )
-                author_id = generate_static_id(author["@id"])
-                temp["id"] = author_id
-
-                item_check = self.db.authors.find_one({"id": author_id})
-                if item_check is None:
-                    self.db.authors.insert_one(temp)
-
-                authors.append(author_id)
-            print("authors:")
-            print(authors)
-            data["publisher"] = [
-                item for item in graph_data if "Publisher" in item.get("@type", [])
-            ]
-
-            data["journal"] = [
-                item for item in graph_data if "Journal" in item.get("@type", [])
-            ]
-            journals_conferences = []
-
-            for journal in data["journal"]:
-                journal["research_fields_id"] = research_field_ids
-                journal["publisher"] = data["publisher"]
-                result = self.db.journals_conferences.insert_one(journal)
-                journals_conferences.append(result.inserted_id)
-            
-            print("journals_conferences:")
-            print(journals_conferences)
-            
-            data["conference"] = [
-                item for item in graph_data if "Conference" in item.get("@type", [])
-            ]
-
-            for conference in data["conference"]:
-                conference["research_fields_id"] = research_field_ids
-                conference["publisher"] = data["publisher"]
-                result = self.db.journals_conferences.insert_one(conference)
-                journals_conferences.append(result.inserted_id)
-            
-            print("journals_conferences:")
-            print(journals_conferences)
-            
-            data["concept"] = [
-                item for item in graph_data if "Concept" in item.get("@type", [])
-            ]
-            data["concept"] = [
-                item for item in graph_data if "Concept" in item.get("@type", [])
-            ]
-            concepts = []
-            print('data["concept"]:')
-            print(data["concept"])
-            for concept in data["concept"]:
-                concept_id = generate_static_id(concept["label"])
-                item_check = self.db.concepts.find_one({"id": concept_id})
-
-                if item_check is None:
-                    concept["id"] = concept_id
-                    concept["research_fields_id"] = research_field_ids
-                    result = self.db.concepts.insert_one(concept)
-                    concept_id = result.inserted_id
-                else:
-                    concept_id = item_check["_id"]
-
-                concepts.append(concept_id)
-
-            # Process other entity types
-            for entity_type in [
-                "ObjectOfInterest",
-                "matrix",
-                "property",
-                "constraint",
-                "operation",
-                "unit",
-            ]:
-                data[entity_type] = [
-                    item
-                    for item in graph_data
-                    if entity_type.title() in item.get("@type", [])
-                ]
-                print(f"entity_type:${entity_type}")
-                print(data[entity_type])
-                print(entity_type.lower() + "s")
-                if data[entity_type]:
-                    self.db[entity_type.lower() + "s"].insert_many(data[entity_type])
-
-            # Process component, variable, measure, identifier, notation, supports, file
-            for entity_type in [
-                "component",
-                "variable",
-                "measure",
-                "identifier",
-                "notation",
-                "supports",
-                "file",
-            ]:
-                data[entity_type] = [
-                    self._replace_with_full_data(item, data)
-                    for item in graph_data
-                    if entity_type.title() in item.get("@type", [])
-                ]
-                if data[entity_type]:
-                    self.db[entity_type + "s"].insert_many(data[entity_type])
-
-            ScholarlyArticle = [
+        # Process component, variable, measure, identifier, notation, supports, file
+        for entity_type in [
+            "component",
+            "variable",
+            "measure",
+            "identifier",
+            "notation",
+            "supports",
+            "file",
+        ]:
+            data[entity_type] = [
                 self._replace_with_full_data(item, data)
                 for item in graph_data
-                if "ScholarlyArticle" in item.get("@type", [])
+                if entity_type.title() in item.get("@type", [])
             ]
+            if data[entity_type]:
+                self.db[entity_type + "s"].insert_many(data[entity_type])
 
-            ScholarlyArticle[0]["article_id"] = generate_static_id(
-                ScholarlyArticle[0]["name"]
+        ScholarlyArticle = [
+            self._replace_with_full_data(item, data)
+            for item in graph_data
+            if "ScholarlyArticle" in item.get("@type", [])
+        ]
+
+        ScholarlyArticle[0]["article_id"] = generate_static_id(
+            ScholarlyArticle[0]["name"]
+        )
+        ScholarlyArticle[0]["research_fields_id"] = research_field_ids
+        ScholarlyArticle[0]["researchField"] = research_fields
+        ScholarlyArticle[0]["research_field"] = research_fields
+        ScholarlyArticle[0]["Dataset"] = data["Dataset"][0]
+        ScholarlyArticle[0]["rebornDOI"] = fetch_reborn_doi(ScholarlyArticle[0]["@id"])
+
+        article = self.db.articles.insert_one(ScholarlyArticle[0])
+        inserted_id = article.inserted_id
+
+        data["statements"] = [
+            self._replace_with_full_data(item, data)
+            for item in graph_data
+            if item.get("encodingFormat", "") == "application/ld+json"
+            and "File" in item.get("@type", [])
+        ]
+
+        # Add to search index
+        # article_data = [
+        #     {
+        #         "title": ScholarlyArticle[0]["name"],
+        #         "abstract": ScholarlyArticle[0]["abstract"],
+        #         "article_id": str(article.inserted_id),
+        #     }
+        # ]
+
+        # Import here to avoid circular import
+        # from core.infrastructure.search.hybrid_engine import HybridSearchEngine
+        # from core.infrastructure.search.semantic_engine import SemanticSearchEngine
+        # from core.infrastructure.search.keyword_engine import KeywordSearchEngine
+
+        # semantic_engine = SemanticSearchEngine()
+        # keyword_engine = KeywordSearchEngine()
+        # hybrid_engine = HybridSearchEngine(semantic_engine, keyword_engine)
+
+        # hybrid_engine.semantic_engine.add_articles(article_data)
+        # hybrid_engine.keyword_engine.add_articles(article_data)
+
+        for statement in data["statements"]:
+            temp = statement.copy()
+            temp["content"] = scraper.load_json_from_url(
+                json_files[statement.get("name", "")]
             )
-            ScholarlyArticle[0]["research_fields_id"] = research_field_ids
-            ScholarlyArticle[0]["researchField"] = research_fields
-            ScholarlyArticle[0]["research_field"] = research_fields
-            ScholarlyArticle[0]["Dataset"] = data["Dataset"][0]
-            ScholarlyArticle[0]["rebornDOI"] = fetch_reborn_doi(
-                ScholarlyArticle[0]["@id"]
+            temp["article_id"] = inserted_id
+            temp["concepts_id"] = concepts
+            temp["research_fields_id"] = research_field_ids
+            temp["journals_conferences_id"] = journals_conferences
+            temp["authors_id"] = authors
+            temp["datePublished"] = datetime(
+                int(ScholarlyArticle[0]["datePublished"]), 6, 6
+            )
+            print(temp["supports"])
+            temp["statement_id"] = generate_static_id(
+                temp["supports"][0]["notation"]["label"]
             )
 
-            article = self.db.articles.insert_one(ScholarlyArticle[0])
-            inserted_id = article.inserted_id
-
-            data["statements"] = [
-                self._replace_with_full_data(item, data)
-                for item in graph_data
-                if item.get("encodingFormat", "") == "application/ld+json"
-                and "File" in item.get("@type", [])
-            ]
+            # statement_result = self.db.statements.insert_one(temp)
 
             # Add to search index
-            # article_data = [
+            # statement_data = [
             #     {
-            #         "title": ScholarlyArticle[0]["name"],
+            #         "text": temp["supports"][0]["notation"]["label"],
             #         "abstract": ScholarlyArticle[0]["abstract"],
-            #         "article_id": str(article.inserted_id),
+            #         "statement_id": str(statement_result.inserted_id),
             #     }
             # ]
 
-            # Import here to avoid circular import
-            # from core.infrastructure.search.hybrid_engine import HybridSearchEngine
-            # from core.infrastructure.search.semantic_engine import SemanticSearchEngine
-            # from core.infrastructure.search.keyword_engine import KeywordSearchEngine
+            # hybrid_engine.semantic_engine.add_statements(statement_data)
+            # hybrid_engine.keyword_engine.add_statements(statement_data)
 
-            # semantic_engine = SemanticSearchEngine()
-            # keyword_engine = KeywordSearchEngine()
-            # hybrid_engine = HybridSearchEngine(semantic_engine, keyword_engine)
+        return True
 
-            # hybrid_engine.semantic_engine.add_articles(article_data)
-            # hybrid_engine.keyword_engine.add_articles(article_data)
-
-            for statement in data["statements"]:
-                temp = statement.copy()
-                temp["content"] = scraper.load_json_from_url(
-                    json_files[statement.get("name", "")]
-                )
-                temp["article_id"] = inserted_id
-                temp["concepts_id"] = concepts
-                temp["research_fields_id"] = research_field_ids
-                temp["journals_conferences_id"] = journals_conferences
-                temp["authors_id"] = authors
-                temp["datePublished"] = datetime(
-                    int(ScholarlyArticle[0]["datePublished"]), 6, 6
-                )
-                print(temp["supports"])
-                temp["statement_id"] = generate_static_id(
-                    temp["supports"][0]["notation"]["label"]
-                )
-
-                # statement_result = self.db.statements.insert_one(temp)
-
-                # Add to search index
-                # statement_data = [
-                #     {
-                #         "text": temp["supports"][0]["notation"]["label"],
-                #         "abstract": ScholarlyArticle[0]["abstract"],
-                #         "statement_id": str(statement_result.inserted_id),
-                #     }
-                # ]
-
-                # hybrid_engine.semantic_engine.add_statements(statement_data)
-                # hybrid_engine.keyword_engine.add_statements(statement_data)
-
-            return True
-
-        # except Exception as e:
-        #     logger.error(f"Error in add_article: {str(e)}")
-        #     raise DatabaseError(f"Failed to add article isssssssss: {str(e)}")
+    # except Exception as e:
+    #     logger.error(f"Error in add_article: {str(e)}")
+    #     raise DatabaseError(f"Failed to add article isssssssss: {str(e)}")
 
     def _replace_with_full_data(
         self, item: Dict[str, Any], data: Dict[str, Any]

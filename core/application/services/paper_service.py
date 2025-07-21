@@ -3,15 +3,18 @@ import math
 from typing import List, Dict, Any, Optional
 from django.core.cache import cache
 from django.utils.timezone import localtime
-from core.application.interfaces.services import PaperService as PaperServiceInterface
-from core.application.interfaces.repositories import (
-    PaperRepository,
-    StatementRepository,
-    AuthorRepository,
-    ConceptRepository,
+from core.application.interfaces.repositories.author import AuthorRepository
+from core.application.interfaces.repositories.concept import ConceptRepository
+from core.application.interfaces.repositories.journal import JournalRepository
+from core.application.interfaces.repositories.paper import PaperRepository
+from core.application.interfaces.repositories.research_field import (
     ResearchFieldRepository,
-    JournalRepository,
 )
+from core.application.interfaces.repositories.statement import StatementRepository
+from core.application.interfaces.services.paper import (
+    PaperService as PaperServiceInterface,
+)
+
 from core.application.dtos.input_dtos import (
     QueryFilterInputDTO,
     ScraperUrlInputDTO,
@@ -32,7 +35,6 @@ from core.domain.exceptions import (
     DatabaseError,
 )
 from core.infrastructure.scrapers.node_extractor import NodeExtractor
-from core.presentation.serializers.paper_serializers import PaperSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -259,7 +261,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 else None,
             }
             statements = []
-            for statement in paper.statements.all().order_by('order'):
+            for statement in paper.statements.all().order_by("order"):
                 has_part = statement.has_part_statements.first()
                 authors = []
                 for author in statement.authors.all():
@@ -282,7 +284,6 @@ class PaperServiceImpl(PaperServiceInterface):
                             "see_also": concept.see_also,
                         }
                     )
-                print(has_part)
                 statements.append(
                     {
                         "statement_id": statement.statement_id,
@@ -665,7 +666,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     ),
                 }
                 statements = []
-                for statement in paper.statements.all().order_by('order'):
+                for statement in paper.statements.all().order_by("order"):
                     has_part = statement.has_part_statements.first()
                     authors = []
                     for author in statement.authors.all():
@@ -784,7 +785,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     ),
                 }
                 statements = []
-                for statement in paper.statements.all().order_by('order'):
+                for statement in paper.statements.all().order_by("order"):
                     has_part = statement.has_part_statements.first()
                     authors = []
                     for author in statement.authors.all():
@@ -1247,7 +1248,7 @@ class PaperServiceImpl(PaperServiceInterface):
     def _map_paper_to_dto(self, paper) -> ShortPaperOutputDTO:
         """Map a paper entity to its DTO."""
         authors = []
-        print("----------_map_paper_to_dto------------", __file__)
+        # print("----------_map_paper_to_dto------------", __file__)
         for author in paper.authors:
             if isinstance(author, dict):
                 authors.append(

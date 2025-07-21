@@ -2,7 +2,7 @@ import logging
 from typing import Dict, Any, Optional
 from django.db import transaction
 
-from core.application.interfaces.repositories import CacheRepository
+from core.application.interfaces.repositories.cache import CacheRepository
 from core.infrastructure.models.sql_models import SchemaType
 from core.domain.exceptions import DatabaseError
 

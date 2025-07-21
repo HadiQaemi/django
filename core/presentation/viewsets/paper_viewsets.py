@@ -1,88 +1,67 @@
+from core.presentation.viewsets.standard_pagination import StandardResultsSetPagination
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from rest_framework.pagination import PageNumberPagination
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
-import logging
-
 from core.infrastructure.container import Container
 from core.application.dtos.input_dtos import (
     QueryFilterInputDTO,
-    SearchInputDTO,
-    AutoCompleteInputDTO,
     ScraperUrlInputDTO,
 )
 from core.presentation.serializers.paper_serializers import (
+    ArticleSerializer,
+    ArticleStatementsSerializer,
+    ArticleWrapperSerializer,
+    JournalSerializer,
+    PaperListSerializer,
     PaperSerializer,
     AuthorSerializer,
     ConceptSerializer,
+    ResearchFieldSerializer,
     StatementSerializer,
     PaperFilterSerializer,
-    SearchQuerySerializer,
-    AutoCompleteSerializer,
+    ScraperFlagSerializer,
     ScraperUrlSerializer,
 )
-
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+import logging
 
 logger = logging.getLogger(__name__)
 
 
-class StandardResultsSetPagination(PageNumberPagination):
-    """Standard pagination for API results."""
-
-    page_size = 10
-    page_size_query_param = "page_size"
-    max_page_size = 100
-
-
 class PaperViewSet(viewsets.GenericViewSet):
-    """API viewset for papers."""
-
     permission_classes = [AllowAny]
-    pagination_class = StandardResultsSetPagination
+    pagination_class = None
     queryset = []
     serializer_class = PaperSerializer
 
     def __init__(self, **kwargs):
-        """Initialize the viewset."""
         super().__init__(**kwargs)
         self.paper_service = Container.get_paper_service()
 
     def get_queryset(self):
-        """
-        Return an empty queryset for schema generation.
-
-        This method is required for OpenAPI schema generation.
-        """
-        # Check if this is a schema generation request
         if getattr(self, "swagger_fake_view", False):
             return []
-
-        # For actual requests, we don't use this method
-        # as we're using a service-based approach
         return []
 
     def get_serializer_class(self):
-        """
-        Return the appropriate serializer class.
-
-        This method is required for OpenAPI schema generation.
-        """
         action_serializer_map = {
-            "list": PaperSerializer,
-            "retrieve": PaperSerializer,
-            "search_by_title": PaperSerializer,
             "advanced_search": PaperFilterSerializer,
-            "add_paper": ScraperUrlSerializer,
-            "add_all_papers": ScraperUrlSerializer,
+            "add_article_with_url": ScraperUrlSerializer,
+            "add_all_papers": ScraperFlagSerializer,
             "get_authors": AuthorSerializer,
+            "get_journals": JournalSerializer,
             "get_concepts": ConceptSerializer,
-            "get_latest_statements": StatementSerializer,
-            "get_latest_articles": PaperSerializer,
+            "get_statements": StatementSerializer,
+            "get_article_by_id": ArticleWrapperSerializer,
+            "get_article_statements": ArticleStatementsSerializer,
+            "get_articles": PaperListSerializer,
+            "get_research_fields": ResearchFieldSerializer,
         }
 
         return action_serializer_map.get(self.action, PaperSerializer)
@@ -97,120 +76,99 @@ class PaperViewSet(viewsets.GenericViewSet):
         kwargs.setdefault("context", self.get_serializer_context())
         return serializer_class(*args, **kwargs)
 
-    # @method_decorator(cache_page(60 * 15))
-    # @method_decorator(cache_page(1 * 1))
-    # @method_decorator(vary_on_cookie)
-    def list(self, request: Request) -> Response:
-        try:
-            page = request.query_params.get("page", 1)
-            page_size = request.query_params.get("page_size", 10)
-            print("----------paper_viewsets-----list-----------", __file__)
-            # Validate and convert to integers
-            try:
-                page = int(page)
-                page_size = int(page_size)
-            except ValueError:
-                page = 1
-                page_size = 10
-
-            result = self.paper_service.get_all_papers(page, page_size)
-
-            return Response(
-                {
-                    "content": result.content,
-                    "total_elements": result.total_elements,
-                    "page": result.page,
-                    "page_size": result.page_size,
-                    "total_pages": result.total_pages,
-                    "has_next": result.has_next,
-                    "has_previous": result.has_previous,
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Error in list: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve papers"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    # @method_decorator(cache_page(60 * 15))
-    # @method_decorator(vary_on_cookie)
-    def retrieves(self, request: Request, pk=None) -> Response:
-        """Retrieve a paper by ID."""
-        print("---------get_paper_by_id---retrieve-------", __file__)
-        try:
-            result = self.paper_service.get_paper_by_id(pk)
-
-            if not result.success:
-                return Response(
-                    {"error": result.message or "Paper not found"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-            return Response(result.result)
-
-        except Exception as e:
-            logger.error(f"Error in retrieve: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve paper"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
     @action(detail=False, methods=["get"])
-    @method_decorator(cache_page(60 * 15))
-    @method_decorator(vary_on_cookie)
-    def search_by_title(self, request: Request) -> Response:
-        """Search papers by title."""
-        try:
-            title = request.query_params.get("title", "")
-
-            if not title:
-                return Response(
-                    {"error": "Title parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            papers = self.paper_service.search_by_title(title)
-
-            return Response(
-                {
-                    "content": papers,
-                    "total_elements": len(papers),
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Error in search_by_title: {str(e)}")
-            return Response(
-                {"error": "Failed to search papers"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["post"])
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "title",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Paper title",
+            ),
+            openapi.Parameter(
+                "start_year",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="Start year",
+            ),
+            openapi.Parameter(
+                "end_year",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="End year",
+            ),
+            openapi.Parameter(
+                "authors",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+                description="Author IDs",
+            ),
+            openapi.Parameter(
+                "scientific_venues",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+                description="Scientific venue IDs",
+            ),
+            openapi.Parameter(
+                "concepts",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+                description="Concept IDs",
+            ),
+            openapi.Parameter(
+                "research_fields",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+                description="Research field IDs",
+            ),
+            openapi.Parameter(
+                "page",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="Page number",
+                default=1,
+            ),
+            openapi.Parameter(
+                "page_size",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="Page size",
+                default=10,
+            ),
+        ]
+    )
     def advanced_search(self, request: Request) -> Response:
         """Query data with filters."""
         print("------------query_data---------1--")
         # try:
-        serializer = PaperFilterSerializer(data=request.data)
-        print("------------query_data---------2--")
-        if not serializer.is_valid():
-            return Response(
-                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-            )
-        print("------------query_data---------3--")
+        # serializer = PaperFilterSerializer(data=request.data)
+        # print("------------query_data---------2--")
+        # if not serializer.is_valid():
+        #     return Response(
+        #         {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+        #     )
+        # print("------------query_data---------3--")
+        author_param = request.query_params.get("authors", "")
+        scientific_venue = request.query_params.get("scientific_venues", "")
+        concept = request.query_params.get("concepts", "")
+        research_field = request.query_params.get("research_fields", "")
         filter_dto = QueryFilterInputDTO(
-            title=serializer.validated_data.get("title"),
-            start_year=serializer.validated_data.get("time_range", {}).get("start"),
-            end_year=serializer.validated_data.get("time_range", {}).get("end"),
-            author_ids=serializer.validated_data.get("authors", []),
-            scientific_venue_ids=serializer.validated_data.get("scientific_venues", []),
-            concept_ids=serializer.validated_data.get("concepts", []),
-            research_field_ids=serializer.validated_data.get("research_fields", []),
-            page=serializer.validated_data.get("page", 1),
-            per_page=serializer.validated_data.get("per_page", 10),
+            title=request.query_params.get("title"),
+            start_year=request.query_params.get("time_range", {}).get("start"),
+            end_year=request.query_params.get("time_range", {}).get("end"),
+            author_ids=author_param.split(",") if author_param else [],
+            scientific_venue_ids=scientific_venue.split(",")
+            if scientific_venue
+            else [],
+            concept_ids=concept.split(",") if concept else [],
+            research_field_ids=research_field.split(",") if research_field else [],
+            page=request.query_params.get("page", 1),
+            per_page=request.query_params.get("per_page", 10),
         )
-
         result = self.paper_service.query_data(filter_dto)
         return result
 
@@ -222,48 +180,22 @@ class PaperViewSet(viewsets.GenericViewSet):
         #     )
 
     @action(detail=False, methods=["get"])
-    @method_decorator(cache_page(60 * 15))
-    @method_decorator(vary_on_cookie)
-    def all_statements(self, request: Request) -> Response:
-        """Get all statements."""
-        print("--------------all_statements-----------------", __file__)
-        try:
-            page = request.query_params.get("page", 1)
-            page_size = request.query_params.get("page_size", 10)
-
-            # Validate and convert to integers
-            try:
-                page = int(page)
-                page_size = int(page_size)
-            except ValueError:
-                page = 1
-                page_size = 10
-
-            result = self.paper_service.get_all_statements(page, page_size)
-
-            return Response(
-                {
-                    "content": result.content,
-                    "total_elements": result.total_elements,
-                    "page": result.page,
-                    "page_size": result.page_size,
-                    "total_pages": result.total_pages,
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Error in all_statements: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve statements"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
     # @method_decorator(cache_page(60 * 15))
     # @method_decorator(vary_on_cookie)
-    def get_article(self, request: Request) -> Response:
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "id",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="ID of article",
+            ),
+        ]
+    )
+    def get_article_by_id(self, request: Request) -> Response:
         """Get latest articles with filters."""
         print("----get_article--------")
+        self.pagination_class = None
         try:
             paper_id = request.query_params.get("id")
             result = self.paper_service.get_paper_by_id(paper_id)
@@ -277,7 +209,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             return Response(result.result)
 
         except Exception as e:
-            logger.error(f"Error in get_latest_articles: {str(e)}")
+            logger.error(f"Error in get_articles: {str(e)}")
             return Response(
                 {"error": "Failed to retrieve latest articles"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -288,7 +220,17 @@ class PaperViewSet(viewsets.GenericViewSet):
     # @method_decorator(vary_on_cookie)
     # def get_statement(self, request: Request, pk=None) -> Response:
     @action(detail=False, methods=["get"])
-    def get_statement(self, request: Request) -> Response:
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "id",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="ID of article",
+            ),
+        ]
+    )
+    def get_statement_by_id(self, request: Request) -> Response:
         """Get a statement by ID."""
         print("--------------get_statement-----------------", __file__)
         try:
@@ -319,12 +261,21 @@ class PaperViewSet(viewsets.GenericViewSet):
     # @method_decorator(vary_on_cookie)
     # def get_statement(self, request: Request, pk=None) -> Response:
     @action(detail=False, methods=["get"])
-    def get_article_statement(self, request: Request) -> Response:
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "id",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="ID of article",
+            ),
+        ]
+    )
+    def get_article_statements(self, request: Request) -> Response:
         """Get a statement by ID."""
-        print("--------------get_article_statement-----------------", __file__)
+        print("--------------get_article_statements-----------------", __file__)
         try:
             statement_id = request.query_params.get("id")
-            print(statement_id)
             if not statement_id:
                 return Response(
                     {"error": "ID parameter is required"},
@@ -348,76 +299,22 @@ class PaperViewSet(viewsets.GenericViewSet):
             )
 
     @action(detail=False, methods=["get"])
-    # @method_decorator(cache_page(60 * 15))
-    # @method_decorator(vary_on_cookie)
-    def get_statement_by_id(self, request: Request) -> Response:
-        """Get a statement by ID."""
-        print("--------------get_statement_by_id-----------------", __file__)
-        try:
-            statement_id = request.query_params.get("id")
-
-            if not statement_id:
-                return Response(
-                    {"error": "ID parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            result = self.paper_service.get_statement_by_id(statement_id)
-
-            if not result.success:
-                return Response(
-                    {"error": result.message or "Statement not found"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-            return Response(result.result)
-
-        except Exception as e:
-            logger.error(f"Error in get_statement_by_id: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve statement"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
     @method_decorator(vary_on_cookie)
-    def get_authors(self, request: Request) -> Response:
-        """Get authors by name."""
-        try:
-            name = request.query_params.get("name", "")
-
-            if not name:
-                return Response([])
-
-            authors = self.paper_service.get_authors(name)
-
-            return Response(
-                [
-                    {
-                        "id": author.id,
-                        "name": author.label
-                        or f"{author.given_name} {author.family_name}",
-                    }
-                    for author in authors
-                ]
-            )
-
-        except Exception as e:
-            logger.error(f"Error in get_authors: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve authors"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    @method_decorator(cache_page(60 * 15))
-    @method_decorator(vary_on_cookie)
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "name",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Name of Concepts",
+            ),
+        ]
+    )
     def get_concepts(self, request: Request) -> Response:
         """Get concepts by name."""
         try:
             name = request.query_params.get("name", "")
-
             if not name:
                 return Response([])
 
@@ -437,69 +334,16 @@ class PaperViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
     @method_decorator(vary_on_cookie)
-    def latest_concepts(self, request: Request) -> Response:
-        """Get latest concepts."""
-        try:
-            concepts = self.paper_service.get_latest_concepts()
-
-            return Response(
-                [{"id": concept.id, "name": concept.label} for concept in concepts]
-            )
-
-        except Exception as e:
-            logger.error(f"Error in latest_concepts: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve latest concepts"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    @method_decorator(cache_page(60 * 15))
-    @method_decorator(vary_on_cookie)
-    def get_titles(self, request: Request) -> Response:
-        """Get paper titles by search term."""
-        try:
-            title = request.query_params.get("title", "")
-
-            if not title:
-                return Response([])
-
-            titles = self.paper_service.get_titles(title)
-
-            return Response(titles)
-
-        except Exception as e:
-            logger.error(f"Error in get_titles: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve titles"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    # @action(detail=False, methods=["get"])
-    # @method_decorator(cache_page(60 * 15))
-    # @method_decorator(vary_on_cookie)
-    # def get_journals(self, request: Request) -> Response:
-    #     """Get journals by name."""
-    #     try:
-    #         name = request.query_params.get("name", "")
-
-    #         if not name:
-    #             return Response([])
-
-    #         journals = self.paper_service.get_journals(name)
-
-    #         return Response(journals)
-
-    #     except Exception as e:
-    #         logger.error(f"Error in get_journals: {str(e)}")
-    #         return Response(
-    #             {"error": "Failed to retrieve journals"},
-    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #         )
-
-    @action(detail=False, methods=["get"])
-    @method_decorator(cache_page(60 * 15))
-    @method_decorator(vary_on_cookie)
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "label",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Label of research fields",
+            ),
+        ]
+    )
     def get_research_fields(self, request: Request) -> Response:
         """Get research fields by label."""
         try:
@@ -520,7 +364,42 @@ class PaperViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
     @method_decorator(vary_on_cookie)
-    def get_latest_statements(self, request: Request) -> Response:
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "page",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Number of page",
+            ),
+            openapi.Parameter(
+                "limit",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Size of page",
+            ),
+            openapi.Parameter(
+                "sort",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="a-z",
+            ),
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="search query",
+            ),
+            openapi.Parameter(
+                "research_fields",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+                description="Research field IDs",
+            ),
+        ]
+    )
+    def get_statements(self, request: Request) -> Response:
         """Get latest statements with filters."""
         try:
             page = int(request.query_params.get("page", 1))
@@ -543,7 +422,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             )
 
             items = []
-            print("--------------get_latest_statements-----------", __file__)
+            print("--------------get_statements-----------", __file__)
             for statement in result.content:
                 author_name = ""
                 if hasattr(statement, "authors") and statement.authors:
@@ -565,7 +444,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             return Response({"items": items, "total": result.total_elements})
 
         except Exception as e:
-            logger.error(f"Error in get_latest_statements: {str(e)}")
+            logger.error(f"Error in get_statements: {str(e)}")
             return Response(
                 {"error": "Failed to retrieve latest statements"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -574,9 +453,44 @@ class PaperViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=["get"])
     # @method_decorator(cache_page(60 * 15))
     # @method_decorator(vary_on_cookie)
-    def get_latest_articles(self, request: Request) -> Response:
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "page",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Number of page",
+            ),
+            openapi.Parameter(
+                "limit",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Size of page",
+            ),
+            openapi.Parameter(
+                "sort",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="a-z",
+            ),
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="search query",
+            ),
+            openapi.Parameter(
+                "research_fields",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+                description="Research field IDs",
+            ),
+        ]
+    )
+    def get_articles(self, request: Request) -> Response:
         """Get latest articles with filters."""
-        print("----get_latest_articles-----------research_fields")
+        print("----get_articles-----------research_fields")
         try:
             page = int(request.query_params.get("page", 1))
             page_size = int(request.query_params.get("limit", 10))
@@ -618,7 +532,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             return Response({"items": items, "total": result.total_elements})
 
         except Exception as e:
-            logger.error(f"Error in get_latest_articles: {str(e)}")
+            logger.error(f"Error in get_articles: {str(e)}")
             return Response(
                 {"error": "Failed to retrieve latest articles"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -627,42 +541,44 @@ class PaperViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
     @method_decorator(vary_on_cookie)
-    def get_latest_keywords(self, request: Request) -> Response:
-        """Get latest keywords with filters."""
-        try:
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("limit", 10))
-            sort_order = request.query_params.get("sort", "a-z")
-            search_query = request.query_params.get("search", "")
-            research_fields = request.query_params.getlist("research_fields[]")
-
-            result = self.paper_service.get_latest_keywords(
-                research_fields=research_fields,
-                search_query=search_query,
-                sort_order=sort_order,
-                page=page,
-                page_size=page_size,
-            )
-
-            items = [
-                {"id": concept.id, "name": concept.label} for concept in result.content
-            ]
-
-            return Response({"items": items, "total": result.total_elements})
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_keywords: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve latest keywords"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    @method_decorator(cache_page(60 * 15))
-    @method_decorator(vary_on_cookie)
-    def get_latest_authors(self, request: Request) -> Response:
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "page",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Number of page",
+            ),
+            openapi.Parameter(
+                "limit",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Size of page",
+            ),
+            openapi.Parameter(
+                "sort",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="a-z",
+            ),
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="search query",
+            ),
+            openapi.Parameter(
+                "research_fields",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+                description="Research field IDs",
+            ),
+        ]
+    )
+    def get_authors(self, request: Request) -> Response:
         """Get latest authors with filters."""
-        print("-------------get_latest_authors----------", __file__)
+        print("-------------get_authors----------", __file__)
         try:
             page = int(request.query_params.get("page", 1))
             page_size = int(request.query_params.get("limit", 10))
@@ -700,6 +616,41 @@ class PaperViewSet(viewsets.GenericViewSet):
     @method_decorator(cache_page(60 * 15))
     @method_decorator(vary_on_cookie)
     # def get_latest_journals(self, request: Request) -> Response:
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "page",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Number of page",
+            ),
+            openapi.Parameter(
+                "limit",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="Size of page",
+            ),
+            openapi.Parameter(
+                "sort",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="a-z",
+            ),
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description="search query",
+            ),
+            openapi.Parameter(
+                "research_fields",
+                openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(type=openapi.TYPE_STRING),
+                description="Research field IDs",
+            ),
+        ]
+    )
     def get_journals(self, request: Request) -> Response:
         """Get latest journals with filters."""
         print("-------------get_latest_journals----------", __file__)
@@ -738,32 +689,32 @@ class PaperViewSet(viewsets.GenericViewSet):
                 {"error": f"Forbidden from {ip}"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        try:
-            serializer = ScraperUrlSerializer(data=request.data)
+        # try:
+        serializer = ScraperUrlSerializer(data=request.data)
 
-            if not serializer.is_valid():
-                return Response(
-                    {"error": serializer.errors},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
-            result = self.paper_service.extract_paper(url_dto)
-
-            if not result.success:
-                return Response(
-                    {"error": result.message or "Failed to extract paper"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            return Response({"result": True})
-
-        except Exception as e:
-            logger.error(f"Error in add_paper: {str(e)}")
+        if not serializer.is_valid():
             return Response(
-                {"error": "Failed to add paper"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
+        url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
+        result = self.paper_service.extract_paper(url_dto)
+
+        if not result.success:
+            return Response(
+                {"error": result.message or "Failed to extract paper"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({"result": True})
+
+        # except Exception as e:
+        #     logger.error(f"Error in add_paper: {str(e)}")
+        #     return Response(
+        #         {"error": "Failed to add paper"},
+        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #     )
 
     @action(detail=False, methods=["post"])
     def add_all_papers(self, request: Request) -> Response:
@@ -829,314 +780,5 @@ class PaperViewSet(viewsets.GenericViewSet):
             logger.error(f"Error in add_all_papers: {str(e)}")
             return Response(
                 {"error": "Failed to add papers"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["delete"])
-    def delete_database(self, request: Request) -> Response:
-        """Delete the database."""
-        try:
-            result = self.paper_service.delete_database()
-
-            if not result.success:
-                return Response(
-                    {"error": result.message or "Failed to delete database"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            return Response({"result": True})
-
-        except Exception as e:
-            logger.error(f"Error in delete_database: {str(e)}")
-            return Response(
-                {"error": "Failed to delete database"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
-class AutoCompleteViewSet(viewsets.GenericViewSet):
-    """API viewset for search."""
-
-    permission_classes = [AllowAny]
-    pagination_class = StandardResultsSetPagination
-    queryset = []
-    serializer_class = AutoCompleteSerializer
-
-    def __init__(self, **kwargs):
-        """Initialize the viewset."""
-        super().__init__(**kwargs)
-        self.auto_complete_service = Container.get_auto_complete_service()
-
-    def get_queryset(self):
-        """Return an empty queryset for schema generation."""
-        if getattr(self, "swagger_fake_view", False):
-            return []
-        return []
-
-    def get_serializer_class(self):
-        """Return the appropriate serializer class."""
-        action_serializer_map = {
-            "get_authors_by_name": AutoCompleteSerializer,
-            "get_academic_publishers_by_name": AutoCompleteSerializer,
-            "get_research_fields_by_name": AutoCompleteSerializer,
-            "get_keywords_by_label": AutoCompleteSerializer,
-        }
-        return action_serializer_map.get(self.action, AutoCompleteSerializer)
-
-    def get_serializer(self, *args, **kwargs):
-        """Get serializer instance with proper context."""
-        serializer_class = self.get_serializer_class()
-        kwargs.setdefault("context", self.get_serializer_context())
-        return serializer_class(*args, **kwargs)
-
-    @action(detail=False, methods=["get"])
-    def get_authors_by_name(self, request: Request) -> Response:
-        """Get authors by name."""
-        print("-------get_authors_by_name-------", __file__)
-        try:
-            query = request.query_params.get("search", "")
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("limit", 10))
-
-            if not query:
-                return Response(
-                    {"error": "Search query parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            search_dto = AutoCompleteInputDTO(
-                query=query,
-                page=page,
-                page_size=page_size,
-            )
-            result = self.auto_complete_service.get_authors_by_name(search_dto)
-            return Response({"items": result})
-
-        except Exception as e:
-            logger.error(f"Error in search authers by name: {str(e)}")
-            return Response(
-                {"error": "Failed to perform search authers by name"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    def get_academic_publishers_by_name(self, request: Request) -> Response:
-        """Get academic publishers by name."""
-        print("-------get_academic_publishers_by_name-------", __file__)
-        try:
-            query = request.query_params.get("search", "")
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("limit", 10))
-
-            if not query:
-                return Response(
-                    {"error": "Search query parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            search_dto = AutoCompleteInputDTO(
-                query=query,
-                page=page,
-                page_size=page_size,
-            )
-            result = self.auto_complete_service.get_academic_publishers_by_name(
-                search_dto
-            )
-            return Response({"items": result})
-
-        except Exception as e:
-            logger.error(f"Error in search academic publishers by name: {str(e)}")
-            return Response(
-                {"error": "Failed to perform search academic publishers by name"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    def get_keywords_by_label(self, request: Request) -> Response:
-        """Get keywords by name."""
-        print("-------get_keywords_by_label-------", __file__)
-        try:
-            query = request.query_params.get("search", "")
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("limit", 10))
-
-            if not query:
-                return Response(
-                    {"error": "Search query parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            search_dto = AutoCompleteInputDTO(
-                query=query,
-                page=page,
-                page_size=page_size,
-            )
-            result = self.auto_complete_service.get_keywords_by_label(search_dto)
-            return Response({"items": result})
-
-        except Exception as e:
-            logger.error(f"Error in search keywords by label: {str(e)}")
-            return Response(
-                {"error": "Failed to perform search keywords"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    def get_research_fields_by_name(self, request: Request) -> Response:
-        """Get research fields by name."""
-        print("-------get_research_fields_by_name-------", __file__)
-        try:
-            query = request.query_params.get("search", "")
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("limit", 10))
-
-            if not query:
-                return Response(
-                    {"error": "Search query parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            search_dto = AutoCompleteInputDTO(
-                query=query,
-                page=page,
-                page_size=page_size,
-            )
-            result = self.auto_complete_service.get_research_fields_by_name(search_dto)
-            return Response({"items": result})
-
-        except Exception as e:
-            logger.error(f"Error in search keywords by label: {str(e)}")
-            return Response(
-                {"error": "Failed to perform search keywords"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
-class SearchViewSet(viewsets.GenericViewSet):
-    """API viewset for search."""
-
-    permission_classes = [AllowAny]
-    pagination_class = StandardResultsSetPagination
-    queryset = []
-    serializer_class = SearchQuerySerializer
-
-    def __init__(self, **kwargs):
-        """Initialize the viewset."""
-        super().__init__(**kwargs)
-        self.search_service = Container.get_search_service()
-
-    def get_queryset(self):
-        """Return an empty queryset for schema generation."""
-        if getattr(self, "swagger_fake_view", False):
-            return []
-        return []
-
-    def get_serializer_class(self):
-        """Return the appropriate serializer class."""
-        action_serializer_map = {
-            "semantic_search_statements": SearchQuerySerializer,
-            "semantic_search_articles": SearchQuerySerializer,
-            "delete_indices": SearchQuerySerializer,
-        }
-        return action_serializer_map.get(self.action, SearchQuerySerializer)
-
-    def get_serializer(self, *args, **kwargs):
-        """Get serializer instance with proper context."""
-        serializer_class = self.get_serializer_class()
-        kwargs.setdefault("context", self.get_serializer_context())
-        return serializer_class(*args, **kwargs)
-
-    @action(detail=False, methods=["get"])
-    def semantic_search_statements(self, request: Request) -> Response:
-        """Perform semantic search on statements."""
-        try:
-            query = request.query_params.get("search", "")
-            search_type = request.query_params.get("type", "keyword")
-            sort_order = request.query_params.get("sort", "a-z")
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("limit", 10))
-            research_fields = request.query_params.getlist("research_fields[]")
-
-            if not query:
-                return Response(
-                    {"error": "Search query parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            search_dto = SearchInputDTO(
-                query=query,
-                search_type=search_type,
-                sort_order=sort_order,
-                page=page,
-                page_size=page_size,
-                research_fields=research_fields,
-            )
-
-            result = self.search_service.semantic_search_statement(search_dto)
-
-            return Response({"items": result.items, "total": result.total})
-
-        except Exception as e:
-            logger.error(f"Error in semantic_search_statements: {str(e)}")
-            return Response(
-                {"error": "Failed to perform semantic search on statements"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    def semantic_search_articles(self, request: Request) -> Response:
-        """Perform semantic search on articles."""
-        try:
-            query = request.query_params.get("search", "")
-            search_type = request.query_params.get("type", "keyword")
-            sort_order = request.query_params.get("sort", "a-z")
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("limit", 10))
-            research_fields = request.query_params.getlist("research_fields[]")
-
-            if not query:
-                return Response(
-                    {"error": "Search query parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            search_dto = SearchInputDTO(
-                query=query,
-                search_type=search_type,
-                sort_order=sort_order,
-                page=page,
-                page_size=page_size,
-                research_fields=research_fields,
-            )
-
-            result = self.search_service.semantic_search_article(search_dto)
-
-            return Response({"items": result.items, "total": result.total})
-
-        except Exception as e:
-            logger.error(f"Error in semantic_search_articles: {str(e)}")
-            return Response(
-                {"error": "Failed to perform semantic search on articles"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["delete"])
-    def delete_indices(self, request: Request) -> Response:
-        """Delete search indices."""
-        try:
-            result = self.search_service.delete_indices()
-
-            if not result.success:
-                return Response(
-                    {"error": result.message or "Failed to delete search indices"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            return Response({"result": True})
-
-        except Exception as e:
-            logger.error(f"Error in delete_indices: {str(e)}")
-            return Response(
-                {"error": "Failed to delete search indices"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

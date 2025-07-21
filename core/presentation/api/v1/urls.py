@@ -1,16 +1,15 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from core.presentation.viewsets.paper_viewsets import (
-    PaperViewSet,
-    SearchViewSet,
-    AutoCompleteViewSet,
-)
+from core.presentation.viewsets.auto_complete_viewsets import AutoCompleteViewSet
+from core.presentation.viewsets.paper_viewsets import PaperViewSet
+from core.presentation.viewsets.insight_viewsets import InsightViewSet
 
 router = DefaultRouter()
 router.register(r"articles", PaperViewSet, basename="paper")
-router.register(r"search", SearchViewSet, basename="search")
+# router.register(r"search", SearchViewSet, basename="search")
 router.register(r"auto-complete", AutoCompleteViewSet, basename="auto-complete")
+router.register(r"insight", InsightViewSet, basename="insight")
 
 urlpatterns = [
     # Include router URLs

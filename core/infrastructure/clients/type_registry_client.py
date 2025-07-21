@@ -3,10 +3,9 @@ import logging
 from typing import Dict, Any
 from datetime import datetime, timedelta
 
+from core.application.interfaces.repositories.cache import CacheRepository
 from core.domain.exceptions import ExternalServiceError
-from core.application.interfaces.repositories import (
-    CacheRepository,
-)
+
 
 logger = logging.getLogger(__name__)
 

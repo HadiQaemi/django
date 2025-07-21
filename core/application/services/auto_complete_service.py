@@ -1,21 +1,18 @@
 import logging
-import math
-from django.core.cache import cache
-from django.conf import settings
 
-from core.application.interfaces.services import (
+from core.application.interfaces.repositories.author import AuthorRepository
+from core.application.interfaces.repositories.concept import ConceptRepository
+from core.application.interfaces.repositories.journal import JournalRepository
+from core.application.interfaces.repositories.research_field import (
+    ResearchFieldRepository,
+)
+from core.application.interfaces.services.auto_complete import (
     AutoCompleteService as AutoCompleteServiceInterface,
 )
-from core.application.interfaces.repositories import (
-    AuthorRepository,
-    ConceptRepository,
-    ResearchFieldRepository,
-    JournalRepository,
-)
+
 from core.application.dtos.input_dtos import AutoCompleteInputDTO
 from core.application.dtos.output_dtos import (
     SearchResultsDTO,
-    SearchResultItemDTO,
     CommonResponseDTO,
 )
 from core.domain.exceptions import SearchEngineError

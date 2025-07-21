@@ -3,12 +3,12 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.conf import settings
 
+from core.application.interfaces.repositories.search import SearchRepository
 from core.infrastructure.models.sql_models import (
     Article as ArticleModel,
     Statement as StatementModel,
 )
 from core.infrastructure.container import Container
-from core.application.interfaces.repositories import SearchRepository
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Any, Tuple
 import os
 
-from core.application.interfaces.repositories import SearchRepository
+from core.application.interfaces.repositories.search import SearchRepository
 from core.infrastructure.search.semantic_engine import SemanticSearchEngine
 from core.infrastructure.search.keyword_engine import KeywordSearchEngine
 from core.infrastructure.search.hybrid_engine import HybridSearchEngine
