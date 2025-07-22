@@ -5,7 +5,7 @@ __pycache__/
 
 # Distribution
 venv/
-
+logs/
 # Environments
 .env
 .env.template
