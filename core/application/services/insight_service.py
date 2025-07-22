@@ -62,12 +62,17 @@ class InsightServiceImpl(InsightServiceInterface):
             models_by_label = SoftwareModel.objects.values("label").annotate(
                 count=Count("id")
             )
+            total_count = sum(item["count"] for item in models_by_label)
+
+            for item in models_by_label:
+                item["count"] = round((item["count"] / total_count) * 100)
 
             qs = (
                 SoftwareLibraryModel.objects.exclude(label__isnull=True)
                 .exclude(label__exact="")
                 .values("part_of__label", "label")
                 .annotate(count=Count("id"))
+                .order_by("-count")
             )
             grouped_data = defaultdict(list)
 
@@ -90,8 +95,18 @@ class InsightServiceImpl(InsightServiceInterface):
                 ("Factor Analysis", FactorAnalysisModel),
             ]
             data_types = [
-                {"label": name, "count": model.objects.count()} for name, model in models
+                {"label": name, "count": model.objects.count()}
+                for name, model in models
             ]
+            data_types = sorted(
+                [
+                    {"label": name, "count": model.objects.count()}
+                    for name, model in models
+                    if model.objects.count() > 0
+                ],
+                key=lambda x: x["count"],
+                reverse=True,
+            )
             return {
                 "statistics": {
                     "Articles": self.paper_repository.get_count_all(),

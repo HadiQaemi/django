@@ -1465,31 +1465,18 @@ class SQLPaperRepository(PaperRepository):
                                             "label",
                                         )
 
-                                        software_item, created = (
-                                            SoftwareModel.objects.update_or_create(
-                                                has_support_url=softwares_has_support_url,
-                                                version_info=softwares_version_info,
-                                                label=softwares_label,
-                                                defaults={
-                                                    "has_support_url": softwares_has_support_url,
-                                                    "version_info": softwares_version_info,
-                                                    "label": softwares_label,
-                                                },
-                                            )
+                                        software_item = SoftwareModel.objects.create(
+                                            has_support_url=softwares_has_support_url,
+                                            version_info=softwares_version_info,
+                                            label=softwares_label,
                                         )
-                                        software_libraries_item, created = (
-                                            SoftwareLibraryModel.objects.update_or_create(
-                                                has_support_url=software_libraries_has_support_url,
-                                                version_info=software_libraries_version_info,
-                                                label=software_libraries_label,
-                                                defaults={
-                                                    "has_support_url": software_libraries_has_support_url,
-                                                    "version_info": software_libraries_version_info,
-                                                    "part_of": software_item,
-                                                    "label": software_libraries_label,
-                                                },
-                                            )
+                                        software_libraries_item = SoftwareLibraryModel.objects.create(
+                                            has_support_url=software_libraries_has_support_url,
+                                            version_info=software_libraries_version_info,
+                                            label=software_libraries_label,
+                                            part_of=software_item,
                                         )
+
                                         software_method_label = self.get_property_info(
                                             software_method,
                                             "label",
