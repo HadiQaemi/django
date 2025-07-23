@@ -11,6 +11,7 @@ from core.application.interfaces.repositories.paper import PaperRepository
 from core.application.interfaces.repositories.research_field import (
     ResearchFieldRepository,
 )
+from core.application.interfaces.repositories.search import SearchRepository
 from core.application.interfaces.repositories.statement import StatementRepository
 from core.application.interfaces.services.auto_complete import AutoCompleteService
 from core.application.interfaces.services.insight import InsightService
@@ -20,6 +21,7 @@ from core.application.services.auto_complete_service import AutoCompleteServiceI
 from core.application.services.insight_service import InsightServiceImpl
 
 from core.infrastructure.clients.type_registry_client import TypeRegistryClient
+from core.infrastructure.repositories.search_repos import SearchRepositoryImpl
 from core.infrastructure.repositories.sql_repos.author import SQLAuthorRepository
 from core.infrastructure.repositories.sql_repos.concept import SQLConceptRepository
 from core.infrastructure.repositories.sql_repos.journal import SQLJournalRepository
@@ -53,6 +55,7 @@ class Container:
             ResearchFieldRepository: SQLResearchFieldRepository,
             JournalRepository: SQLJournalRepository,
             CacheRepository: SQLCacheRepository,
+            SearchRepository: SearchRepositoryImpl,
         }
 
         cls._services = {

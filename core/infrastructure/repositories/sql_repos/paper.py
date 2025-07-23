@@ -148,6 +148,7 @@ class SQLPaperRepository(PaperRepository):
             from django.contrib.postgres.search import SearchQuery, SearchRank
             from django.db.models import Q, F
             from datetime import datetime
+
             query = ArticleModel.objects.all()
 
             if title:
@@ -912,28 +913,12 @@ class SQLPaperRepository(PaperRepository):
             for item in graph_data
             if "Statement" in item.get("@type", [])
         }
-        # print(data["statements"])
-        # print('----------data["json_files"]------------')
-        # print(data["json_files"])
-        # print('----------data["json_files"]------------')
-        # iii = 0
 
         for statement_index, statement_item in enumerate(data["json_files"]):
-            # print("---------------------------------")
-            # print("json file: ", statement_item.get("name", ""))
-            # print("json file: ", statement_item)
-            # iii += 1
-            # if iii > 3:
-            #     continue
             statement_content = scraper.load_json_from_url(
                 json_files[statement_item.get("name", "")]
             )
             print("----------------statement_content-----------------")
-            # print(statement_content)
-            # print("----------------statement_content-----------------")
-            # print("----------------statement_item-----------------")
-            # print(statement_item.get("components", ""))
-            # print("----------------statement_item-----------------")
             if not statement_content:
                 continue
 
@@ -966,6 +951,58 @@ class SQLPaperRepository(PaperRepository):
                     "encodingFormat": statement_item["encodingFormat"],
                 },
             )
+            if not created:
+                statement.implement_statements.all().delete()
+                statement.has_part_statements.all().delete()
+
+                for dtype in statement.data_type_statement.all():
+                    for method in dtype.executes.all():
+                        for library in method.part_of.all():
+                            software = library.part_of
+                            library.delete()
+                            if software and not software.part_of_software.exists():
+                                software.delete()
+                        method.delete()
+                    dtype.executes.clear()
+
+                    for data_item in dtype.has_inputs.all():
+                        data_item.has_expression.clear()
+                        data_item.has_part.clear()
+
+                        if data_item.has_characteristic:
+                            data_item.has_characteristic.delete()
+
+                        data_item.delete()
+
+                    dtype.has_inputs.clear()
+
+                    for data_item in dtype.has_outputs.all():
+                        data_item.has_expression.clear()
+                        data_item.has_part.clear()
+
+                        if data_item.has_characteristic:
+                            data_item.has_characteristic.delete()
+
+                        data_item.delete()
+
+                    dtype.has_outputs.clear()
+
+                    if isinstance(dtype, MultilevelAnalysisModel):
+                        dtype.targets.clear()
+                        dtype.level.clear()
+                    elif isinstance(dtype, MultilevelAnalysisModel):
+                        dtype.targets.clear()
+                    elif isinstance(dtype, MultilevelAnalysisModel):
+                        dtype.targets.clear()
+                    elif isinstance(dtype, MultilevelAnalysisModel):
+                        dtype.targets.clear()
+                    elif isinstance(dtype, MultilevelAnalysisModel):
+                        if dtype.evaluate_id:
+                            dtype.evaluate.delete()
+                        if dtype.evaluates_for_id:
+                            dtype.evaluates_for.delete()
+                    dtype.delete()
+
             statement_components = []
             for component in statement_item.get("components", ""):
                 statement_components.append(items_id[component["@id"]])
@@ -1506,17 +1543,10 @@ class SQLPaperRepository(PaperRepository):
                                             software_method_has_support_url = [
                                                 software_method_has_support_url
                                             ]
-                                        software_method_item, created = (
-                                            SoftwareMethodModel.objects.update_or_create(
-                                                has_support_url=software_method_has_support_url,
-                                                is_implemented_by=software_method_is_implemented_by,
-                                                label=software_method_label,
-                                                defaults={
-                                                    "has_support_url": software_method_has_support_url,
-                                                    "is_implemented_by": software_method_is_implemented_by,
-                                                    "label": software_method_label,
-                                                },
-                                            )
+                                        software_method_item = SoftwareMethodModel.objects.create(
+                                            has_support_url=software_method_has_support_url,
+                                            is_implemented_by=software_method_is_implemented_by,
+                                            label=software_method_label,
                                         )
                                         software_method_item.part_of.add(
                                             software_libraries_item
