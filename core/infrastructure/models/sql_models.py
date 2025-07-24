@@ -409,7 +409,6 @@ class Article(TimeStampedModel):
     json = JSONField(null=True, blank=True)
     name = models.CharField(max_length=255)
     abstract = models.TextField(null=True, blank=True)
-    reborn_date_published = models.DateTimeField(null=True, blank=True)
     date_published = models.DateTimeField(null=True, blank=True)
     identifier = models.TextField(null=True, blank=True)
     reborn_doi = models.TextField(null=True, blank=True)

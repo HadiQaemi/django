@@ -875,8 +875,8 @@ class SQLPaperRepository(PaperRepository):
         date_value = article_data.get("datePublished", "")
         if isinstance(date_value, (int, float)):
             date_value = str(int(date_value))
-        reborn_date_published = data["Dataset"][0]["datePublished"]
-        dt = datetime.strptime(reborn_date_published, "%Y-%m-%dT%H:%M:%S%z")
+        # reborn_date_published = data["Dataset"][0]["datePublished"]
+        # dt = datetime.strptime(reborn_date_published, "%Y-%m-%dT%H:%M:%S%z")
         article, created = ArticleModel.objects.update_or_create(
             _id=article_data.get("@id", ""),
             defaults={
@@ -885,7 +885,7 @@ class SQLPaperRepository(PaperRepository):
                 "json": article_data,
                 "abstract": article_data.get("abstract", ""),
                 "date_published": datetime.strptime(date_value, "%Y"),
-                "reborn_date_published": dt,
+                # "reborn_date_published": dt,
                 "identifier": article_data.get("identifier", ""),
                 "reborn_doi": fetch_reborn_doi(article_data.get("@id", "")),
                 "publisher_id": publisher_id,
