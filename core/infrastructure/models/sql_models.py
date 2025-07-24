@@ -235,9 +235,7 @@ class Operation(TimeStampedModel):
 class Component(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, unique=True, null=True)
-    label = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
+    label = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
     matrices = models.ManyToManyField(
         Matrix,

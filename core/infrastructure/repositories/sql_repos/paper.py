@@ -741,9 +741,7 @@ class SQLPaperRepository(PaperRepository):
             for component in data[_type]:
                 component_obj, created = ComponentModel.objects.get_or_create(
                     type=component.get("@type", ""),
-                    label=component.get("label", "")
-                    if len(component.get("label", "")) > 0
-                    else [],
+                    label=component.get("label", ""),
                     string_match=component.get("stringMatch", "")
                     if len(component.get("stringMatch", "")) > 0
                     else [],
