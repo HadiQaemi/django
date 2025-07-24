@@ -135,10 +135,10 @@ class InsightServiceImpl(InsightServiceInterface):
 
                 concepts_results.append(
                     {
-                        "label": label,
+                        "text": label,
                         "definition": concept["definition"],
                         "value": concept["usage_count"],
-                        "text": acronym,
+                        "label": acronym,
                     }
                 )
 
