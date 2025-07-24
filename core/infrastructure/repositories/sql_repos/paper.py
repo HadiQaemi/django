@@ -741,7 +741,9 @@ class SQLPaperRepository(PaperRepository):
             for component in data[_type]:
                 component_obj, created = ComponentModel.objects.get_or_create(
                     type=component.get("@type", ""),
-                    label=component.get("label", ""),
+                    label=component.get("label", "")
+                    if len(component.get("label", "")) > 0
+                    else [],
                     string_match=component.get("stringMatch", "")
                     if len(component.get("stringMatch", "")) > 0
                     else [],
@@ -875,6 +877,8 @@ class SQLPaperRepository(PaperRepository):
         date_value = article_data.get("datePublished", "")
         if isinstance(date_value, (int, float)):
             date_value = str(int(date_value))
+        reborn_date_published = data["Dataset"][0]["datePublished"]
+        dt = datetime.strptime(reborn_date_published, "%Y-%m-%dT%H:%M:%S%z")
         article, created = ArticleModel.objects.update_or_create(
             _id=article_data.get("@id", ""),
             defaults={
@@ -883,6 +887,7 @@ class SQLPaperRepository(PaperRepository):
                 "json": article_data,
                 "abstract": article_data.get("abstract", ""),
                 "date_published": datetime.strptime(date_value, "%Y"),
+                "reborn_date_published": dt,
                 "identifier": article_data.get("identifier", ""),
                 "reborn_doi": fetch_reborn_doi(article_data.get("@id", "")),
                 "publisher_id": publisher_id,
@@ -964,26 +969,26 @@ class SQLPaperRepository(PaperRepository):
                                 software.delete()
                         method.delete()
                     dtype.executes.clear()
-
                     for data_item in dtype.has_inputs.all():
-                        data_item.has_expression.clear()
-                        data_item.has_part.clear()
+                        if data_item is not None:
+                            data_item.has_expression.clear()
+                            data_item.has_part.clear()
+                            # if data_item.has_characteristic is not None:
+                            #     data_item.has_characteristic.delete()
 
-                        if data_item.has_characteristic:
-                            data_item.has_characteristic.delete()
-
-                        data_item.delete()
+                            data_item.delete()
 
                     dtype.has_inputs.clear()
 
                     for data_item in dtype.has_outputs.all():
-                        data_item.has_expression.clear()
-                        data_item.has_part.clear()
+                        if data_item is not None:
+                            data_item.has_expression.clear()
+                            data_item.has_part.clear()
 
-                        if data_item.has_characteristic:
-                            data_item.has_characteristic.delete()
+                            # if data_item.has_characteristic is not None:
+                            #     data_item.has_characteristic.delete()
 
-                        data_item.delete()
+                            data_item.delete()
 
                     dtype.has_outputs.clear()
 
@@ -1232,11 +1237,11 @@ class SQLPaperRepository(PaperRepository):
 
                                         has_output_items.append(data_item)
                                 elif _p.endswith("#has_input"):
-                                    print(
-                                        f"Line: {sys._getframe(0).f_lineno}",
-                                        "#has_input",
-                                        _p,
-                                    )
+                                    # print(
+                                    #     f"Line: {sys._getframe(0).f_lineno}",
+                                    #     "#has_input",
+                                    #     _p,
+                                    # )
                                     has_inputs = statement_content_item[_p]
                                     if not isinstance(has_inputs, list):
                                         has_inputs = [has_inputs]
@@ -1383,11 +1388,11 @@ class SQLPaperRepository(PaperRepository):
                                         _p,
                                     )
                                 elif _p.endswith("#evaluates_for"):
-                                    print(
-                                        f"Line: {sys._getframe(0).f_lineno}",
-                                        "#evaluates_for",
-                                        _p,
-                                    )
+                                    # print(
+                                    #     f"Line: {sys._getframe(0).f_lineno}",
+                                    #     "#evaluates_for",
+                                    #     _p,
+                                    # )
                                     evaluates_for = statement_content_item[_p]
                                     evaluates_for_see_also = []
                                     evaluates_for_see_also.append(
@@ -1413,11 +1418,11 @@ class SQLPaperRepository(PaperRepository):
                                         )
                                     )
                                 elif _p.endswith("#evaluates"):
-                                    print(
-                                        f"Line: {sys._getframe(0).f_lineno}",
-                                        "#evaluates",
-                                        _p,
-                                    )
+                                    # print(
+                                    #     f"Line: {sys._getframe(0).f_lineno}",
+                                    #     "#evaluates",
+                                    #     _p,
+                                    # )
                                     evaluate = statement_content_item[_p]
                                     evaluate_see_also = []
                                     evaluate_see_also.append(
@@ -1443,11 +1448,11 @@ class SQLPaperRepository(PaperRepository):
                                         )
                                     )
                                 elif _p.endswith("#executes"):
-                                    print(
-                                        f"Line: {sys._getframe(0).f_lineno}",
-                                        "Done #executes",
-                                        _p,
-                                    )
+                                    # print(
+                                    #     f"Line: {sys._getframe(0).f_lineno}",
+                                    #     "Done #executes",
+                                    #     _p,
+                                    # )
                                     software_methods = statement_content_item[_p]
                                     software_method_items = []
                                     if not isinstance(software_methods, (list)):
@@ -1555,11 +1560,11 @@ class SQLPaperRepository(PaperRepository):
                                             software_method_item.id
                                         )
                                 elif _p.endswith("#targets"):
-                                    print(
-                                        f"Line: {sys._getframe(0).f_lineno}",
-                                        "Done #targets",
-                                        _p,
-                                    )
+                                    # print(
+                                    #     f"Line: {sys._getframe(0).f_lineno}",
+                                    #     "Done #targets",
+                                    #     _p,
+                                    # )
                                     targets = statement_content_item[_p]
                                     if not isinstance(targets, list):
                                         targets = [targets]
@@ -1590,26 +1595,26 @@ class SQLPaperRepository(PaperRepository):
                                         )
                                         target_items.append(target_item.id)
                                 elif _p.endswith("#label"):
-                                    print(
-                                        f"Line: {sys._getframe(0).f_lineno}",
-                                        "#label",
-                                        _p,
-                                    )
+                                    # print(
+                                    #     f"Line: {sys._getframe(0).f_lineno}",
+                                    #     "#label",
+                                    #     _p,
+                                    # )
                                     label = statement_content_item[_p]
                                 elif _p.endswith("#level"):
-                                    print(
-                                        f"Line: {sys._getframe(0).f_lineno}",
-                                        "#level",
-                                        _p,
-                                    )
+                                    # print(
+                                    #     f"Line: {sys._getframe(0).f_lineno}",
+                                    #     "#level",
+                                    #     _p,
+                                    # )
                                     levels = statement_content_item[_p]
                                     if not isinstance(levels, list):
                                         levels = [levels]
                                     level_items = []
                                     for level in levels:
-                                        print('------------level["@type"]-----------')
-                                        print(levels)
-                                        print(level)
+                                        # print('------------level["@type"]-----------')
+                                        # print(levels)
+                                        # print(level)
                                         level_see_also = []
                                         level_label = ""
                                         level_see_also.append(
@@ -1637,11 +1642,11 @@ class SQLPaperRepository(PaperRepository):
                                         )
                                         level_items.append(level_item)
                                 elif _p.endswith("#see_also"):
-                                    print(
-                                        f"Line: {sys._getframe(0).f_lineno}",
-                                        "#see_also",
-                                        _p,
-                                    )
+                                    # print(
+                                    #     f"Line: {sys._getframe(0).f_lineno}",
+                                    #     "#see_also",
+                                    #     _p,
+                                    # )
                                     if _p in statement_content_item:
                                         see_also = statement_content_item[_p]
                                 else:
@@ -1895,16 +1900,16 @@ class SQLPaperRepository(PaperRepository):
                                 if has_input_items:
                                     AlgorithmEvaluation.has_inputs.set(has_input_items)
 
-                    else:
-                        print("---------p-------------")
-                        print(p)
-                        print("---------statement_content[p]-------------")
-                        print(statement_content[p])
-                        print("---------statement_content-------------")
-                        # print(statement_content)
-                        # _type_info, _info = self.type_registry_client.get_type_info(
-                        #     statement_content[p]["@type"].replace("doi:", "")
-                        # )
+                    # else:
+                    #     print("---------p-------------")
+                    #     print(p)
+                    #     print("---------statement_content[p]-------------")
+                    #     print(statement_content[p])
+                    #     print("---------statement_content-------------")
+                    # print(statement_content)
+                    # _type_info, _info = self.type_registry_client.get_type_info(
+                    #     statement_content[p]["@type"].replace("doi:", "")
+                    # )
 
                     # DescriptiveStatisticsModel,
                     # GroupComparisonModel,

@@ -1,5 +1,6 @@
 from collections import defaultdict
 import logging
+import re
 
 from core.application.interfaces.repositories.author import AuthorRepository
 from core.application.interfaces.repositories.concept import ConceptRepository
@@ -27,6 +28,8 @@ from core.infrastructure.models.sql_models import (
     ClassPrediction as ClassPredictionModel,
     ClassDiscovery as ClassDiscoveryModel,
     FactorAnalysis as FactorAnalysisModel,
+    Concept as ConceptModel,
+    Component as ComponentModel,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,7 +54,7 @@ class InsightServiceImpl(InsightServiceInterface):
 
     def get_research_insights(self) -> any:
         """Perform search on authors by name."""
-        # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
+        # cache_key = f"get_research_insights"
         # cached_result = cache.get(cache_key)
 
         # if cached_result:
@@ -107,6 +110,53 @@ class InsightServiceImpl(InsightServiceInterface):
                 key=lambda x: x["count"],
                 reverse=True,
             )
+
+            concepts_with_usage = (
+                ConceptModel.objects.annotate(usage_count=Count("statements"))
+                .filter(usage_count__gt=0)
+                .values("label", "definition", "usage_count")
+            )
+            concepts_results = []
+            for concept in concepts_with_usage:
+                label = concept["label"]
+                acronym = None
+
+                match = re.search(r"\(([^)]+)\)", label)
+                if match:
+                    acronym = match.group(1).strip()
+                else:
+                    words = label.split()
+                    if len(words) > 1:
+                        acronym = "".join(
+                            word[0].upper() for word in words if word[0].isalpha()
+                        )
+                    else:
+                        acronym = label
+
+                concepts_results.append(
+                    {
+                        "label": label,
+                        "definition": concept["definition"],
+                        "value": concept["usage_count"],
+                        "text": acronym,
+                    }
+                )
+
+            components_with_usage = (
+                ComponentModel.objects.annotate(usage_count=Count("statements"))
+                .filter(usage_count__gt=0)
+                .values("label", "string_match", "usage_count")
+            )
+            components_results = []
+            for component in components_with_usage:
+                string_match = component["string_match"]
+                components_results.append(
+                    {
+                        "text": string_match[0],
+                        "definition": component["label"],
+                        "value": component["usage_count"],
+                    }
+                )
             return {
                 "statistics": {
                     "Articles": self.paper_repository.get_count_all(),
@@ -119,6 +169,8 @@ class InsightServiceImpl(InsightServiceInterface):
                 "num_programming_languages": models_by_label,
                 "num_packages": grouped_data,
                 "data_types": data_types,
+                "concepts": concepts_results,
+                "components": components_results,
             }
 
         except Exception as e:

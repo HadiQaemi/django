@@ -15,7 +15,6 @@ class SQLInsightRepository(InsightRepository):
 
     def get_research_insights(self) -> any:
         """Find insights."""
-        print("-------get_research_insights-------", __file__)
         try:
             models_by_label = SoftwareModel.objects.values("label").annotate(
                 model_count=Count("id")

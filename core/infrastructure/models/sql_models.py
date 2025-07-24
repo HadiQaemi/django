@@ -235,7 +235,9 @@ class Operation(TimeStampedModel):
 class Component(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, unique=True, null=True)
-    label = models.CharField(max_length=255, null=True)
+    label = ArrayField(
+        models.CharField(max_length=255), blank=True, null=True, default=list
+    )
     json = JSONField(null=True, blank=True)
     matrices = models.ManyToManyField(
         Matrix,
@@ -409,6 +411,7 @@ class Article(TimeStampedModel):
     json = JSONField(null=True, blank=True)
     name = models.CharField(max_length=255)
     abstract = models.TextField(null=True, blank=True)
+    reborn_date_published = models.DateTimeField(null=True, blank=True)
     date_published = models.DateTimeField(null=True, blank=True)
     identifier = models.TextField(null=True, blank=True)
     reborn_doi = models.TextField(null=True, blank=True)
