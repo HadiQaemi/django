@@ -759,6 +759,11 @@ class SQLPaperRepository(PaperRepository):
                 items_id[component.get("@id", "")] = component_obj.id
                 items.append(component_obj)
 
+                if component.get("operation", None) is not None:
+                    component_obj.operations.add(
+                        operations_id[component.get("operation", None)["@id"]]
+                    )
+
                 if component.get("matrix", None) is not None:
                     component_obj.matrices.add(
                         matrices_id[component.get("matrix", None)["@id"]]

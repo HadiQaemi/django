@@ -126,45 +126,134 @@ class InsightServiceImpl(InsightServiceInterface):
                     acronym = match.group(1).strip()
                 else:
                     words = label.split()
-                    if len(words) > 1:
-                        acronym = "".join(
-                            word[0].upper() for word in words if word[0].isalpha()
-                        )
+                    if len(words) > 3:
+                        selected_words = words[:3]
+                        acronym = " ".join(word for word in selected_words) + "..."
                     else:
                         acronym = label
 
                 concepts_results.append(
                     {
-                        "text": label,
+                        "label": label,
                         "definition": concept["definition"],
                         "value": concept["usage_count"],
-                        "label": acronym,
+                        "text": acronym,
                     }
                 )
 
             components_with_usage = (
                 ComponentModel.objects.annotate(usage_count=Count("statements"))
                 .filter(usage_count__gt=0)
-                .values("label", "string_match", "usage_count")
+                .prefetch_related(
+                    "matrices", "object_of_interests", "properties", "units"
+                )
             )
             components_results = []
             for component in components_with_usage:
-                string_match = component["string_match"]
-                components_results.append(
-                    {
-                        "text": string_match[0],
-                        "definition": component["label"],
-                        "value": component["usage_count"],
-                    }
-                )
+                label = re.sub(r"[\[\]']", "", component.label)
+                if "Measure" in component.type or "Property" in component.type:
+                    components_results.append(
+                        {
+                            "text": component.string_match[0],
+                            "label": component.string_match[0],
+                            "definition": label,
+                            "value": component.usage_count,
+                            "see_also": component.exact_match[0]
+                            if len(component.exact_match) > 0
+                            else component.close_match[0]
+                            if len(component.close_match) > 0
+                            else "",
+                            "operations": [],
+                            "matrices": [],
+                            "object_of_interests": [],
+                            "properties": [],
+                            "units": [],
+                        }
+                    )
+                else:
+                    operations = []
+                    for operation in component.operations.all():
+                        operations.append(
+                            {
+                                "label": operation.label[0],
+                                "see_also": operation.exact_match[0]
+                                if len(operation.exact_match) > 0
+                                else operation.close_match[0]
+                                if len(operation.close_match) > 0
+                                else "",
+                            }
+                        )
+                    matrices = []
+                    for matrix in component.matrices.all():
+                        matrices.append(
+                            {
+                                "label": matrix.label[0],
+                                "see_also": matrix.exact_match[0]
+                                if len(matrix.exact_match) > 0
+                                else matrix.close_match[0]
+                                if len(matrix.close_match) > 0
+                                else "",
+                            }
+                        )
+                    object_of_interests = []
+                    for object_of_interest in component.object_of_interests.all():
+                        object_of_interests.append(
+                            {
+                                "label": object_of_interest.label[0],
+                                "see_also": object_of_interest.exact_match[0]
+                                if len(object_of_interest.exact_match) > 0
+                                else object_of_interest.close_match[0]
+                                if len(object_of_interest.close_match) > 0
+                                else "",
+                            }
+                        )
+                    properties = []
+                    for property in component.properties.all():
+                        properties.append(
+                            {
+                                "label": property.label[0],
+                                "see_also": property.exact_match[0]
+                                if len(property.exact_match) > 0
+                                else property.close_match[0]
+                                if len(property.close_match) > 0
+                                else "",
+                            }
+                        )
+                    units = []
+                    for unit in component.units.all():
+                        units.append(
+                            {
+                                "label": unit.label[0],
+                                "see_also": unit.exact_match[0]
+                                if len(unit.exact_match) > 0
+                                else unit.close_match[0]
+                                if len(unit.close_match) > 0
+                                else "",
+                            }
+                        )
+                    components_results.append(
+                        {
+                            "text": component.string_match[0],
+                            "label": component.string_match[0],
+                            "definition": label,
+                            "value": component.usage_count,
+                            "see_also": component.exact_match
+                            if len(component.exact_match) > 0
+                            else component.close_match,
+                            "operations": operations,
+                            "matrices": matrices,
+                            "object_of_interests": object_of_interests,
+                            "properties": properties,
+                            "units": units,
+                        }
+                    )
+
             return {
                 "statistics": {
                     "Articles": self.paper_repository.get_count_all(),
-                    "Statements": self.statement_repository.get_count_all(),
+                    "Scientific statements": self.statement_repository.get_count_all(),
                     "Journals": self.journal_repository.get_count_all(),
                     "Authors": self.author_repository.get_count_all(),
-                    # "Research_fields": self.research_field_repository.get_count_all(),
-                    # "num_concepts": self.concept_repository.get_count_all(),
                 },
                 "num_programming_languages": models_by_label,
                 "num_packages": grouped_data,

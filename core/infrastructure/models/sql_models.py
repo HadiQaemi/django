@@ -243,6 +243,12 @@ class Component(TimeStampedModel):
         blank=True,
         db_index=True,
     )
+    operations = models.ManyToManyField(
+        Operation,
+        related_name="components",
+        blank=True,
+        db_index=True,
+    )
     object_of_interests = models.ManyToManyField(
         ObjectOfInterest,
         related_name="components",
