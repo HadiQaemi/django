@@ -241,16 +241,14 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Cache settings
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.dummy.DummyCache"
-        # "BACKEND": "django_redis.cache.RedisCache",
-        # "LOCATION": os.environ.get("REDIS_URL", "redis://localhost:6379/1"),
-        # "OPTIONS": {
-        #     "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        #     # "PARSER_CLASS": "redis.connection.HiredisParser",
-        # },
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": os.path.join(BASE_DIR, "cache"),
+        "TIMEOUT": 300,
+        "OPTIONS": {"MAX_ENTRIES": 1000},
     }
 }
 
