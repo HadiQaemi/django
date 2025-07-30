@@ -90,15 +90,15 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             ]
 
         except Exception as e:
-            logger.error(f"Error in search authers by name {str(e)}")
+            logger.error(f"Error in search academic publishers by name {str(e)}")
             raise SearchEngineError(
-                f"Failed to perform search authers by name: {str(e)}"
+                f"Failed to perform search academic publishers by name: {str(e)}"
             )
 
     def get_keywords_by_label(
         self, search_dto: AutoCompleteInputDTO
     ) -> SearchResultsDTO:
-        """Perform search on academic publishers by name."""
+        """Perform search on keywords by name."""
         # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
         # cached_result = cache.get(cache_key)
 
@@ -119,9 +119,9 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             return [{"id": ks.concept_id, "name": ks.label} for ks in keywords]
 
         except Exception as e:
-            logger.error(f"Error in search authers by name {str(e)}")
+            logger.error(f"Error in search keywords by name {str(e)}")
             raise SearchEngineError(
-                f"Failed to perform search authers by name: {str(e)}"
+                f"Failed to perform search keywords by name: {str(e)}"
             )
 
     def get_research_fields_by_name(
@@ -152,7 +152,7 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             ]
 
         except Exception as e:
-            logger.error(f"Error in search authers by name {str(e)}")
+            logger.error(f"Error in search research fields by name {str(e)}")
             raise SearchEngineError(
-                f"Failed to perform search authers by name: {str(e)}"
+                f"Failed to perform search research fields by name: {str(e)}"
             )

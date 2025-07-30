@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 class SQLInsightRepository(InsightRepository):
     """PostgreSQL implementation of the research insights repository."""
 
+    def get_research_components(self) -> any:
+        return True
+
     def get_research_insights(self) -> any:
         """Find insights."""
         try:
