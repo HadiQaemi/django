@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-env_file = os.path.join(BASE_DIR, '.env')
+env_file = os.path.join(BASE_DIR, ".env")
 if os.path.exists(env_file):
     load_dotenv(env_file)
 
@@ -20,6 +20,20 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-default-key-fo
 DEBUG = False
 
 ALLOWED_HOSTS = []
+
+ROLEPERMISSIONS_MODULE = "core.roles"
+AUTH_USER_MODEL = "core.User"
+# Swagger settings
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
+    },
+    "USE_SESSION_AUTH": False,
+    "DOC_EXPANSION": "list",
+    "APIS_SORTER": "alpha",
+    "OPERATIONS_SORTER": "alpha",
+    "JSON_EDITOR": True,
+}
 
 # Application definition
 INSTALLED_APPS = [
@@ -45,6 +59,9 @@ INSTALLED_APPS = [
     "polymorphic",
     # Security - login attempt throttling
     "axes",
+    # Auth
+    "rest_framework_simplejwt",
+    "rolepermissions",
     # Project apps
     "core",
     "core.infrastructure",
@@ -65,6 +82,7 @@ MIDDLEWARE = [
     "core.presentation.middleware.exception_handler.ExceptionHandlerMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
     "axes.middleware.AxesMiddleware",
+    "core.presentation.middleware.audit_middleware.RoleBasedAuditMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -172,9 +190,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # REST Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
@@ -194,16 +213,23 @@ REST_FRAMEWORK = {
     ),
 }
 
-# Swagger settings
-SWAGGER_SETTINGS = {
-    "SECURITY_DEFINITIONS": {
-        "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
-    },
-    "USE_SESSION_AUTH": False,
-    "DOC_EXPANSION": "list",
-    "APIS_SORTER": "alpha",
-    "OPERATIONS_SORTER": "alpha",
-    "JSON_EDITOR": True,
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "VERIFYING_KEY": None,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "JTI_CLAIM": "jti",
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=60),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
 # Celery settings
@@ -215,16 +241,14 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Cache settings
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.dummy.DummyCache"
-        # "BACKEND": "django_redis.cache.RedisCache",
-        # "LOCATION": os.environ.get("REDIS_URL", "redis://localhost:6379/1"),
-        # "OPTIONS": {
-        #     "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        #     # "PARSER_CLASS": "redis.connection.HiredisParser",
-        # },
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": os.path.join(BASE_DIR, "cache"),
+        "TIMEOUT": 300,
+        "OPTIONS": {"MAX_ENTRIES": 1000},
     }
 }
 
@@ -297,6 +321,11 @@ LOGGING = {
             "handlers": ["console", "file"],
             "level": "INFO",
             "propagate": True,
+        },
+        "audit": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }

@@ -5,6 +5,7 @@ __pycache__/
 
 # Distribution
 venv/
+config/cache/
 logs/
 # Environments
 .env

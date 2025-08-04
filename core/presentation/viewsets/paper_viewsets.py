@@ -1,9 +1,17 @@
-from core.presentation.viewsets.standard_pagination import StandardResultsSetPagination
+from core.presentation.permissions import (
+    CanViewPapers,
+    CanEditPapers,
+    CanCreatePapers,
+    CanDeletePapers,
+    IsAdmin,
+    IsEditor,
+    IsViewer,
+)
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
@@ -13,7 +21,6 @@ from core.application.dtos.input_dtos import (
     ScraperUrlInputDTO,
 )
 from core.presentation.serializers.paper_serializers import (
-    ArticleSerializer,
     ArticleStatementsSerializer,
     ArticleWrapperSerializer,
     JournalSerializer,
@@ -66,12 +73,27 @@ class PaperViewSet(viewsets.GenericViewSet):
 
         return action_serializer_map.get(self.action, PaperSerializer)
 
-    def get_serializer(self, *args, **kwargs):
-        """
-        Return the serializer instance for the current action.
+    # def get_permissions(self):
+    #     if self.action in [
+    #         "get_articles",
+    #         "get_authors",
+    #         "get_concepts",
+    #         "get_statements",
+    #         "get_article_by_id",
+    #     ]:
+    #         # permission_classes = [CanViewPapers]
+    #         permission_classes = [AllowAny]
+    #     elif self.action in ["add_article_with_url", "add_all_papers"]:
+    #         permission_classes = [IsAuthenticated, CanCreatePapers]
+    #     elif self.action in ["update_article"]:
+    #         permission_classes = [IsAuthenticated, CanEditPapers]
+    #     elif self.action in ["delete_article"]:
+    #         permission_classes = [IsAuthenticated, CanDeletePapers]
+    #     else:
+    #         permission_classes = [IsAuthenticated]
+    #     return [permission() for permission in permission_classes]
 
-        This method is required for OpenAPI schema generation.
-        """
+    def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
         kwargs.setdefault("context", self.get_serializer_context())
         return serializer_class(*args, **kwargs)
