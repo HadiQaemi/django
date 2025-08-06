@@ -406,7 +406,7 @@ class PaperServiceImpl(PaperServiceInterface):
         implements = []
         for implement_statement in implement_statements:
             implements.append(
-                f"{os.environ.get('DOMAIN_NAME')}{implement_statement.source_code.url}"
+                f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{implement_statement.source_code.url}"
                 if implement_statement.source_code
                 else implement_statement.url
             )
@@ -451,7 +451,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     has_expressions.append(
                         {
                             "label": has_expression.label,
-                            "source_url": f"{os.environ.get('DOMAIN_NAME')}{has_expression.source_image.url}"
+                            "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_expression.source_image.url}"
                             if has_expression.source_image
                             else has_expression.source_url,
                         }
@@ -467,7 +467,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 has_inputs.append(
                     {
                         "label": has_input.label,
-                        "source_url": f"{os.environ.get('DOMAIN_NAME')}{has_input.source_file.url}"
+                        "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_input.source_file.url}"
                         if has_input.source_file
                         else has_input.source_url,
                         "comment": has_input.comment,
@@ -490,7 +490,7 @@ class PaperServiceImpl(PaperServiceInterface):
                     has_expressions.append(
                         {
                             "label": has_expression.label,
-                            "source_url": f"{os.environ.get('DOMAIN_NAME')}{has_expression.source_image.url}"
+                            "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_expression.source_image.url}"
                             if has_expression.source_image
                             else has_expression.source_url,
                         }
@@ -506,7 +506,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 has_outputs.append(
                     {
                         "label": has_output.label,
-                        "source_url": f"{os.environ.get('DOMAIN_NAME')}{has_output.source_file.url}"
+                        "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_output.source_file.url}"
                         if has_output.source_file
                         else has_output.source_url,
                         "comment": has_output.comment,
