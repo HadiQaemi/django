@@ -39,11 +39,18 @@ class SQLAuthorRepository(AuthorRepository):
         #     logger.error(f"Error in find_by_name: {str(e)}")
         #     raise DatabaseError(f"Failed to find authors: {str(e)}")
 
-    def get_count_all(self) -> any:
-        """Find authors by name."""
-        print("-------get_count_all-------", __file__)
+    def get_count_all(self, research_fields=None) -> any:
         try:
-            return AuthorModel.objects.count()
+            if not research_fields:
+                return AuthorModel.objects.count()
+            else:
+                return (
+                    AuthorModel.objects.filter(
+                        articles__research_fields__in=research_fields
+                    )
+                    .distinct()
+                    .count()
+                )
 
         except Exception as e:
             logger.error(f"Error in count all authors: {str(e)}")

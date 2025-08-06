@@ -741,7 +741,7 @@ class PaperViewSet(viewsets.GenericViewSet):
                 # "https://service.tib.eu/ldmservice/dataset/thiessen-2023-2",
                 "https://service.tib.eu/ldmservice/dataset/thiessen-2023-2-tmp",
                 "https://service.tib.eu/ldmservice/dataset/bertuolgarcia-2023-1",
-                "https://service.tib.eu/ldmservice/dataset/snyder-2020-1-1",
+                # "https://service.tib.eu/ldmservice/dataset/snyder-2020-1-1",
             ]
 
             results = []

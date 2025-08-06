@@ -38,11 +38,18 @@ class SQLJournalRepository(JournalRepository):
             logger.error(f"Error in get_academic_publishers_by_name: {str(e)}")
             raise DatabaseError(f"Failed to find academic publishers: {str(e)}")
 
-    def get_count_all(self) -> any:
-        """Find authors by name."""
-        print("-------get_count_all-------", __file__)
+    def get_count_all(self, research_fields=None) -> any:
         try:
-            return JournalConferenceModel.objects.count()
+            if not research_fields:
+                return JournalConferenceModel.objects.count()
+            else:
+                return (
+                    JournalConferenceModel.objects.filter(
+                        research_fields__in=research_fields
+                    )
+                    .distinct()
+                    .count()
+                )
 
         except Exception as e:
             logger.error(f"Error in count all journals: {str(e)}")

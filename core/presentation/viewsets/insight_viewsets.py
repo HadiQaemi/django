@@ -44,41 +44,14 @@ class InsightViewSet(viewsets.GenericViewSet):
     @swagger_auto_schema(manual_parameters=[])
     def get_research_insights(self, request: Request) -> Response:
         try:
-            return Response({"items": self.insight_service.get_research_insights()})
+            research_field = request.query_params.getlist("research_fields")
+            return Response(
+                {"items": self.insight_service.get_research_insights(research_field)}
+            )
 
         except Exception as e:
             logger.error(f"Error in get research insights: {str(e)}")
             return Response(
                 {"error": "Failed to perform get research insights"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    @swagger_auto_schema(manual_parameters=[])
-    def get_research_concepts(self, request: Request) -> Response:
-        try:
-            research_field = request.query_params.getlist("research_fields")
-            return Response(self.insight_service.get_research_concepts(research_field))
-
-        except Exception as e:
-            logger.error(f"Error in get research concepts: {str(e)}")
-            return Response(
-                {"error": "Failed to perform get research concepts"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["get"])
-    @swagger_auto_schema(manual_parameters=[])
-    def get_research_components(self, request: Request) -> Response:
-        try:
-            research_field = request.query_params.getlist("research_fields")
-            return Response(
-                self.insight_service.get_research_components(research_field)
-            )
-
-        except Exception as e:
-            logger.error(f"Error in get research components: {str(e)}")
-            return Response(
-                {"error": "Failed to perform get research components"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

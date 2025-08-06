@@ -88,11 +88,16 @@ class SQLPaperRepository(PaperRepository):
         #     logger.error(f"Error in find_all: {str(e)}")
         #     raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
 
-    def get_count_all(self) -> any:
-        """Find authors by name."""
-        print("-------get_count_all-------", __file__)
+    def get_count_all(self, research_fields=None) -> any:
         try:
-            return ArticleModel.objects.count()
+            if not research_fields:
+                return ArticleModel.objects.count()
+            else:
+                return (
+                    ArticleModel.objects.filter(research_fields__in=research_fields)
+                    .distinct()
+                    .count()
+                )
 
         except Exception as e:
             logger.error(f"Error in count all articles: {str(e)}")

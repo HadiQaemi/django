@@ -37,7 +37,6 @@ class SQLConceptRepository(ConceptRepository):
             raise DatabaseError(f"Failed to find authors: {str(e)}")
 
     def get_count_all(self) -> any:
-        """Find authors by name."""
         print("-------get_count_all-------", __file__)
         try:
             return ConceptModel.objects.count()

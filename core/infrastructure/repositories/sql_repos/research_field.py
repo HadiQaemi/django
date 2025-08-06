@@ -1,11 +1,15 @@
 from typing import List
 import logging
-from core.application.interfaces.repositories.research_field import ResearchFieldRepository
+from core.application.interfaces.repositories.research_field import (
+    ResearchFieldRepository,
+)
 from core.domain.entities import ResearchField
 from core.domain.exceptions import DatabaseError
 from core.infrastructure.repositories.sql_repos_helper import generate_static_id
 from core.infrastructure.models.sql_models import ResearchField as ResearchFieldModel
+
 logger = logging.getLogger(__name__)
+
 
 class SQLResearchFieldRepository(ResearchFieldRepository):
     """PostgreSQL implementation of the ResearchField repository."""
@@ -33,17 +37,15 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
         except Exception as e:
             logger.error(f"Error in get_research_fields_by_name: {str(e)}")
             raise DatabaseError(f"Failed to find research fields by name: {str(e)}")
-    
+
     def get_count_all(self) -> any:
-        """Find authors by name."""
-        print("-------get_count_all-------", __file__)
         try:
             return ResearchFieldModel.objects.count()
 
         except Exception as e:
             logger.error(f"Error in count all research_field: {str(e)}")
             raise DatabaseError(f"Failed to count all research_field: {str(e)}")
-    
+
     def find_by_label(self, label: str) -> List[ResearchField]:
         """Find research fields by label."""
         try:

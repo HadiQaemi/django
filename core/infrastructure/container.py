@@ -7,6 +7,7 @@ from core.application.interfaces.repositories.author import AuthorRepository
 from core.application.interfaces.repositories.cache import CacheRepository
 from core.application.interfaces.repositories.concept import ConceptRepository
 from core.application.interfaces.repositories.journal import JournalRepository
+from core.application.interfaces.repositories.insight import InsightRepository
 from core.application.interfaces.repositories.paper import PaperRepository
 from core.application.interfaces.repositories.research_field import (
     ResearchFieldRepository,
@@ -25,6 +26,7 @@ from core.infrastructure.repositories.search_repos import SearchRepositoryImpl
 from core.infrastructure.repositories.sql_repos.author import SQLAuthorRepository
 from core.infrastructure.repositories.sql_repos.concept import SQLConceptRepository
 from core.infrastructure.repositories.sql_repos.journal import SQLJournalRepository
+from core.infrastructure.repositories.sql_repos.insight import SQLInsightRepository
 from core.infrastructure.repositories.sql_repos.paper import SQLPaperRepository
 from core.infrastructure.repositories.sql_repos.research_field import (
     SQLResearchFieldRepository,
@@ -54,6 +56,7 @@ class Container:
             ConceptRepository: SQLConceptRepository,
             ResearchFieldRepository: SQLResearchFieldRepository,
             JournalRepository: SQLJournalRepository,
+            InsightRepository: SQLInsightRepository,
             CacheRepository: SQLCacheRepository,
             SearchRepository: SearchRepositoryImpl,
         }
@@ -76,6 +79,7 @@ class Container:
                         ConceptRepository: SQLConceptRepository,
                         ResearchFieldRepository: SQLResearchFieldRepository,
                         JournalRepository: SQLJournalRepository,
+                        InsightRepository: SQLInsightRepository,
                         CacheRepository: SQLCacheRepository,
                     }
                 )

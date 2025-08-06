@@ -1,4 +1,3 @@
-
 from datetime import datetime
 import logging
 from typing import List, Optional, Tuple
@@ -16,7 +15,9 @@ from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.db.models import F, Case, When
 
 from core.infrastructure.repositories.sql_repos_helper import generate_static_id
+
 logger = logging.getLogger(__name__)
+
 
 class SQLStatementRepository(StatementRepository):
     """PostgreSQL implementation of the Statement repository."""
@@ -43,16 +44,23 @@ class SQLStatementRepository(StatementRepository):
             logger.error(f"Error in find_all: {str(e)}")
             raise DatabaseError(f"Failed to retrieve statements: {str(e)}")
 
-    def get_count_all(self) -> any:
-        """Find authors by name."""
-        print("-------get_count_all-------", __file__)
+    def get_count_all(self, research_fields=None) -> any:
         try:
-            return StatementModel.objects.count()
+            if not research_fields:
+                return StatementModel.objects.count()
+            else:
+                return (
+                    StatementModel.objects.filter(
+                        article__research_fields__in=research_fields
+                    )
+                    .distinct()
+                    .count()
+                )
 
         except Exception as e:
             logger.error(f"Error in count all statements: {str(e)}")
             raise DatabaseError(f"Failed to count all statements: {str(e)}")
-        
+
     def find_paper_with_statement_details(
         self, statement_id: str
     ) -> Optional[Statement]:
