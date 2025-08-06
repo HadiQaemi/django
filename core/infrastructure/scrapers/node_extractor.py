@@ -12,7 +12,8 @@ from urllib.parse import urlparse
 from django.core.files.base import ContentFile
 
 logger = logging.getLogger(__name__)
-
+mimetypes.add_type('application/x-python', '.py')
+mimetypes.add_type('text/x-r', '.r')
 
 class NodeExtractor:
     def __init__(self):
