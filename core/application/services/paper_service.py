@@ -1,5 +1,6 @@
 import logging
 import math
+import os
 from typing import List, Dict, Any, Optional
 from django.core.cache import cache
 from django.utils.timezone import localtime
@@ -404,7 +405,11 @@ class PaperServiceImpl(PaperServiceInterface):
         implement_statements = statement.implement_statements.all()
         implements = []
         for implement_statement in implement_statements:
-            implements.append(implement_statement.url)
+            implements.append(
+                f"{os.environ.get('DOMAIN_NAME')}{implement_statement.source_code.url}"
+                if implement_statement.source_code
+                else implement_statement.url
+            )
         for data_type_statement in statement.data_type_statement.all():
             executes = []
             for software_method in data_type_statement.executes.all():
@@ -446,7 +451,9 @@ class PaperServiceImpl(PaperServiceInterface):
                     has_expressions.append(
                         {
                             "label": has_expression.label,
-                            "source_url": has_expression.source_url,
+                            "source_url": f"{os.environ.get('DOMAIN_NAME')}{has_expression.source_image.url}"
+                            if has_expression.source_image
+                            else has_expression.source_url,
                         }
                     )
                 has_parts = []
@@ -460,7 +467,9 @@ class PaperServiceImpl(PaperServiceInterface):
                 has_inputs.append(
                     {
                         "label": has_input.label,
-                        "source_url": has_input.source_url,
+                        "source_url": f"{os.environ.get('DOMAIN_NAME')}{has_input.source_file.url}"
+                        if has_input.source_file
+                        else has_input.source_url,
                         "comment": has_input.comment,
                         "source_table": has_input.source_table,
                         "has_characteristic": has_characteristic,
@@ -481,7 +490,9 @@ class PaperServiceImpl(PaperServiceInterface):
                     has_expressions.append(
                         {
                             "label": has_expression.label,
-                            "source_url": has_expression.source_url,
+                            "source_url": f"{os.environ.get('DOMAIN_NAME')}{has_expression.source_image.url}"
+                            if has_expression.source_image
+                            else has_expression.source_url,
                         }
                     )
                 has_parts = []
@@ -495,7 +506,9 @@ class PaperServiceImpl(PaperServiceInterface):
                 has_outputs.append(
                     {
                         "label": has_output.label,
-                        "source_url": has_output.source_url,
+                        "source_url": f"{os.environ.get('DOMAIN_NAME')}{has_output.source_file.url}"
+                        if has_output.source_file
+                        else has_output.source_url,
                         "comment": has_output.comment,
                         "source_table": has_output.source_table,
                         "has_characteristic": has_characteristic,
@@ -1203,26 +1216,27 @@ class PaperServiceImpl(PaperServiceInterface):
 
     def extract_paper(self, url_dto: ScraperUrlInputDTO) -> CommonResponseDTO:
         # """Extract a paper from a URL."""
-        # try:
-        url = str(url_dto.url)
-        self.scraper.set_url(url)
-        json_files = self.scraper.all_json_files()
-        ro_crate = self.scraper.load_json_from_url(json_files["ro-crate-metadata.json"])
-        # print(json_files)
-        self.paper_repository.add_article(ro_crate, json_files)
-        # Invalidate relevant caches
-        # cache.delete_pattern("all_papers_*")
-        # cache.delete_pattern("latest_articles_*")
+        try:
+            url = str(url_dto.url)
+            self.scraper.set_url(url)
+            json_files = self.scraper.all_json_files()
+            ro_crate = self.scraper.load_json_from_url(
+                json_files["ro-crate-metadata.json"]
+            )
+            self.paper_repository.add_article(ro_crate, json_files)
+            # Invalidate relevant caches
+            # cache.delete_pattern("all_papers_*")
+            # cache.delete_pattern("latest_articles_*")
 
-        return CommonResponseDTO(
-            success=True, message="Paper extracted and saved successfully"
-        )
+            return CommonResponseDTO(
+                success=True, message="Paper extracted and saved successfully"
+            )
 
-    # except Exception as e:
-    #     logger.error(f"Error in extract_paper: {str(e)}")
-    #     return CommonResponseDTO(
-    #         success=False, message=f"Failed to extract paper ssss: {str(e)}"
-    #     )
+        except Exception as e:
+            logger.error(f"Error in extract_paper: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to extract paper ssss: {str(e)}"
+            )
 
     def delete_database(self) -> CommonResponseDTO:
         """Delete the database."""

@@ -411,6 +411,7 @@ class JournalConference(TimeStampedModel):
 class Article(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, null=True)
+    ro_crate = models.FileField(upload_to="ro_crate_files/", null=True, blank=True)
     article_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
     name = models.CharField(max_length=255)
@@ -511,6 +512,7 @@ class Statement(TimeStampedModel):
     version = models.CharField(max_length=255, null=True)
     encodingFormat = models.CharField(max_length=255, null=True)
     name = models.CharField(max_length=255, null=True)
+    json_ld = models.FileField(upload_to="json_ld_files/", null=True, blank=True)
     label = models.CharField(null=True, blank=True)
     article = models.ForeignKey(
         Article,
@@ -557,6 +559,7 @@ class Statement(TimeStampedModel):
 class Implement(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     url = models.TextField(null=True, blank=True)
+    source_code = models.FileField(upload_to='source_code_files/', null=True, blank=True)
     statement = models.ForeignKey(
         Statement,
         on_delete=models.CASCADE,
@@ -644,6 +647,7 @@ class Figure(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     label = models.TextField(null=True, blank=True)
     source_url = models.TextField(null=True, blank=True)
+    source_image = models.ImageField(upload_to="image_files/", null=True, blank=True)
 
     class Meta:
         db_table = "figures"
@@ -661,6 +665,7 @@ class DataItem(TimeStampedModel):
     source_url = models.TextField(null=True, blank=True)
     comment = models.TextField(null=True, blank=True)
     source_table = JSONField(null=True, blank=True)
+    source_file = models.FileField(upload_to="dataset_files/", null=True, blank=True)
     has_characteristic = models.ForeignKey(
         MartixSize,
         on_delete=models.CASCADE,

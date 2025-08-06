@@ -903,6 +903,10 @@ class SQLPaperRepository(PaperRepository):
                 "paper_type": "conference" if conference_id else "journal",
             },
         )
+        filename, content_file, mime_type = self.scraper.get_file_content_and_type(
+            json_files["ro-crate-metadata.json"]
+        )
+        article.ro_crate.save(filename, content_file, save=True)
         article.articleauthor_set.all().delete()
         for index, author in enumerate(authors):
             article.authors.add(author, through_defaults={"order": index + 1})
@@ -964,6 +968,10 @@ class SQLPaperRepository(PaperRepository):
                     "encodingFormat": statement_item["encodingFormat"],
                 },
             )
+            filename, content_file, mime_type = self.scraper.get_file_content_and_type(
+                json_files[statement_item.get("name", "")]
+            )
+            statement.json_ld.save(filename, content_file, save=True)
             if not created:
                 statement.implement_statements.all().delete()
                 statement.has_part_statements.all().delete()
@@ -1058,6 +1066,13 @@ class SQLPaperRepository(PaperRepository):
                                 "url": statement_content[p],
                             },
                         )
+                        filename, content_file, mime_type = (
+                            self.scraper.get_file_content_and_type(statement_content[p])
+                        )
+                        if mime_type:
+                            implement.source_code.save(
+                                filename, content_file, save=True
+                            )
                     elif p.endswith("#has_part"):
                         # print("#has_part")
                         has_parts = statement_content[p]
@@ -1071,8 +1086,6 @@ class SQLPaperRepository(PaperRepository):
                             label_items = [
                                 item for item in _info["property"] if "#label" in item
                             ]
-                            print("------------statement_id-----------")
-
                             HasPartModel.objects.update_or_create(
                                 label=statement_content_item[label_items[0]]
                                 if label_items[0] in statement_content_item
@@ -1208,6 +1221,12 @@ class SQLPaperRepository(PaperRepository):
                                                     "source_url",
                                                 )
                                             )
+                                            filename, content_file, mime_type = (
+                                                self.scraper.get_file_content_and_type(
+                                                    has_expression_source_url
+                                                )
+                                            )
+
                                             figure, created = (
                                                 FigureModel.objects.update_or_create(
                                                     source_url=has_expression_source_url,
@@ -1218,8 +1237,10 @@ class SQLPaperRepository(PaperRepository):
                                                     },
                                                 )
                                             )
+                                            figure.source_image.save(
+                                                filename, content_file, save=True
+                                            )
                                             has_expressions.append(figure.id)
-
                                         data_item, created = (
                                             DataItemModel.objects.update_or_create(
                                                 label=has_output_label,
@@ -1236,6 +1257,16 @@ class SQLPaperRepository(PaperRepository):
                                                 },
                                             )
                                         )
+                                        if has_output_source_url:
+                                            filename, content_file, mime_type = (
+                                                self.scraper.get_file_content_and_type(
+                                                    has_output_source_url
+                                                )
+                                            )
+                                            if mime_type:
+                                                data_item.source_file.save(
+                                                    filename, content_file, save=True
+                                                )
                                         if has_expressions:
                                             data_item.has_expression.set(
                                                 has_expressions
@@ -1381,6 +1412,16 @@ class SQLPaperRepository(PaperRepository):
                                                 },
                                             )
                                         )
+                                        if has_input_source_url:
+                                            filename, content_file, mime_type = (
+                                                self.scraper.get_file_content_and_type(
+                                                    has_input_source_url
+                                                )
+                                            )
+                                            if mime_type:
+                                                data_item.source_file.save(
+                                                    filename, content_file, save=True
+                                                )
                                         if has_expressions:
                                             data_item.has_expression.set(
                                                 has_expressions
@@ -1933,7 +1974,6 @@ class SQLPaperRepository(PaperRepository):
                     # )
                 else:
                     print("no", p)
-            print("**********statement_content**********")
 
         # Add to search index
         article_data = [

@@ -1,7 +1,10 @@
 import requests
 import logging
 from typing import Dict, Any
+import uuid
 from datetime import datetime, timedelta
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from core.application.interfaces.repositories.cache import CacheRepository
 from core.domain.exceptions import ExternalServiceError
@@ -20,10 +23,24 @@ class TypeRegistryClient:
         self.base_url = base_url
         self.cache_repository = cache_repository
         self.cache_ttl_days = cache_ttl_days
-        self.session = requests.Session()
-        self.session.headers.update(
-            {"Accept": "application/json", "User-Agent": "REBORN-API/1.0"}
+        # self.session = requests.Session()
+        # self.session.headers.update(
+        #     {"Accept": "application/json", "User-Agent": "REBORN-API/1.0"}
+        # )
+        self.session = self._init_session_with_retries()
+
+    def _init_session_with_retries(self) -> requests.Session:
+        session = requests.Session()
+        retry_strategy = Retry(
+            total=3,
+            status_forcelist=[502, 503, 504],
+            allowed_methods=["GET"],
+            backoff_factor=2,
         )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        return session
 
     def get_type_info(self, type_id: str) -> Dict[str, Any]:
         cached_data = self.cache_repository.get_schema_by_type_id(type_id)
@@ -63,12 +80,22 @@ class TypeRegistryClient:
     def _fetch_from_api(self, type_id: str) -> Dict[str, Any]:
         try:
             url = f"{self.base_url}/objects/21.T11969/{type_id}"
-            logger.info(f"Fetching type information from: {url}")
+            request_id = str(uuid.uuid4())
+            headers = {"X-Request-ID": request_id}
 
-            response = self.session.get(url, timeout=30)
+            logger.info(f"[{request_id}] Fetching type information from: {url}")
+
+            response = self.session.get(url, headers=headers, timeout=30)
             response.raise_for_status()
 
             return response.json()
+            # url = f"{self.base_url}/objects/21.T11969/{type_id}"
+            # logger.info(f"Fetching type information from: {url}")
+
+            # response = self.session.get(url, timeout=30)
+            # response.raise_for_status()
+
+            # return response.json()
 
         except requests.RequestException as e:
             error_message = f"Error fetching type information for {type_id}: {str(e)}"

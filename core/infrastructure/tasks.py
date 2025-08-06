@@ -12,15 +12,6 @@ logger = logging.getLogger(__name__)
 
 @shared_task(name="extract_paper_task")
 def extract_paper_task(url: str) -> Dict[str, Any]:
-    """
-    Extract a paper from a URL in the background.
-
-    Args:
-        url (str): The URL to extract the paper from.
-
-    Returns:
-        Dict[str, Any]: The result of the operation.
-    """
     try:
         logger.info(f"Starting paper extraction from URL: {url}")
 
@@ -52,15 +43,6 @@ def extract_paper_task(url: str) -> Dict[str, Any]:
 
 @shared_task(name="batch_extract_papers_task")
 def batch_extract_papers_task(urls: List[str]) -> Dict[str, Any]:
-    """
-    Extract multiple papers from URLs in the background.
-
-    Args:
-        urls (List[str]): The URLs to extract papers from.
-
-    Returns:
-        Dict[str, Any]: The result of the operation.
-    """
     results = []
     success_count = 0
     failure_count = 0
@@ -98,12 +80,6 @@ def batch_extract_papers_task(urls: List[str]) -> Dict[str, Any]:
 
 @shared_task(name="scheduled_data_backup_task")
 def scheduled_data_backup_task() -> Dict[str, Any]:
-    """
-    Perform a scheduled backup of the database.
-
-    Returns:
-        Dict[str, Any]: The result of the operation.
-    """
     try:
         logger.info("Starting scheduled data backup")
 
@@ -128,15 +104,6 @@ def scheduled_data_backup_task() -> Dict[str, Any]:
 
 @shared_task(name="cleanup_old_data_task")
 def cleanup_old_data_task(days: int = 30) -> Dict[str, Any]:
-    """
-    Clean up old temporary data from the database.
-
-    Args:
-        days (int): The number of days to keep data for.
-
-    Returns:
-        Dict[str, Any]: The result of the operation.
-    """
     try:
         logger.info(f"Starting cleanup of old data (older than {days} days)")
 
