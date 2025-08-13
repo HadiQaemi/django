@@ -13,6 +13,7 @@ from core.application.dtos.input_dtos import (
 import logging
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.renderers import JSONRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class AutoCompleteViewSet(viewsets.GenericViewSet):
     pagination_class = None
     queryset = []
     serializer_class = None
+    renderer_classes = [JSONRenderer]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

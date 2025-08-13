@@ -1,4 +1,3 @@
-from core.presentation.viewsets.standard_pagination import StandardResultsSetPagination
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -13,7 +12,6 @@ from core.application.dtos.input_dtos import (
     ScraperUrlInputDTO,
 )
 from core.presentation.serializers.paper_serializers import (
-    ArticleSerializer,
     ArticleStatementsSerializer,
     ArticleWrapperSerializer,
     JournalSerializer,
@@ -30,6 +28,7 @@ from core.presentation.serializers.paper_serializers import (
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 import logging
+from rest_framework.renderers import JSONRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +38,7 @@ class PaperViewSet(viewsets.GenericViewSet):
     pagination_class = None
     queryset = []
     serializer_class = PaperSerializer
+    renderer_classes = [JSONRenderer]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

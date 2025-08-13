@@ -5,8 +5,10 @@ from django.conf.urls.static import static
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.urls import re_path
 
-# Simplified Swagger schema view
+from core.presentation.api.v1.views import custom_serve_media
+
 schema_view = get_schema_view(
     openapi.Info(
         title="REBORN API",
@@ -21,11 +23,9 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # API versions
     path(
         "api/v1/", include(("core.presentation.api.v1.urls", "api_v1"), namespace="v1")
     ),
-    # Simplified API documentation paths
     path(
         "api/swagger/",
         schema_view.with_ui("swagger", cache_timeout=0),
@@ -35,17 +35,19 @@ urlpatterns = [
         "api/redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"
     ),
 ]
+urlpatterns += [
+    re_path(r"^media/(?P<path>.*)$", custom_serve_media),
+]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-# Debug toolbar, static files, etc.
-if settings.DEBUG:
-    # Add debug toolbar URLs
-    import debug_toolbar
+# if settings.DEBUG:
+# Add debug toolbar URLs
+# import debug_toolbar
 
-    urlpatterns += [
-        path("__debug__/", include(debug_toolbar.urls)),
-    ]
+# urlpatterns += [
+#     path("__debug__/", include(debug_toolbar.urls)),
+# ]
 
-    # Add static/media serving
-    from django.conf.urls.static import static
+# Add static/media serving
+# from django.conf.urls.static import static
 
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

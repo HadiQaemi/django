@@ -72,12 +72,6 @@ class PaperServiceImpl(PaperServiceInterface):
 
         # try:
         papers, total = self.paper_repository.find_all(page, page_size)
-        print("----------papers----------", __file__)
-        # print(papers[0].id)
-        # print(papers[0].name)
-        # print(papers[0].authors)
-        # print(papers[0])
-        # print("----------papers----------", __file__)
         result = PaginatedResponseDTO(
             content=[self._map_paper_to_dto(paper) for paper in papers],
             total_elements=total,
@@ -326,18 +320,6 @@ class PaperServiceImpl(PaperServiceInterface):
                 "has_previous": has_previous,
             }
         )
-
-        # print("----------result--of---paper_repository.query_papers---------")
-        # print(papers)
-        # # Group articles by ID
-        # grouped_data = {}
-        # for paper in papers:
-        #     if paper.id not in grouped_data:
-        #         grouped_data[paper.id] = self._map_paper_to_dto(paper)
-
-        # return CommonResponseDTO(
-        #     success=True, result=grouped_data, total_count=total
-        # )
 
         # except Exception as e:
         #     logger.error(f"Error in query_data: {str(e)}")

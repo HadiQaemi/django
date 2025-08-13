@@ -8,7 +8,7 @@ from core.presentation.serializers.paper_serializers import (
 )
 from core.infrastructure.container import Container
 from drf_yasg.utils import swagger_auto_schema
-
+from rest_framework.renderers import JSONRenderer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ class InsightViewSet(viewsets.GenericViewSet):
     pagination_class = None
     queryset = []
     serializer_class = None
+    renderer_classes = [JSONRenderer]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
