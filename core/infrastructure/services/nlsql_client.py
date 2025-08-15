@@ -80,8 +80,8 @@ class NLSQLClientService:
     def _get_db_connection(self):
         """Get or create DuckDB connection"""
         if self.db_conn is None:
-            # self.db_conn = duckdb.connect(":memory:")
-            self.db_conn = duckdb.connect(self.db_path)
+            self.db_conn = duckdb.connect(":memory:")
+            # self.db_conn = duckdb.connect(self.db_path)
             self.db_conn.execute("SET memory_limit='2GB'")
             self.db_conn.execute("SET threads=4")
         return self.db_conn
