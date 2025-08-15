@@ -41,6 +41,7 @@ djongo
 dnspython
 dparse
 drf-yasg
+duckdb
 elastic-transport
 elasticsearch
 executing
@@ -78,6 +79,7 @@ networkx
 nltk
 numpy
 packaging
+pandas
 parso
 pathspec
 pbr
