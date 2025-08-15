@@ -1,3 +1,5 @@
+import os
+from django.conf import settings
 from django.db import models
 from django.db.models import JSONField
 from django.contrib.postgres.fields import ArrayField
@@ -5,6 +7,43 @@ from django.utils.translation import gettext_lazy as _
 from polymorphic.models import PolymorphicModel
 from django.contrib.postgres.search import SearchVectorField, SearchVector
 from django.contrib.postgres.indexes import GinIndex
+
+from django.db.models.signals import post_save, post_migrate
+from django.dispatch import receiver
+from django.contrib.contenttypes.models import ContentType
+
+
+@receiver(post_save)
+def fix_polymorphic_ctype(sender, instance, created, **kwargs):
+    """Auto-fix polymorphic_ctype when objects are saved"""
+    if hasattr(instance, "polymorphic_ctype") and hasattr(sender, "_meta"):
+        try:
+            # Get correct ContentType
+            correct_ct = ContentType.objects.get_for_model(sender)
+
+            # Fix if wrong or missing
+            if instance.polymorphic_ctype != correct_ct:
+                sender.objects.filter(pk=instance.pk).update(
+                    polymorphic_ctype=correct_ct
+                )
+        except Exception:
+            pass  # Silently fail to avoid breaking other operations
+
+
+@receiver(post_migrate)
+def ensure_contenttypes_exist(sender, **kwargs):
+    """Ensure ContentTypes exist for all polymorphic models after migration"""
+    if sender.name in ["core", "core.infrastructure"]:
+        from django.apps import apps
+
+        for model in apps.get_models(sender):
+            if hasattr(model, "polymorphic_ctype"):
+                try:
+                    ContentType.objects.get_or_create(
+                        app_label=model._meta.app_label, model=model._meta.model_name
+                    )
+                except Exception:
+                    pass
 
 
 class TimeStampedModel(models.Model):
@@ -556,10 +595,19 @@ class Statement(TimeStampedModel):
         return self.name
 
 
+def implement_source_code_upload_path(instance, filename):
+    if instance.statement and instance.statement.statement_id:
+        return f"files/{instance.statement.statement_id}/{filename}"
+    else:
+        return f"files/no_statement/{filename}"
+
+
 class Implement(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     url = models.TextField(null=True, blank=True)
-    source_code = models.FileField(upload_to='source_code_files/', null=True, blank=True)
+    source_code = models.FileField(
+        upload_to=implement_source_code_upload_path, null=True, blank=True
+    )
     statement = models.ForeignKey(
         Statement,
         on_delete=models.CASCADE,
@@ -643,11 +691,34 @@ class DataItemComponent(TimeStampedModel):
         return self.label
 
 
+def figure_source_image_upload_path_alternative(instance, filename):
+    try:
+        if instance and instance.statement_id:
+            upload_path = f"files/{instance.statement_id}/{filename}"
+        else:
+            upload_path = f"files/no_statement/{filename}"
+
+        full_target_path = os.path.join(settings.MEDIA_ROOT, upload_path)
+        if os.path.exists(full_target_path):
+            try:
+                os.remove(full_target_path)
+                print(f"Deleted existing file at target location: {full_target_path}")
+            except Exception as e:
+                print(f"Error deleting existing file at target location: {e}")
+
+        return upload_path
+    except Exception:
+        return f"files/no_statement/{filename}"
+
+
 class Figure(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     label = models.TextField(null=True, blank=True)
     source_url = models.TextField(null=True, blank=True)
-    source_image = models.ImageField(upload_to="image_files/", null=True, blank=True)
+    source_image = models.ImageField(
+        upload_to=figure_source_image_upload_path_alternative, null=True, blank=True
+    )
+    statement_id = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = "figures"
@@ -659,13 +730,33 @@ class Figure(TimeStampedModel):
         return self.label
 
 
+def dataitem_source_file_upload_path(instance, filename):
+    if instance and instance.statement_id:
+        upload_path = f"files/{instance.statement_id}/{filename}"
+    else:
+        upload_path = f"files/no_statement/{filename}"
+
+    full_target_path = os.path.join(settings.MEDIA_ROOT, upload_path)
+    if os.path.exists(full_target_path):
+        try:
+            os.remove(full_target_path)
+            print(f"Deleted existing file at target location: {full_target_path}")
+        except Exception as e:
+            print(f"Error deleting existing file at target location: {e}")
+
+    return upload_path
+
+
 class DataItem(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     label = models.TextField(null=True, blank=True)
     source_url = models.TextField(null=True, blank=True)
     comment = models.TextField(null=True, blank=True)
+    statement_id = models.TextField(null=True, blank=True)
     source_table = JSONField(null=True, blank=True)
-    source_file = models.FileField(upload_to="dataset_files/", null=True, blank=True)
+    source_file = models.FileField(
+        upload_to=dataitem_source_file_upload_path, null=True, blank=True
+    )
     has_characteristic = models.ForeignKey(
         MartixSize,
         on_delete=models.CASCADE,

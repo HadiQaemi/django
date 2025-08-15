@@ -1,3 +1,4 @@
+import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 from core.application.interfaces.repositories.paper import PaperRepository
@@ -1069,9 +1070,82 @@ class SQLPaperRepository(PaperRepository):
                         filename, content_file, mime_type = (
                             self.scraper.get_file_content_and_type(statement_content[p])
                         )
+
+                        def process_source_code_content_flexible(
+                            content_file, filename, statement_id=None
+                        ):
+                            import re
+                            from django.core.files.base import ContentFile
+                            from django.conf import settings
+                            import os
+
+                            try:
+                                content_file.seek(0)
+                                content = content_file.read()
+
+                                try:
+                                    if isinstance(content, bytes):
+                                        text_content = content.decode("utf-8")
+                                    else:
+                                        text_content = content
+
+                                    csv_link_pattern = (
+                                        r'https://service.tib.eu/[^"\s]*\.csv'
+                                    )
+
+                                    def replace_csv_link(match):
+                                        original_url = match.group(0)
+                                        csv_filename = os.path.basename(original_url)
+                                        domain_url = getattr(
+                                            settings,
+                                            "DOMAIN_URL",
+                                            os.environ.get(
+                                                "DOMAIN_URL", "https://reborn.orkg.org"
+                                            ),
+                                        )
+                                        domain_url = domain_url.rstrip("/")
+                                        if statement_id:
+                                            new_url = f"{domain_url}{settings.MEDIA_URL}files/{statement_id}/{csv_filename}"
+                                        else:
+                                            new_url = f"{domain_url}{settings.MEDIA_URL}files/{csv_filename}"
+                                        return new_url
+
+                                    modified_content = re.sub(
+                                        csv_link_pattern, replace_csv_link, text_content
+                                    )
+
+                                    if modified_content != text_content:
+                                        print(
+                                            f"Modified {filename} - replaced CSV links"
+                                        )
+                                        if isinstance(content, bytes):
+                                            modified_content = modified_content.encode(
+                                                "utf-8"
+                                            )
+                                        return ContentFile(
+                                            modified_content, name=filename
+                                        )
+
+                                except Exception as e:
+                                    print(f"Error processing content: {e}")
+
+                            except Exception as e:
+                                print(f"Error: {e}")
+
+                            content_file.seek(0)
+                            return content_file
+
                         if mime_type:
+                            processed_content_file = (
+                                process_source_code_content_flexible(
+                                    content_file,
+                                    filename,
+                                    statement_id=statement.statement_id,
+                                )
+                            )
+
                             implement.source_code.save(
-                                filename, content_file, save=True
+                                filename, processed_content_file, save=True
                             )
                     elif p.endswith("#has_part"):
                         # print("#has_part")
@@ -1234,6 +1308,7 @@ class SQLPaperRepository(PaperRepository):
                                                     defaults={
                                                         "label": has_expression_label,
                                                         "source_url": has_expression_source_url,
+                                                        "statement_id": statement.statement_id,
                                                     },
                                                 )
                                             )
@@ -1254,6 +1329,7 @@ class SQLPaperRepository(PaperRepository):
                                                     "source_table": has_output_source_table,
                                                     "comment": has_output_comment,
                                                     "has_characteristic": has_characteristic,
+                                                    "statement_id": statement.statement_id,
                                                 },
                                             )
                                         )
@@ -1392,6 +1468,7 @@ class SQLPaperRepository(PaperRepository):
                                                     defaults={
                                                         "label": has_expression_label,
                                                         "source_url": has_expression_source_url,
+                                                        "statement_id": statement.statement_id,
                                                     },
                                                 )
                                             )
@@ -1409,6 +1486,7 @@ class SQLPaperRepository(PaperRepository):
                                                     "source_table": has_input_source_table,
                                                     "comment": has_input_comment,
                                                     "has_characteristic": has_characteristic,
+                                                    "statement_id": statement.statement_id,
                                                 },
                                             )
                                         )

@@ -87,6 +87,13 @@ REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
     "rest_framework.renderers.BrowsableAPIRenderer",
 ]
 
+ENABLE_SWAGGER = os.environ.get("ENABLE_SWAGGER", "false").lower() == "true"
+if ENABLE_SWAGGER:
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ]
+
 # Stricter throttling for production
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
     "anon": "50/day",

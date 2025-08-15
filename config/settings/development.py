@@ -1,5 +1,6 @@
 from .base import *
 
+ENABLE_SWAGGER=True
 DEBUG = False
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "13.40.122.107", "13.40.122.107:8000"]

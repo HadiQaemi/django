@@ -63,7 +63,7 @@ class SQLInsightRepository(InsightRepository):
 
         articles_statements_per_month = [
             {
-                "month": month.strftime("%Y - %B"),
+                "month": month.strftime("%Y - %m"),
                 "article_count": counts["article_count"],
                 "statement_count": counts["statement_count"],
             }
