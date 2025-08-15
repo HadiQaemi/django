@@ -36,6 +36,7 @@ from core.domain.exceptions import (
     DatabaseError,
 )
 from core.infrastructure.scrapers.node_extractor import NodeExtractor
+from core.infrastructure.utils.id_encoder import encode_id
 
 logger = logging.getLogger(__name__)
 
@@ -432,6 +433,8 @@ class PaperServiceImpl(PaperServiceInterface):
                 for has_expression in has_input.has_expression.all():
                     has_expressions.append(
                         {
+                            "source": encode_id(has_expression.id),
+                            "type": "has_expression",
                             "label": has_expression.label,
                             "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_expression.source_image.url}"
                             if has_expression.source_image
@@ -448,6 +451,8 @@ class PaperServiceImpl(PaperServiceInterface):
                     )
                 has_inputs.append(
                     {
+                        "source": encode_id(has_input.id),
+                        "type": "has_input",
                         "label": has_input.label,
                         "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_input.source_file.url}"
                         if has_input.source_file
@@ -471,6 +476,8 @@ class PaperServiceImpl(PaperServiceInterface):
                 for has_expression in has_output.has_expression.all():
                     has_expressions.append(
                         {
+                            "source": encode_id(has_expression.id),
+                            "type": "has_expression",
                             "label": has_expression.label,
                             "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_expression.source_image.url}"
                             if has_expression.source_image
@@ -487,6 +494,8 @@ class PaperServiceImpl(PaperServiceInterface):
                     )
                 has_outputs.append(
                     {
+                        "source": encode_id(has_output.id),
+                        "type": "has_output",
                         "label": has_output.label,
                         "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_output.source_file.url}"
                         if has_output.source_file

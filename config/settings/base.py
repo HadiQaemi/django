@@ -13,6 +13,10 @@ if os.path.exists(env_file):
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
+HASHID_SALT = os.environ.get('HASHID_SALT', 'reborn-api-secure-salt-change-in-production')
+HASHID_MIN_LENGTH = int(os.environ.get('HASHID_MIN_LENGTH', '8'))
+HASHID_ALPHABET = os.environ.get('HASHID_ALPHABET', 'abcdefghijklmnopqrstuvwxyz1234567890')
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-default-key-for-dev")
 

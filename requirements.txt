@@ -51,6 +51,7 @@ filelock
 flake8
 fsspec
 gunicorn
+hashids
 huggingface-hub
 idna
 inflection
