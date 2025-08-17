@@ -45,7 +45,7 @@ class NLSQLClientService:
     def __init__(self):
         # Get NL-SQL service URL from settings or use default
         self.base_url = getattr(
-            settings, "NLSQL_SERVICE_URL", "https://fc6706dc8fa9.ngrok-free.app/"
+            settings, "NLSQL_SERVICE_URL", "https://e076ae644803.ngrok-free.app/"
         )
         self.timeout = getattr(settings, "NLSQL_TIMEOUT", 120)
 
