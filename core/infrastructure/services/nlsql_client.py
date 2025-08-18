@@ -45,7 +45,7 @@ class NLSQLClientService:
     def __init__(self):
         # Get NL-SQL service URL from settings or use default
         self.base_url = getattr(
-            settings, "NLSQL_SERVICE_URL", "https://e076ae644803.ngrok-free.app/"
+            settings, "NLSQL_SERVICE_URL", "https://97ca1b164798.ngrok-free.app/"
         )
         self.timeout = getattr(settings, "NLSQL_TIMEOUT", 120)
 
@@ -232,7 +232,9 @@ class NLSQLClientService:
 
         return value
 
-    def _load_csv_to_duckdb(self, file_path: str, table_name: str) -> bool:
+    def _load_csv_to_duckdb(
+        self, file_path: str, table_name: str, question: str
+    ) -> bool:
         # try:
         import pandas as pd
 
@@ -244,6 +246,9 @@ class NLSQLClientService:
                 df = pd.read_csv(file_path, encoding="latin-1")
             except UnicodeDecodeError:
                 df = pd.read_csv(file_path, encoding="cp1252")
+
+        if len(question):
+            df = df.applymap(lambda x: x.lower() if isinstance(x, str) else x)
 
         original_columns = df.columns.tolist()
         cleaned_columns = [self._clean_column_name(col) for col in original_columns]
@@ -416,7 +421,7 @@ class NLSQLClientService:
             )
 
         # Load CSV into DuckDB
-        if not self._load_csv_to_duckdb(file_path, table_name):
+        if not self._load_csv_to_duckdb(file_path, table_name, question):
             return SQLExecutionResult(
                 success=False, question=question, error="Failed to load CSV data"
             )
