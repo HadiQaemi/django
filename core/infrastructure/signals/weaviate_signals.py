@@ -24,7 +24,7 @@ def index_article_in_weaviate(sender, instance, created, **kwargs):
         article_data = {
             "article_id": instance.article_id,
             "title": instance.name,
-            "abstract": instance.abstract or "",
+            "abstract": instance.description or "",
             "updated_at": instance.updated_at.isoformat()
             if instance.updated_at
             else None,
@@ -104,7 +104,7 @@ def remove_article_from_weaviate(sender, instance, **kwargs):
         result = search_repo.delete_article(instance.article_id)
 
         if result:
-            logger.info(f"Deleted article from Weaviate: {instance.article_id}")
+            logger.info(f"Deleted article from Weaviate 3: {instance.article_id}")
         else:
             logger.warning(
                 f"Failed to delete article from Weaviate: {instance.article_id}"

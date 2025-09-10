@@ -10,7 +10,8 @@ from pydantic import BaseModel, Field
 
 
 class ShortAuthorOutputDTO(BaseModel):
-    label: str
+    label: Optional[str] = None
+    name: Optional[str] = None
     family_name: Optional[str] = None
     orcid: Optional[str] = None
     author_id: Optional[str] = None
@@ -24,6 +25,7 @@ class AuthorOutputDTO(BaseModel):
     given_name: str
     family_name: str
     label: Optional[str] = None
+    name: Optional[str] = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
@@ -153,6 +155,15 @@ class PaperOutputDTO(BaseModel):
         json_encoders = {datetime: lambda v: v.isoformat()}
 
 
+class ShortScholarityOutputDTO(BaseModel):
+    name: str
+    abstract: Optional[str] = None
+    authors: List[ShortAuthorOutputDTO]
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+
 class ShortPaperOutputDTO(BaseModel):
     id: int
     name: str
@@ -160,6 +171,7 @@ class ShortPaperOutputDTO(BaseModel):
     authors: List[ShortAuthorOutputDTO]
     statements: Optional[List[Any]] = None
     research_fields: Optional[List[Any]] = None
+    related_items: Optional[List[Any]] = None
     concepts: Optional[List[Any]] = None
     date_published: Optional[datetime] = None
     journal: Optional[Dict[str, Any]] = None

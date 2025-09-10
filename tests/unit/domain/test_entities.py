@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime
 
 from core.domain.entities import (
-    Paper,
+    Article,
     Statement,
     Author,
     Concept,
@@ -184,7 +184,7 @@ class TestPaper:
 
         concept = Concept(id="concept1", label="Machine Learning", identifier="ML001")
 
-        paper = Paper(
+        paper = Article(
             id="paper1",
             title="Test Paper",
             author=[author],

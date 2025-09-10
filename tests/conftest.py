@@ -25,7 +25,7 @@ from core.application.interfaces.repositories import (
     SearchRepository,
 )
 from core.domain.entities import (
-    Paper,
+    Article,
     Statement,
     Author,
     Concept,
@@ -155,9 +155,9 @@ def sample_statement(sample_author: Author) -> Statement:
 
 
 @pytest.fixture(scope="function")
-def sample_paper(sample_author: Author, sample_research_field: ResearchField) -> Paper:
+def sample_paper(sample_author: Author, sample_research_field: ResearchField) -> Article:
     """Create a sample paper for testing."""
-    return Paper(
+    return Article(
         id="paper1",
         title="Test Paper",
         author=[sample_author],

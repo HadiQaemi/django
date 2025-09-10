@@ -30,23 +30,23 @@ logger = logging.getLogger(__name__)
 
 class SQLInsightRepository(InsightRepository):
     def get_per_month_articles_statements(self, research_fields=None) -> any:
-        qs = ArticleModel.objects.filter(reborn_date_published__isnull=False)
+        qs = ArticleModel.objects.filter(date_published__isnull=False)
         if research_fields:
             qs = qs.filter(research_fields__research_field_id__in=research_fields)
         articles_per_month = (
-            qs.annotate(month=TruncMonth("reborn_date_published"))
+            qs.annotate(month=TruncMonth("date_published"))
             .values("month")
             .annotate(article_count=Count("id"))
             .order_by("month")
             .distinct()
         )
-        qs = StatementModel.objects.filter(article__reborn_date_published__isnull=False)
+        qs = StatementModel.objects.filter(article__date_published__isnull=False)
         if research_fields:
             qs = qs.filter(
                 article__research_fields__research_field_id__in=research_fields
             )
         statements_per_month = (
-            qs.annotate(month=TruncMonth("article__reborn_date_published"))
+            qs.annotate(month=TruncMonth("article__date_published"))
             .values("month")
             .annotate(statement_count=Count("id"))
             .order_by("month")
@@ -97,35 +97,36 @@ class SQLInsightRepository(InsightRepository):
         return packages
 
     def get_concepts_with_usage(self, research_fields=None):
-        concepts_qs = ConceptModel.objects.annotate(
-            usage_count=Count(
-                "statements",
-                filter=Q(
-                    statements__article__research_fields__research_field_id__in=research_fields
+        concepts_qs = (
+            ConceptModel.objects.annotate(
+                usage_count=Count(
+                    "statements",
+                    filter=Q(
+                        statements__article__research_fields__research_field_id__in=research_fields
+                    )
+                    if research_fields
+                    else Q(),
+                    distinct=True,
                 )
-                if research_fields
-                else Q(),
-                distinct=True,
             )
-        ).filter(usage_count__gt=0)
-
-        concepts_qs = concepts_qs.values("label", "definition", "usage_count")
+            .filter(usage_count__gt=0)
+            .order_by("-usage_count", "label")
+            .values("label", "definition", "usage_count")[:10]
+        )
 
         concepts_results = []
         for concept in concepts_qs:
             label = concept["label"]
-            acronym = None
-
             match = re.search(r"\(([^)]+)\)", label)
-            if match:
-                acronym = match.group(1).strip()
-            else:
-                words = label.split()
-                if len(words) > 3:
-                    acronym = " ".join(words[:3]) + "..."
-                else:
-                    acronym = label
-
+            acronym = (
+                match.group(1).strip()
+                if match
+                else (
+                    " ".join(label.split()[:3]) + "..."
+                    if len(label.split()) > 3
+                    else label
+                )
+            )
             concepts_results.append(
                 {
                     "label": label,
@@ -148,14 +149,17 @@ class SQLInsightRepository(InsightRepository):
 
         components_with_usage = (
             ComponentModel.objects.annotate(
-                usage_count=Count(
-                    "statements",
-                    filter=usage_filter,
-                    distinct=True,
-                )
+                usage_count=Count("statements", filter=usage_filter, distinct=True),
             )
             .filter(usage_count__gt=0)
-            .prefetch_related("matrices", "object_of_interests", "properties", "units")
+            .order_by("-usage_count", "pk")
+            .prefetch_related(
+                "operations",
+                "matrices",
+                "object_of_interests",
+                "properties",
+                "units",
+            )[:10] 
         )
         components_results = []
         for component in components_with_usage:

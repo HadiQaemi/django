@@ -1,16 +1,22 @@
 import os
 from django.conf import settings
-from django.db import models
-from django.db.models import JSONField
-from django.contrib.postgres.fields import ArrayField
+from django.db import models, transaction
+from django.db.models import Q, JSONField
+from django.db.models.signals import post_save, post_migrate
 from django.utils.translation import gettext_lazy as _
-from polymorphic.models import PolymorphicModel
+from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.search import SearchVectorField, SearchVector
 from django.contrib.postgres.indexes import GinIndex
-
-from django.db.models.signals import post_save, post_migrate
-from django.dispatch import receiver
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.dispatch import receiver
+from django.apps import apps
+
+from polymorphic.models import PolymorphicModel
+from core.domain.exceptions import ValidationError
+from core.infrastructure.repositories.sql_repos_helper import (
+    articlet_ro_crate_upload_path,
+)
 
 
 @receiver(post_save)
@@ -54,46 +60,92 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
+class CreativeWork(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    creative_work_id = models.TextField(null=True, blank=True)
+    name = models.TextField(null=True, blank=True)
+    identifier = models.TextField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = "creative_works"
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class Organization(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    organization_id = models.TextField(null=True, blank=True)
+    name = models.TextField(null=True, blank=True)
+    url = models.TextField(null=True, blank=True)
+    search_vector = SearchVectorField(null=True)
+
+    class Meta:
+        db_table = "organizations"
+        indexes = [
+            GinIndex(fields=["search_vector"]),
+            models.Index(fields=["name"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
 class Author(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    _id = models.CharField(max_length=255, null=True)
     author_id = models.CharField(max_length=255, null=True)
     given_name = models.CharField(max_length=255)
     family_name = models.CharField(max_length=255)
-    label = models.TextField(null=True, blank=True)
+    affiliation = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="authors",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    name = models.TextField(null=True, blank=True)
     orcid = models.CharField(max_length=50, null=True, blank=True)
     json = JSONField(null=True, blank=True)
 
     class Meta:
         db_table = "authors"
         indexes = [
-            models.Index(fields=["_id"]),
-            models.Index(fields=["label"]),
+            models.Index(fields=["author_id"]),
+            models.Index(fields=["name"]),
         ]
 
     def __str__(self):
-        return self.label or f"{self.given_name} {self.family_name}"
+        return f"{self.given_name} {self.family_name}"
+
+    @property
+    def get_affiliation(self):
+        return self.authors.values("organization_id", "name", "url")
 
 
 class ResearchField(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    _id = models.CharField(max_length=255, null=True)
-    related_identifier = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
     research_field_id = models.CharField(max_length=255, null=True)
     label = models.CharField(max_length=255)
-    json = JSONField(null=True, blank=True)
 
     class Meta:
         db_table = "research_fields"
         indexes = [
-            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
     def __str__(self):
-        return self.label
+        return self.id
 
 
 class SeeAlso(TimeStampedModel):
@@ -167,12 +219,10 @@ class Property(TimeStampedModel):
 
 class Unit(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    _id = models.CharField(max_length=255, unique=True, null=True)
+    unit_id = models.CharField(max_length=255, unique=True, null=True)
+    label = models.TextField(null=True, blank=True)
     json = JSONField(null=True, blank=True)
     type = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
-    label = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
     )
     exact_match = ArrayField(
@@ -185,7 +235,6 @@ class Unit(TimeStampedModel):
     class Meta:
         db_table = "units"
         indexes = [
-            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
@@ -338,7 +387,6 @@ class Component(TimeStampedModel):
 
 class Concept(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    _id = models.CharField(max_length=255, null=True)
     concept_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
     label = models.CharField(max_length=255)
@@ -351,7 +399,6 @@ class Concept(TimeStampedModel):
     class Meta:
         db_table = "concepts"
         indexes = [
-            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
@@ -424,17 +471,17 @@ class JournalConference(TimeStampedModel):
     json = JSONField(null=True, blank=True)
     label = models.CharField(max_length=255)
     type = models.CharField(max_length=255, null=True)
-    publisher = models.ForeignKey(
-        Publisher,
-        on_delete=models.CASCADE,
-        related_name="journals_conferences",
-        null=True,
-        blank=True,
-        db_index=True,
-    )
-    research_fields = models.ManyToManyField(
-        ResearchField, related_name="journals_conferences", blank=True
-    )
+    # publisher = models.ForeignKey(
+    #     Publisher,
+    #     on_delete=models.CASCADE,
+    #     related_name="journals_conferences",
+    #     null=True,
+    #     blank=True,
+    #     db_index=True,
+    # )
+    # research_fields = models.ManyToManyField(
+    #     ResearchField, related_name="journals_conferences", blank=True
+    # )
 
     class Meta:
         db_table = "journals_conferences"
@@ -447,38 +494,14 @@ class JournalConference(TimeStampedModel):
         return self.label
 
 
-class Article(TimeStampedModel):
+class Periodical(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    _id = models.CharField(max_length=255, null=True)
-    ro_crate = models.FileField(upload_to="ro_crate_files/", null=True, blank=True)
-    article_id = models.CharField(max_length=255, null=True)
-    json = JSONField(null=True, blank=True)
-    name = models.CharField(max_length=255)
-    abstract = models.TextField(null=True, blank=True)
-    date_published = models.DateTimeField(null=True, blank=True)
-    reborn_date_published = models.DateTimeField(null=True, blank=True)
-    identifier = models.TextField(null=True, blank=True)
-    reborn_doi = models.TextField(null=True, blank=True)
-    paper_type = models.TextField(null=True, blank=True)
-    concepts = models.ManyToManyField(Concept, related_name="articles", blank=True)
-    authors = models.ManyToManyField(
-        Author, related_name="articles", blank=True, through="ArticleAuthor"
-    )
-    research_fields = models.ManyToManyField(
-        ResearchField, related_name="articles", blank=True
-    )
-    journal_conference = models.ForeignKey(
-        JournalConference,
-        on_delete=models.CASCADE,
-        related_name="articles",
-        null=True,
-        blank=True,
-        db_index=True,
-    )
+    periodical_id = models.TextField(null=True, blank=True)
+    name = models.TextField(null=True, blank=True)
     publisher = models.ForeignKey(
-        Publisher,
+        Organization,
         on_delete=models.CASCADE,
-        related_name="articles",
+        related_name="publication_issues",
         null=True,
         blank=True,
         db_index=True,
@@ -486,7 +509,223 @@ class Article(TimeStampedModel):
     search_vector = SearchVectorField(null=True)
 
     class Meta:
-        db_table = "articles"
+        db_table = "periodicals"
+        indexes = [
+            GinIndex(fields=["search_vector"]),
+            models.Index(fields=["name"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class PublicationIssue(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    publication_issue_id = models.TextField(null=True, blank=True)
+    date_published = models.TextField(null=True, blank=True)
+    is_part_of = models.ForeignKey(
+        Periodical,
+        on_delete=models.CASCADE,
+        related_name="publication_issues",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "publication_issues"
+        indexes = [
+            models.Index(fields=["date_published"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.publication_issue_id}-{self.date_published}"
+
+
+class Dataset(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    dataset_id = models.CharField(max_length=255, null=True)
+    name = models.CharField(max_length=255, null=True)
+    description = models.TextField(null=True, blank=True)
+    date_published = models.DateTimeField(null=True, blank=True)
+    identifier = models.CharField(max_length=255, null=True)
+    publisher = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="datasets",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    authors = models.ManyToManyField(
+        Author,
+        related_name="datasets",
+        blank=True,
+        through="DatasetAuthor",
+    )
+    json = JSONField(null=True, blank=True)
+    search_vector = SearchVectorField(null=True)
+
+    class Meta:
+        db_table = "datasets"
+        indexes = [
+            models.Index(fields=["description"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Dataset.objects.filter(pk=self.pk).update(
+            search_vector=SearchVector("description")
+        )
+
+    def __str__(self):
+        return self.name
+
+
+class DatasetAuthor(models.Model):
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "dataset_authors"
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.dataset.name} - {self.author.family_name} ({self.order})"
+
+
+class ScholarlyArticle(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    scholarly_article_id = models.CharField(max_length=255, null=True)
+    name = models.CharField(max_length=255, null=True)
+    abstract = models.TextField(null=True, blank=True)
+    is_part_of = models.ForeignKey(
+        PublicationIssue,
+        on_delete=models.CASCADE,
+        related_name="scholarly_articles",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    authors = models.ManyToManyField(
+        Author,
+        related_name="scholarly_articles",
+        blank=True,
+        through="ScholarlyArticleAuthor",
+    )
+    json = JSONField(null=True, blank=True)
+    search_vector = SearchVectorField(null=True)
+
+    class Meta:
+        db_table = "scholarly_articles"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        ScholarlyArticle.objects.filter(pk=self.pk).update(
+            search_vector=SearchVector("abstract")
+        )
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def get_authors(self):
+        return self.authors.values("name", "family_name", "orcid", "author_id", "affiliation")
+
+
+class ScholarlyArticleAuthor(models.Model):
+    article = models.ForeignKey(ScholarlyArticle, on_delete=models.CASCADE)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "scholarly_article_authors"
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.article.name} - {self.author.family_name} ({self.order})"
+
+
+class Article(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    name = models.TextField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    research_fields = models.ManyToManyField(
+        ResearchField,
+        related_name="digital_objects",
+        blank=True,
+        db_table="digital_objects_research_fields",
+    )
+    date_published = models.DateTimeField(null=True, blank=True)
+    has_part = ArrayField(models.CharField(max_length=255), null=True, blank=True)
+    is_based_on = ArrayField(models.CharField(max_length=255), null=True, blank=True)
+    license = models.ForeignKey(
+        CreativeWork,
+        on_delete=models.CASCADE,
+        related_name="digital_objects",
+        null=True,
+        blank=True,
+        db_index=True,
+        db_column="license",
+    )
+    publisher = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="digital_objects",
+        null=True,
+        blank=True,
+        db_index=True,
+        db_column="publisher",
+    )
+    status = models.CharField(max_length=255, null=True)
+    authors = models.ManyToManyField(
+        Author,
+        related_name="digital_objects",
+        blank=True,
+        through="DigitalObjectAuthor",
+    )
+    ro_crate = models.FileField(
+        upload_to=articlet_ro_crate_upload_path, null=True, blank=True
+    )
+    article_id = models.CharField(max_length=255, null=True)
+    json = JSONField(null=True, blank=True)
+    reborn_doi = models.TextField(null=True, blank=True)
+    concepts = models.ManyToManyField(
+        Concept, related_name="digital_objects", blank=True
+    )
+
+    # what type the research points to, an app-level business label (optional)
+    research_types = ArrayField(
+        base_field=models.CharField(max_length=64),
+        default=list,
+        blank=True,
+        help_text="High-level tags like ['dataset','scholarly_article']",
+    )
+
+    search_vector = SearchVectorField(null=True)
+
+    related_datasets = models.ManyToManyField(
+        Dataset,
+        blank=True,
+        related_name="articles",
+        help_text="Datasets related to this article",
+    )
+    related_scholarly_articles = models.ManyToManyField(
+        ScholarlyArticle,
+        blank=True,
+        related_name="articles",
+        help_text="Scholarly articles related to this article",
+    )
+
+    class Meta:
+        db_table = "digital_objects"
         indexes = [
             GinIndex(fields=["search_vector"]),
             models.Index(fields=["name"]),
@@ -495,24 +734,153 @@ class Article(TimeStampedModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         Article.objects.filter(pk=self.pk).update(
-            search_vector=SearchVector("name", "abstract", "json")
+            search_vector=SearchVector("name", "description")
         )
 
     def __str__(self):
         return self.name
 
+    @property
+    def all_related_items(self):
+        related_items = {}
 
-class ArticleAuthor(models.Model):
+        if "dataset" in self.research_types:
+            related_items["datasets"] = list(self.related_datasets.all())
+
+        if "scholarly_article" in self.research_types:
+            related_items["scholarly_articles"] = list(
+                self.related_scholarly_articles.all()
+            )
+
+        return related_items
+
+    def get_research_fields(self):
+        return self.research_fields.values("research_field_id", "label")
+
+    def get_related_by_type(self, research_type):
+        if research_type == "dataset":
+            return self.related_datasets.all()
+        elif research_type == "scholarly_article":
+            return self.related_scholarly_articles.all()
+        return None
+
+
+# class Article(TimeStampedModel):
+#     id = models.AutoField(primary_key=True)
+#     _id = models.CharField(max_length=255, null=True)
+#     ro_crate = models.FileField(upload_to="ro_crate_files/", null=True, blank=True)
+#     article_id = models.CharField(max_length=255, null=True)
+#     json = JSONField(null=True, blank=True)
+#     name = models.CharField(max_length=255)
+#     abstract = models.TextField(null=True, blank=True)
+#     date_published = models.DateTimeField(null=True, blank=True)
+#     reborn_date_published = models.DateTimeField(null=True, blank=True)
+#     identifier = models.TextField(null=True, blank=True)
+#     reborn_doi = models.TextField(null=True, blank=True)
+#     paper_type = models.TextField(null=True, blank=True)
+#     concepts = models.ManyToManyField(Concept, related_name="articles", blank=True)
+#     authors = models.ManyToManyField(
+#         Author, related_name="articles", blank=True, through="ArticleAuthor"
+#     )
+#     research_fields = models.ManyToManyField(
+#         ResearchField, related_name="articles", blank=True
+#     )
+#     journal_conference = models.ForeignKey(
+#         JournalConference,
+#         on_delete=models.CASCADE,
+#         related_name="articles",
+#         null=True,
+#         blank=True,
+#         db_index=True,
+#     )
+#     digital_object = models.ForeignKey(
+#         DigitalObject,
+#         on_delete=models.CASCADE,
+#         related_name="articles",
+#         null=True,
+#         blank=True,
+#         db_index=True,
+#     )
+#     publisher = models.ForeignKey(
+#         PublicationIssue,
+#         on_delete=models.CASCADE,
+#         related_name="articles",
+#         null=True,
+#         blank=True,
+#         db_index=True,
+#     )
+#     search_vector = SearchVectorField(null=True)
+
+#     # what type the research points to, an app-level business label (optional)
+#     research_type = models.CharField(
+#         max_length=64,
+#         null=True,
+#         blank=True,
+#         choices=[
+#             ("dataset", "Dataset"),
+#             ("research", "ScholarlyArticle"),
+#             # add more types later...
+#         ],
+#     )
+#     # the polymorphic link:
+#     target_content_type = models.ForeignKey(
+#         ContentType, on_delete=models.PROTECT, null=True, blank=True
+#     )
+#     target_object_id = models.PositiveIntegerField(null=True, blank=True)
+#     target = GenericForeignKey("target_content_type", "target_object_id")
+
+#     class Meta:
+#         db_table = "articles"
+#         indexes = [
+#             GinIndex(fields=["search_vector"]),
+#             models.Index(fields=["name"]),
+#             models.Index(fields=["target_content_type", "target_object_id"]),
+#         ]
+
+#     def clean(self):
+#         super().clean()
+#         if self.target_content_type:
+#             model = self.target_content_type.model
+#             mapping = {"dataset": "Dataset", "research": "ScholarlyArticle"}
+#             if self.research_type and mapping.get(self.research_type) != model:
+#                 raise ValidationError(
+#                     {"research_type": "Does not match the linked object type."}
+#                 )
+
+#     def save(self, *args, **kwargs):
+#         super().save(*args, **kwargs)
+#         Article.objects.filter(pk=self.pk).update(
+#             search_vector=SearchVector("name", "abstract", "json")
+#         )
+
+#     def __str__(self):
+#         return self.name
+
+
+class DigitalObjectAuthor(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        db_table = "articles_authors"
+        db_table = "digital_objects_authors"
         ordering = ["order"]
 
     def __str__(self):
         return f"{self.article.name} - {self.author.family_name} ({self.order})"
+
+
+# class DigitalObjectAuthor(models.Model):
+#     digital_object = models.ForeignKey(DigitalObject, on_delete=models.CASCADE)
+#     author = models.ForeignKey(Author, on_delete=models.CASCADE)
+#     order = models.PositiveIntegerField(default=0)
+
+#     class Meta:
+#         db_table = "digital_objects_authors"
+#         ordering = ["order"]
+
+#     def __str__(self):
+#         return f"{self.digital_object.name} - {self.author.family_name} ({self.order})"
 
 
 class SchemaType(TimeStampedModel):
@@ -596,8 +964,8 @@ class Statement(TimeStampedModel):
 
 
 def implement_source_code_upload_path(instance, filename):
-    if instance.statement and instance.statement.statement_id:
-        return f"files/{instance.statement.statement_id}/{filename}"
+    if instance.statement and instance.article_id:
+        return f"files/{instance.article_id}/{filename}"
     else:
         return f"files/no_statement/{filename}"
 
@@ -608,6 +976,7 @@ class Implement(TimeStampedModel):
     source_code = models.FileField(
         upload_to=implement_source_code_upload_path, null=True, blank=True
     )
+    article_id = models.CharField(max_length=255, null=True)
     statement = models.ForeignKey(
         Statement,
         on_delete=models.CASCADE,
@@ -621,7 +990,6 @@ class Implement(TimeStampedModel):
         db_table = "implements"
         indexes = [
             models.Index(fields=["id"]),
-            models.Index(fields=["statement_id"]),
         ]
 
     def __str__(self):
@@ -654,7 +1022,6 @@ class HasPart(TimeStampedModel):
         db_table = "has_parts"
         indexes = [
             models.Index(fields=["id"]),
-            models.Index(fields=["statement_id"]),
         ]
 
     def __str__(self):
@@ -693,8 +1060,8 @@ class DataItemComponent(TimeStampedModel):
 
 def figure_source_image_upload_path_alternative(instance, filename):
     try:
-        if instance and instance.statement_id:
-            upload_path = f"files/{instance.statement_id}/{filename}"
+        if instance and instance.article_id:
+            upload_path = f"files/{instance.article_id}/{filename}"
         else:
             upload_path = f"files/no_statement/{filename}"
 
@@ -718,7 +1085,7 @@ class Figure(TimeStampedModel):
     source_image = models.ImageField(
         upload_to=figure_source_image_upload_path_alternative, null=True, blank=True
     )
-    statement_id = models.TextField(null=True, blank=True)
+    article_id = models.TextField(null=True, blank=True)
 
     class Meta:
         db_table = "figures"
@@ -731,8 +1098,8 @@ class Figure(TimeStampedModel):
 
 
 def dataitem_source_file_upload_path(instance, filename):
-    if instance and instance.statement_id:
-        upload_path = f"files/{instance.statement_id}/{filename}"
+    if instance and instance.article_id:
+        upload_path = f"files/{instance.article_id}/{filename}"
     else:
         upload_path = f"files/no_statement/{filename}"
 
@@ -752,7 +1119,7 @@ class DataItem(TimeStampedModel):
     label = models.TextField(null=True, blank=True)
     source_url = models.TextField(null=True, blank=True)
     comment = models.TextField(null=True, blank=True)
-    statement_id = models.TextField(null=True, blank=True)
+    article_id = models.TextField(null=True, blank=True)
     source_table = JSONField(null=True, blank=True)
     source_file = models.FileField(
         upload_to=dataitem_source_file_upload_path, null=True, blank=True

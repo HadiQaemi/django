@@ -89,48 +89,47 @@ class SQLAuthorRepository(AuthorRepository):
     ) -> Tuple[List[Author], int]:
         """Get latest authors with filters."""
         print("-------------get_latest_authors----------", __file__)
-        try:
-            query = AuthorModel.objects.all()
-            if search_query:
-                query = query.filter(
-                    Q(label__icontains=search_query)
-                    | Q(given_name__icontains=search_query)
-                    | Q(family_name__icontains=search_query)
-                )
+        # try:
+        query = AuthorModel.objects.all()
+        if search_query:
+            query = query.filter(
+                Q(label__icontains=search_query)
+                | Q(given_name__icontains=search_query)
+                | Q(family_name__icontains=search_query)
+            )
 
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(
-                    articles__research_fields__research_field_id__in=research_fields
-                )
+        if research_fields and len(research_fields) > 0:
+            query = query.filter(
+                articles__research_fields__research_field_id__in=research_fields
+            )
 
-            if sort_order == "a-z":
-                query = query.order_by("label")
-            elif sort_order == "z-a":
-                query = query.order_by("-label")
-            elif sort_order == "newest":
-                query = query.order_by("-id")
-            else:
-                query = query.order_by("label")
+        if sort_order == "a-z":
+            query = query.order_by("name")
+        elif sort_order == "z-a":
+            query = query.order_by("-name")
+        elif sort_order == "newest":
+            query = query.order_by("-id")
+        else:
+            query = query.order_by("name")
 
-            total = query.count()
+        total = query.count()
 
-            paginator = Paginator(query, page_size)
-            page_obj = paginator.get_page(page)
+        paginator = Paginator(query, page_size)
+        page_obj = paginator.get_page(page)
 
-            authors = []
-            for author_model in page_obj:
-                author = Author(
-                    id=author_model.id,
-                    orcid=author_model.orcid,
-                    author_id=author_model.author_id,
-                    given_name=author_model.given_name,
-                    family_name=author_model.family_name,
-                    label=author_model.label,
-                )
-                authors.append(author)
+        authors = []
+        for author_model in page_obj:
+            author = Author(
+                id=author_model.id,
+                orcid=author_model.orcid,
+                author_id=author_model.author_id,
+                given_name=author_model.given_name,
+                family_name=author_model.family_name,
+                name=author_model.name,
+            )
+            authors.append(author)
+        return authors, total
 
-            return authors, total
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_authors: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest authors: {str(e)}")
+        # except Exception as e:
+        #     logger.error(f"Error in get_latest_authors: {str(e)}")
+        #     raise DatabaseError(f"Failed to retrieve latest authors: {str(e)}")

@@ -29,7 +29,7 @@ from core.application.mappers.entity_mappers import (
     ResearchFieldMapper,
 )
 from core.domain.entities import (
-    Paper,
+    Article,
     Statement,
     Author,
     Concept,
@@ -79,7 +79,7 @@ class MongoDBPaperRepository(PaperRepository):
         self.db = self.client[settings.MONGODB_DB]
         self.scraper = NodeExtractor()
 
-    def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Paper], int]:
+    def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Article], int]:
         """Find all papers with pagination."""
         try:
             collection = self.db["articles"]
@@ -100,7 +100,7 @@ class MongoDBPaperRepository(PaperRepository):
             logger.error(f"Error in find_all: {str(e)}")
             raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
 
-    def find_by_id(self, paper_id: str) -> Optional[Paper]:
+    def find_by_id(self, paper_id: str) -> Optional[Article]:
         """Find a paper by its ID."""
         try:
             collection = self.db["articles"]
@@ -116,7 +116,7 @@ class MongoDBPaperRepository(PaperRepository):
             logger.error(f"Error in find_by_id: {str(e)}")
             raise DatabaseError(f"Failed to retrieve paper: {str(e)}")
 
-    def search_by_title(self, title: str) -> List[Paper]:
+    def search_by_title(self, title: str) -> List[Article]:
         """Search papers by title."""
         try:
             collection = self.db["articles"]
@@ -149,7 +149,7 @@ class MongoDBPaperRepository(PaperRepository):
         research_fields: Optional[List[str]] = None,
         page: int = 1,
         page_size: int = 10,
-    ) -> Tuple[List[Paper], int]:
+    ) -> Tuple[List[Article], int]:
         """Query papers with filters."""
         try:
             collection = self.db["statements"]
@@ -278,7 +278,7 @@ class MongoDBPaperRepository(PaperRepository):
             logger.error(f"Error in query_papers: {str(e)}")
             raise DatabaseError(f"Failed to query papers: {str(e)}")
 
-    def save(self, paper: Paper) -> Paper:
+    def save(self, paper: Article) -> Article:
         """Save a paper."""
         try:
             collection = self.db["articles"]
@@ -322,7 +322,7 @@ class MongoDBPaperRepository(PaperRepository):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
-    ) -> Tuple[List[Paper], int]:
+    ) -> Tuple[List[Article], int]:
         """Get latest articles with filters."""
         try:
             collection = self.db["articles"]
@@ -368,7 +368,7 @@ class MongoDBPaperRepository(PaperRepository):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
-    ) -> Tuple[List[Paper], int]:
+    ) -> Tuple[List[Article], int]:
         """Get articles by IDs from semantic search."""
         try:
             collection = self.db["articles"]

@@ -16,7 +16,7 @@ from core.application.dtos.output_dtos import (
     PaginatedResponseDTO,
     CommonResponseDTO,
 )
-from core.domain.entities import Paper, Statement, Author, Concept, ResearchField
+from core.domain.entities import Article, Statement, Author, Concept, ResearchField
 from core.domain.exceptions import EntityNotFound, DatabaseError
 
 

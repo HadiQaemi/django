@@ -2,20 +2,20 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
-from core.domain.entities import Paper
+from core.domain.entities import Article
 
 
 class PaperRepository(ABC):
     @abstractmethod
-    def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Paper], int]:
+    def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Article], int]:
         pass
 
     @abstractmethod
-    def find_by_id(self, paper_id: str) -> Optional[Paper]:
+    def find_by_id(self, paper_id: str) -> Optional[Article]:
         pass
 
     @abstractmethod
-    def search_by_title(self, title: str) -> List[Paper]:
+    def search_by_title(self, title: str) -> List[Article]:
         pass
 
     @abstractmethod
@@ -31,11 +31,11 @@ class PaperRepository(ABC):
         research_fields: Optional[List[str]] = None,
         page: int = 1,
         page_size: int = 10,
-    ) -> Tuple[List[Paper], int]:
+    ) -> Tuple[List[Article], int]:
         pass
 
     @abstractmethod
-    def save(self, paper: Paper) -> Paper:
+    def save(self, paper: Article) -> Article:
         pass
 
     @abstractmethod
@@ -47,7 +47,7 @@ class PaperRepository(ABC):
         page: int = 1,
         page_size: int = 10,
         search_type: str = "keyword",
-    ) -> Tuple[List[Paper], int]:
+    ) -> Tuple[List[Article], int]:
         pass
 
     @abstractmethod

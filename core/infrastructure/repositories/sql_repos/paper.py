@@ -3,15 +3,23 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 from core.application.interfaces.repositories.paper import PaperRepository
 from core.application.interfaces.repositories.search import SearchRepository
-from core.domain.entities import Author, Concept, Journal, Paper, ResearchField
+from core.domain.entities import Author, Concept, Journal, Article, ResearchField
 from core.infrastructure.clients.type_registry_client import TypeRegistryClient
 from core.infrastructure.repositories.sql_repos_helper import (
     fetch_reborn_doi,
     generate_static_id,
+    is_orcid_url,
+    process_source_code_content_flexible,
 )
 from core.infrastructure.scrapers.node_extractor import NodeExtractor
 from core.infrastructure.models.sql_models import (
     Article as ArticleModel,
+    DigitalObjectAuthor as DigitalObjectAuthorModel,
+    ScholarlyArticle as ScholarlyArticleModel,
+    ScholarlyArticleAuthor as ScholarlyArticleAuthorModel,
+    Dataset as DatasetModel,
+    DatasetAuthor as DatasetAuthorModel,
+    # DigitalObject as DigitalObjectModel,
     Statement as StatementModel,
     DataType as DataTypeModel,
     Implement as ImplementModel,
@@ -47,6 +55,10 @@ from core.infrastructure.models.sql_models import (
     ResearchField as ResearchFieldModel,
     JournalConference as JournalConferenceModel,
     Publisher as PublisherModel,
+    Organization as OrganizationModel,
+    Periodical as PeriodicalModel,
+    PublicationIssue as PublicationIssueModel,
+    CreativeWork as CreativeWorkModel,
     Contribution as ContributionModel,
 )
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
@@ -67,7 +79,7 @@ class SQLPaperRepository(PaperRepository):
         self.type_registry_client = type_registry_client
         self.scraper = NodeExtractor()
 
-    def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Paper], int]:
+    def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Article], int]:
         """Find all papers with pagination."""
         # try:
         print("---------find_all-----queryset----------", __file__)
@@ -104,9 +116,9 @@ class SQLPaperRepository(PaperRepository):
             logger.error(f"Error in count all articles: {str(e)}")
             raise DatabaseError(f"Failed to count all articles: {str(e)}")
 
-    def find_by_id(self, paper_id: str) -> Optional[Paper]:
+    def find_by_id(self, paper_id: str) -> Optional[Article]:
         """Find a paper by its ID."""
-        print("---------------find_by_id------------=============------", __file__)
+        print("---------------find_by_id------------", __file__)
         try:
             article = ArticleModel.objects.filter(article_id=paper_id).first()
             if article:
@@ -118,7 +130,7 @@ class SQLPaperRepository(PaperRepository):
             logger.error(f"Error in find_by_id: {str(e)}")
             raise DatabaseError(f"Failed to retrieve paper: {str(e)}")
 
-    def search_by_title(self, title: str) -> List[Paper]:
+    def search_by_title(self, title: str) -> List[Article]:
         """Search papers by title."""
         try:
             articles = ArticleModel.objects.filter(name__icontains=title).order_by(
@@ -147,7 +159,7 @@ class SQLPaperRepository(PaperRepository):
         research_field_ids: Optional[List[str]] = None,
         page: int = 1,
         page_size: int = 10,
-    ) -> Tuple[List[Paper], int]:
+    ) -> Tuple[List[Article], int]:
         """Query papers with filters."""
         print("--------query_papers-------", __file__)
         try:
@@ -222,7 +234,7 @@ class SQLPaperRepository(PaperRepository):
             logger.error(f"Error in query_papers: {str(e)}")
             raise DatabaseError(f"Failed to query papers: {str(e)}")
 
-    def save(self, paper: Paper) -> Paper:
+    def save(self, paper: Article) -> Article:
         """Save a paper."""
         try:
             # Check if paper already exists
@@ -356,14 +368,14 @@ class SQLPaperRepository(PaperRepository):
         page: int = 1,
         page_size: int = 10,
         search_type: str = "keyword",
-    ) -> Tuple[List[Paper], int]:
+    ) -> Tuple[List[Article], int]:
         """Get latest articles with filters."""
+        print("-------------get_latest_articles---------------", __file__)
         try:
             if search_query and search_type in ["semantic", "hybrid"]:
                 from core.infrastructure.container import Container
 
                 search_repo = Container.resolve(SearchRepository)
-                print("------------search_type-----------")
                 if search_type == "semantic":
                     search_results = search_repo.semantic_search_articles(
                         search_query, page_size * 2
@@ -377,7 +389,6 @@ class SQLPaperRepository(PaperRepository):
                     search_results = search_repo.hybrid_search_articles(
                         search_query, page_size * 2
                     )
-                    print("--------get_latest_articles----------")
                     article_ids = [
                         result.get("article_id")
                         for result in search_results
@@ -441,7 +452,7 @@ class SQLPaperRepository(PaperRepository):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
-    ) -> Tuple[List[Paper], int]:
+    ) -> Tuple[List[Article], int]:
         """Get articles by IDs from semantic search."""
         try:
             query = ArticleModel.objects.filter(id__in=ids)
@@ -525,395 +536,12 @@ class SQLPaperRepository(PaperRepository):
         except Exception as e:
             print(f"{str(e)}")
 
-    def add_article(
-        self, paper_data: Dict[str, Any], json_files: Dict[str, str]
-    ) -> bool:
-        scraper = NodeExtractor()
+    def read_data(self, paper_data):
         graph_data = paper_data.get("@graph", [])
         data = {}
         data["Dataset"] = [
             item for item in graph_data if "Dataset" in item.get("@type", [])
         ]
-
-        data["researchField"] = [
-            item for item in graph_data if "ResearchField" in item.get("@type", [])
-        ]
-        research_fields = []
-        for research_field in data["researchField"]:
-            rf, created = ResearchFieldModel.objects.get_or_create(
-                label=research_field["label"],
-                research_field_id=generate_static_id(research_field["label"]),
-                defaults={
-                    "label": research_field["label"],
-                    "related_identifier": research_field.get("relatedIdentifier", ""),
-                    "json": research_field,
-                    "research_field_id": generate_static_id(research_field["label"]),
-                },
-            )
-            research_fields.append(rf)
-
-        data["author"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Person" or "Person" in item.get("@type"))
-        ]
-        authors = []
-        authors_id = {}
-        for author in data["author"]:
-            author_obj, created = AuthorModel.objects.get_or_create(
-                _id=author.get("@id", ""),
-                defaults={
-                    "orcid": author.get("@id", ""),
-                    "json": author,
-                    "author_id": generate_static_id(
-                        f"{author.get('givenName', '')} {author.get('familyName', '')}"
-                    ),
-                    "given_name": author.get("givenName", ""),
-                    "family_name": author.get("familyName", ""),
-                    "label": f"{author.get('givenName', '')} {author.get('familyName', '')}",
-                },
-            )
-            authors_id[author.get("@id", "")] = author_obj.id
-            authors.append(author_obj)
-
-        data["unit"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Unit" or "Unit" in item.get("@type"))
-        ]
-        units = []
-        units_id = {}
-        for unit in data["unit"]:
-            unit_obj, created = UnitModel.objects.get_or_create(
-                type=unit.get("@type", ""),
-                exact_match=unit.get("exactMatch", "")
-                if len(unit.get("exactMatch", "")) > 0
-                else [],
-                label=unit.get("label", "") if len(unit.get("label", "")) > 0 else [],
-                defaults={
-                    "_id": unit.get("@id", ""),
-                    "json": unit,
-                },
-            )
-            units_id[unit.get("@id", "")] = unit_obj.id
-            units.append(unit_obj)
-
-        data["objectOfInterest"] = [
-            item
-            for item in graph_data
-            if (
-                item.get("@type") == "ObjectOfInterest"
-                or "ObjectOfInterest" in item.get("@type")
-            )
-        ]
-        objectOfInterests = []
-        objectOfInterests_id = {}
-        for objectOfInterest in data["objectOfInterest"]:
-            objectOfInterest_obj, created = ObjectOfInterestModel.objects.get_or_create(
-                type=objectOfInterest.get("@type", ""),
-                exact_match=objectOfInterest.get("exactMatch", "")
-                if len(objectOfInterest.get("exactMatch", "")) > 0
-                else [],
-                close_match=objectOfInterest.get("closeMatch", "")
-                if len(objectOfInterest.get("closeMatch", "")) > 0
-                else [],
-                label=objectOfInterest.get("label", "")
-                if len(objectOfInterest.get("label", "")) > 0
-                else [],
-                defaults={
-                    "_id": objectOfInterest.get("@id", ""),
-                    "json": objectOfInterest,
-                },
-            )
-            objectOfInterests_id[objectOfInterest.get("@id", "")] = (
-                objectOfInterest_obj.id
-            )
-            objectOfInterests.append(objectOfInterest_obj)
-
-        data["matrix"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Matrix" or "Matrix" in item.get("@type"))
-        ]
-
-        matrices = []
-        matrices_id = {}
-        for matrix in data["matrix"]:
-            matrix_obj, created = MatrixModel.objects.get_or_create(
-                exact_match=matrix.get("exactMatch", "")
-                if len(matrix.get("exactMatch", "")) > 0
-                else [],
-                close_match=matrix.get("closeMatch", "")
-                if len(matrix.get("closeMatch", "")) > 0
-                else [],
-                label=matrix.get("label", "")
-                if len(matrix.get("label", "")) > 0
-                else [],
-                defaults={
-                    "json": matrix,
-                    "_id": matrix.get("@id", ""),
-                },
-            )
-            matrices_id[matrix.get("@id", "")] = matrix_obj.id
-            matrices.append(matrix_obj)
-
-        data["property"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Property" or "Property" in item.get("@type"))
-        ]
-        properties = []
-        properties_id = {}
-        for property in data["property"]:
-            property_obj, created = PropertyModel.objects.get_or_create(
-                exact_match=property.get("exactMatch", "")
-                if len(property.get("exactMatch", "")) > 0
-                else [],
-                close_match=property.get("closeMatch", "")
-                if len(property.get("closeMatch", "")) > 0
-                else [],
-                label=property.get("label", "")
-                if len(property.get("label", "")) > 0
-                else [],
-                defaults={
-                    "json": property,
-                    "_id": property.get("@id", ""),
-                },
-            )
-            properties_id[property.get("@id", "")] = property_obj.id
-            properties.append(property_obj)
-
-        data["constraint"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Constraint" or "Constraint" in item.get("@type"))
-        ]
-        constraints = []
-        constraints_id = {}
-        for constraint in data["constraint"]:
-            constraint_obj, created = ConstraintModel.objects.get_or_create(
-                exact_match=constraint.get("exactMatch", "")
-                if len(constraint.get("exactMatch", "")) > 0
-                else [],
-                close_match=constraint.get("closeMatch", "")
-                if len(constraint.get("closeMatch", "")) > 0
-                else [],
-                label=constraint.get("label", "")
-                if len(constraint.get("label", "")) > 0
-                else [],
-                defaults={
-                    "json": constraint,
-                    "_id": constraint.get("@id", ""),
-                },
-            )
-            constraints_id[constraint.get("@id", "")] = constraint_obj.id
-            constraints.append(constraint_obj)
-
-        data["operation"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Operation" or "Operation" in item.get("@type"))
-        ]
-        operations = []
-        operations_id = {}
-        for operation in data["operation"]:
-            operation_obj, created = OperationModel.objects.get_or_create(
-                exact_match=operation.get("exactMatch", "")
-                if len(operation.get("exactMatch", "")) > 0
-                else [],
-                close_match=operation.get("closeMatch", "")
-                if len(operation.get("closeMatch", "")) > 0
-                else [],
-                label=operation.get("label", "")
-                if len(operation.get("label", "")) > 0
-                else [],
-                defaults={
-                    "json": operation,
-                    "_id": operation.get("@id", ""),
-                },
-            )
-            operations_id[operation.get("@id", "")] = operation_obj.id
-            operations.append(operation_obj)
-
-        types = ["Component", "Variable", "Measure"]
-        items = []
-        items_id = {}
-        for _type in types:
-            data[_type] = [
-                item
-                for item in graph_data
-                if (item.get("@type") == _type or _type in item.get("@type"))
-            ]
-            for component in data[_type]:
-                component_obj, created = ComponentModel.objects.get_or_create(
-                    type=component.get("@type", ""),
-                    label=component.get("label", ""),
-                    string_match=component.get("stringMatch", "")
-                    if len(component.get("stringMatch", "")) > 0
-                    else [],
-                    exact_match=component.get("exactMatch", "")
-                    if len(component.get("exactMatch", "")) > 0
-                    else [],
-                    close_match=component.get("closeMatch", "")
-                    if len(component.get("closeMatch", "")) > 0
-                    else [],
-                    defaults={
-                        "json": component,
-                        "_id": component.get("@id", ""),
-                    },
-                )
-                items_id[component.get("@id", "")] = component_obj.id
-                items.append(component_obj)
-
-                if component.get("operation", None) is not None:
-                    component_obj.operations.add(
-                        operations_id[component.get("operation", None)["@id"]]
-                    )
-
-                if component.get("matrix", None) is not None:
-                    component_obj.matrices.add(
-                        matrices_id[component.get("matrix", None)["@id"]]
-                    )
-
-                if component.get("objectOfInterest", None) is not None:
-                    component_obj.object_of_interests.add(
-                        objectOfInterests_id[
-                            component.get("objectOfInterest", None)["@id"]
-                        ]
-                    )
-
-                if component.get("property", None) is not None:
-                    component_obj.properties.add(
-                        properties_id[component.get("property", None)["@id"]]
-                    )
-
-                if component.get("unit", None) is not None:
-                    component_obj.units.set(
-                        [units_id[component.get("unit", None)["@id"]]]
-                    )
-
-        data["publisher"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Publisher" or "Publisher" in item.get("@type"))
-        ]
-        for publisher in data["publisher"]:
-            publisher_obj, created = PublisherModel.objects.get_or_create(
-                label=publisher.get("label", ""),
-                publisher_id=generate_static_id(publisher.get("label", "")),
-                defaults={
-                    "json": publisher,
-                    "_id": publisher.get("@id", ""),
-                },
-            )
-            publisher_id = publisher_obj.id
-
-        journal_id = False
-        data["journal"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Journal" or "Journal" in item.get("@type"))
-        ]
-        for journal in data["journal"]:
-            journal_obj, created = JournalConferenceModel.objects.get_or_create(
-                label=journal.get("label", ""),
-                journal_conference_id=generate_static_id(journal.get("label", "")),
-                defaults={
-                    "json": journal,
-                    "_id": journal.get("@id", ""),
-                    "type": "journal",
-                    "publisher_id": publisher_id,
-                },
-            )
-            journal_id = journal_obj.id
-            journal_obj.research_fields.set(research_fields)
-
-        data["conference"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Conference" or "Conference" in item.get("@type"))
-        ]
-        conference_id = False
-        for conference in data["conference"]:
-            conference_obj, created = JournalConferenceModel.objects.get_or_create(
-                label=conference.get("label", ""),
-                journal_conference_id=generate_static_id(conference.get("label", "")),
-                defaults={
-                    "_id": conference.get("@id", ""),
-                    "json": conference,
-                    "type": "conference",
-                    "publisher_id": publisher_id,
-                },
-            )
-            conference_id = conference_obj.id
-            conference_obj.research_fields.set(research_fields)
-
-        data["concept"] = [
-            item
-            for item in graph_data
-            if (item.get("@type") == "Concept" or "Concept" in item.get("@type"))
-        ]
-        concepts = []
-        concepts_id = {}
-        for concept in data["concept"]:
-            concept_obj, created = ConceptModel.objects.get_or_create(
-                concept_id=generate_static_id(concept.get("label", "")),
-                label=concept.get("label", ""),
-                defaults={
-                    "_id": concept.get("@id", ""),
-                    "json": concept,
-                    "definition": concept.get("definition", ""),
-                    "see_also": concept.get("seeAlso", ""),
-                    "string_match": concept.get("stringMatch", ""),
-                    "concept_id": generate_static_id(concept.get("label", "")),
-                },
-            )
-            concepts_id[concept.get("@id", "")] = concept_obj.id
-            concepts.append(concept_obj)
-
-        article_data = [
-            item
-            for item in graph_data
-            if (
-                item.get("@type") == "ScholarlyArticle"
-                or "ScholarlyArticle" in item.get("@type")
-            )
-        ][0]
-
-        if not article_data:
-            logger.error("No ScholarlyArticle found in data")
-            return False
-        date_value = article_data.get("datePublished", "")
-        if isinstance(date_value, (int, float)):
-            date_value = str(int(date_value))
-        reborn_date_published = data["Dataset"][0]["datePublished"]
-        dt = datetime.strptime(reborn_date_published, "%Y-%m-%dT%H:%M:%S%z")
-        article, created = ArticleModel.objects.update_or_create(
-            _id=article_data.get("@id", ""),
-            defaults={
-                "name": article_data.get("name", ""),
-                "article_id": generate_static_id(article_data.get("name", "")),
-                "json": article_data,
-                "abstract": article_data.get("abstract", ""),
-                "date_published": datetime.strptime(date_value, "%Y"),
-                "reborn_date_published": dt,
-                "identifier": article_data.get("identifier", ""),
-                "reborn_doi": fetch_reborn_doi(article_data.get("@id", "")),
-                "publisher_id": publisher_id,
-                "journal_conference_id": conference_id if conference_id else journal_id,
-                "paper_type": "conference" if conference_id else "journal",
-            },
-        )
-        filename, content_file, mime_type = self.scraper.get_file_content_and_type(
-            json_files["ro-crate-metadata.json"]
-        )
-        article.ro_crate.save(filename, content_file, save=True)
-        article.articleauthor_set.all().delete()
-        for index, author in enumerate(authors):
-            article.authors.add(author, through_defaults={"order": index + 1})
-        # article.authors.set(authors)
-        article.concepts.set(concepts)
-        article.research_fields.set(research_fields)
 
         data["json_files"] = [
             item
@@ -932,29 +560,510 @@ class SQLPaperRepository(PaperRepository):
             if "Statement" in item.get("@type", [])
         }
 
+        ###############
+        data["organizations"] = [
+            item for item in graph_data if "Organization" in item.get("@type", [])
+        ]
+        organizations_id = {}
+        for organization in data["organizations"]:
+            organization_obj, created = OrganizationModel.objects.update_or_create(
+                organization_id=organization.get("@id", ""),
+                defaults={
+                    "name": organization.get("name", ""),
+                    "url": organization.get("url", ""),
+                },
+            )
+            organizations_id[organization.get("@id", "")] = organization_obj
+
+        ###############
+        data["persons"] = [
+            item for item in graph_data if "Person" in item.get("@type", [])
+        ]
+        persons_id = {}
+        for person in data["persons"]:
+            person_obj, created = AuthorModel.objects.update_or_create(
+                author_id=generate_static_id(person.get("name", "")),
+                defaults={
+                    "family_name": person.get("familyName", ""),
+                    "given_name": person.get("givenName", ""),
+                    "orcid": person.get("@id", "")
+                    if is_orcid_url(person.get("@id", ""))
+                    else "",
+                    "name": person.get("name", ""),
+                    "affiliation": organizations_id[person["affiliation"]["@id"]],
+                },
+            )
+            persons_id[person.get("@id", "")] = person_obj
+
+        ###############
+        data["periodicals"] = [
+            item for item in graph_data if "Periodical" in item.get("@type", [])
+        ]
+        periodicals_id = {}
+        for periodical in data["periodicals"]:
+            periodical_obj, created = PeriodicalModel.objects.update_or_create(
+                periodical_id=periodical.get("@id", ""),
+                defaults={
+                    "name": periodical.get("name", ""),
+                    "publisher": organizations_id[periodical["publisher"]["@id"]],
+                },
+            )
+            periodicals_id[periodical.get("@id", "")] = periodical_obj
+        ###############
+        data["publication_issues"] = [
+            item for item in graph_data if "PublicationIssue" in item.get("@type", [])
+        ]
+        publication_issues_id = {}
+        for publication_issue in data["publication_issues"]:
+            key = generate_static_id(publication_issue.get("@id", "") or "")
+            publication_issue_obj, created = (
+                PublicationIssueModel.objects.update_or_create(
+                    publication_issue_id=key,
+                    defaults={
+                        "date_published": publication_issue.get("datePublished", ""),
+                        "is_part_of": periodicals_id[
+                            publication_issue["isPartOf"]["@id"]
+                        ],
+                    },
+                )
+            )
+            publication_issues_id[key] = publication_issue_obj.pk
+        ###############
+        data["creativeWorks"] = [
+            item for item in graph_data if "CreativeWork" in item.get("@type", [])
+        ]
+        creative_works_id = {}
+        for creative_work in data["creativeWorks"]:
+            creative_work_obj, created = CreativeWorkModel.objects.update_or_create(
+                creative_work_id=creative_work.get("@id", ""),
+                defaults={
+                    "name": creative_work.get("name", ""),
+                    "description": creative_work.get("description", ""),
+                    "identifier": creative_work.get("identifier", ""),
+                },
+            )
+            creative_works_id[creative_work.get("@id", "")] = creative_work_obj
+
+        ###############
+        data["concepts"] = [
+            item for item in graph_data if "skos:Concept" in item.get("@type", [])
+        ]
+        concepts_id = {}
+        for concept in data["concepts"]:
+            concept_obj, created = ConceptModel.objects.get_or_create(
+                concept_id=generate_static_id(concept.get("rdfs:label", "")),
+                label=concept.get("rdfs:label", ""),
+                defaults={
+                    "json": concept,
+                    "definition": concept.get("skos:definition", ""),
+                    "see_also": concept.get("rdfs:seeAlso", ""),
+                    "string_match": concept.get("stringMatch", "")
+                    if len(concept.get("stringMatch", "").strip())
+                    else [],
+                },
+            )
+            concepts_id[concept.get("@id", "")] = concept_obj
+
+        ###############
+        units_id = {}
+        data["units"] = [item for item in graph_data if "Unit" in item.get("@type", [])]
+        for unit in data["units"]:
+            unit_obj, created = UnitModel.objects.get_or_create(
+                type=unit.get("@type", ""),
+                unit_id=generate_static_id(unit.get("rdfs:label", "")),
+                exact_match=unit.get("skos:exactMatch", "")
+                if len(unit.get("skos:exactMatch", "")) > 0
+                else [],
+                close_match=unit.get("skos:closeMatch", "")
+                if len(unit.get("skos:closeMatch", "")) > 0
+                else [],
+                label=unit.get("rdfs:label", ""),
+                defaults={
+                    "json": unit,
+                },
+            )
+            units_id[unit.get("@id", "")] = unit_obj
+
+        ###############
+        object_of_interests_id = {}
+        data["object_of_interests"] = [
+            item for item in graph_data if "ObjectOfInterest" in item.get("@type", [])
+        ]
+        for object_of_interest in data["object_of_interests"]:
+            object_of_interest_obj, created = (
+                ObjectOfInterestModel.objects.get_or_create(
+                    type=object_of_interest.get("@type", ""),
+                    exact_match=object_of_interest.get("skos:exactMatch", "")
+                    if len(object_of_interest.get("skos:exactMatch", "")) > 0
+                    else [],
+                    close_match=object_of_interest.get("skos:closeMatch", "")
+                    if len(object_of_interest.get("skos:closeMatch", "")) > 0
+                    else [],
+                    label=object_of_interest.get("rdfs:label", "")
+                    if len(object_of_interest.get("rdfs:label", "")) > 0
+                    else [],
+                    defaults={
+                        "_id": object_of_interest.get("@id", ""),
+                        "json": object_of_interest,
+                    },
+                )
+            )
+            object_of_interests_id[object_of_interest.get("@id", "")] = (
+                object_of_interest_obj
+            )
+
+        ###############
+        matrices_id = {}
+        data["matrices"] = [
+            item for item in graph_data if "Matrix" in item.get("@type", [])
+        ]
+        for matrix in data["matrices"]:
+            matrix_obj, created = MatrixModel.objects.get_or_create(
+                exact_match=matrix.get("skos:exactMatch", "")
+                if len(matrix.get("skos:exactMatch", "")) > 0
+                else [],
+                close_match=matrix.get("skos:closeMatch", "")
+                if len(matrix.get("skos:closeMatch", "")) > 0
+                else [],
+                label=matrix.get("rdfs:label", "")
+                if len(matrix.get("rdfs:label", "")) > 0
+                else [],
+                defaults={
+                    "json": matrix,
+                    "_id": matrix.get("@id", ""),
+                },
+            )
+            matrices_id[matrix.get("@id", "")] = matrix_obj.id
+
+        ###############
+        data["properties"] = [
+            item for item in graph_data if "Property" in item.get("@type", [])
+        ]
+        properties_id = {}
+        for property in data["properties"]:
+            property_obj, created = PropertyModel.objects.get_or_create(
+                exact_match=property.get("skos:exactMatch", "")
+                if len(property.get("skos:exactMatch", "")) > 0
+                else [],
+                close_match=property.get("skos:closeMatch", "")
+                if len(property.get("skos:closeMatch", "")) > 0
+                else [],
+                label=property.get("rdfs:label", "")
+                if len(property.get("rdfs:label", "")) > 0
+                else [],
+                defaults={
+                    "json": property,
+                    "_id": property.get("@id", ""),
+                },
+            )
+            properties_id[property.get("@id", "")] = property_obj.id
+
+        ###############
+        data["statements"] = {
+            item["@id"]: item
+            for item in graph_data
+            if "Statement" in item.get("@type", [])
+        }
+
+        ###############
+        data["constraints"] = [
+            item for item in graph_data if "Constraint" in item.get("@type", [])
+        ]
+        constraints_id = {}
+        for constraint in data["constraints"]:
+            constraint_obj, created = ConstraintModel.objects.get_or_create(
+                exact_match=constraint.get("skos:exactMatch", "")
+                if len(constraint.get("skos:exactMatch", "")) > 0
+                else [],
+                close_match=constraint.get("skos:closeMatch", "")
+                if len(constraint.get("skos:closeMatch", "")) > 0
+                else [],
+                label=constraint.get("rdfs:label", "")
+                if len(constraint.get("rdfs:label", "")) > 0
+                else [],
+                defaults={
+                    "json": constraint,
+                    "_id": constraint.get("@id", ""),
+                },
+            )
+            constraints_id[constraint.get("@id", "")] = constraint_obj.id
+
+        ###############
+        operations_id = {}
+        data["operations"] = [
+            item for item in graph_data if "Operation" in item.get("@type", [])
+        ]
+        for operation in data["operations"]:
+            operation_obj, created = OperationModel.objects.get_or_create(
+                exact_match=operation.get("skos:exactMatch", "")
+                if len(operation.get("skos:exactMatch", "")) > 0
+                else [],
+                close_match=operation.get("skos:closeMatch", "")
+                if len(operation.get("skos:closeMatch", "")) > 0
+                else [],
+                label=operation.get("rdfs:label", "")
+                if len(operation.get("rdfs:label", "")) > 0
+                else [],
+                defaults={
+                    "json": operation,
+                    "_id": operation.get("@id", ""),
+                },
+            )
+            operations_id[operation.get("@id", "")] = operation_obj.id
+
+        ###############
+        types = ["Component", "Variable", "Measure"]
+        items = []
+        components_id = {}
+        for _type in types:
+            components = [
+                item for item in graph_data if "Component" in item.get("@type", [])
+            ]
+            for component in components:
+                component_obj, created = ComponentModel.objects.get_or_create(
+                    type=component.get("@type", ""),
+                    label=component.get("rdfs:label", ""),
+                    string_match=component.get("stringMatch", "")
+                    if len(component.get("stringMatch", "")) > 0
+                    else [],
+                    exact_match=component.get("skos:exactMatch", "")
+                    if len(component.get("skos:exactMatch", "")) > 0
+                    else [],
+                    close_match=component.get("skos:closeMatch", "")
+                    if len(component.get("skos:closeMatch", "")) > 0
+                    else [],
+                    defaults={
+                        "json": component,
+                        "_id": component.get("@id", ""),
+                    },
+                )
+                components_id[component.get("@id", "")] = component_obj
+                items.append(component_obj)
+
+                if component.get("operation", None) is not None:
+                    component_obj.operations.add(
+                        operations_id[component.get("operation", None)["@id"]]
+                    )
+
+                if component.get("matrix", None) is not None:
+                    component_obj.matrices.add(
+                        matrices_id[component.get("matrix", None)["@id"]]
+                    )
+
+                if component.get("objectOfInterest", None) is not None:
+                    component_obj.object_of_interests.add(
+                        object_of_interests_id[
+                            component.get("objectOfInterest", None)["@id"]
+                        ]
+                    )
+
+                if component.get("property", None) is not None:
+                    component_obj.properties.add(
+                        properties_id[component.get("property", None)["@id"]]
+                    )
+
+                if component.get("qudt:unit", None) is not None:
+                    component_obj.units.set(
+                        [units_id[component.get("qudt:unit", None)["@id"]]]
+                    )
+
+        ###############
+        digital_object = [
+            item
+            for item in graph_data
+            if "Dataset" in item.get("@type", []) and item.get("@id", []) == "./"
+        ][0]
+        research_fields = []
+        for item in digital_object["about"]:
+            rf, created = ResearchFieldModel.objects.get_or_create(
+                label=item, research_field_id=generate_static_id(item)
+            )
+            research_fields.append(rf.id)
+        ###############
+        article_data_items = [
+            item
+            for item in graph_data
+            if (
+                "ScholarlyArticle" in item.get("@type")
+                or ("Dataset" in item.get("@type", []) and item.get("@id", []) != "./")
+            )
+        ]
+        source_types = []
+        reborn_doi = ""
+        link_targets = {}
+        scholarly_articles = []
+        datasets = []
+        sources = {}
+        for idx, article_data in enumerate(article_data_items):
+            if "ScholarlyArticle" in article_data.get("@type"):
+                scholarly_article, created = (
+                    ScholarlyArticleModel.objects.update_or_create(
+                        scholarly_article_id=article_data.get("@id", ""),
+                        defaults={
+                            "scholarly_article_id": article_data.get("@id", ""),
+                            "name": article_data.get("name", ""),
+                            "abstract": article_data.get("abstract", ""),
+                            "is_part_of": publication_issue_obj,
+                            "json": article_data,
+                        },
+                    )
+                )
+                if not created:
+                    ScholarlyArticleAuthorModel.objects.filter(
+                        article=scholarly_article
+                    ).delete()
+
+                for idx, author in enumerate(article_data.get("author", "")):
+                    scholarly_article.authors.add(
+                        persons_id[author["@id"]], through_defaults={"order": idx + 1}
+                    )
+
+                sources[article_data.get("@id", "")] = {
+                    "scholarly_article": scholarly_article,
+                    "source_type": "scholarly_article",
+                }
+                reborn_doi = (
+                    fetch_reborn_doi(article_data.get("@id", ""))
+                    if len(fetch_reborn_doi(article_data.get("@id", "")))
+                    else ""
+                )
+                source_types.append("scholarly_article")
+                scholarly_articles.append(scholarly_article)
+            else:
+                article_data = [
+                    item
+                    for item in graph_data
+                    if "Dataset" in item.get("@type", [])
+                    and item.get("@id", []) != "./"
+                ][0]
+                publisher = article_data.get("publisher", "")
+                dataset, created = DatasetModel.objects.update_or_create(
+                    dataset_id=article_data.get("@id", ""),
+                    defaults={
+                        "dataset_id": article_data.get("@id", ""),
+                        "name": article_data.get("name", ""),
+                        "description": article_data.get("description", ""),
+                        "date_published": article_data.get("datePublished", ""),
+                        "identifier": article_data.get("identifier", ""),
+                        "publisher": organizations_id[publisher],
+                        "json": article_data,
+                    },
+                )
+                if not created:
+                    DatasetAuthorModel.objects.filter(dataset=dataset).delete()
+
+                for idx, author in enumerate(article_data.get("creator", "")):
+                    dataset.authors.add(
+                        persons_id[author["@id"]], through_defaults={"order": idx + 1}
+                    )
+
+                sources[article_data.get("@id", "")] = {
+                    "dataset": dataset,
+                    "source_type": "dataset",
+                }
+                reborn_doi = (
+                    fetch_reborn_doi(article_data.get("@id", ""))
+                    if len(fetch_reborn_doi(article_data.get("@id", "")))
+                    else ""
+                )
+                source_types.append("dataset")
+                datasets.append(dataset)
+        link_targets = {
+            "scholarly_articles": scholarly_articles,
+            "datasets": datasets,
+        }
+        return (
+            data,
+            reborn_doi,
+            link_targets,
+            digital_object,
+            research_fields,
+            source_types,
+            creative_works_id,
+            organizations_id,
+            components_id,
+            persons_id,
+            concepts_id,
+        )
+
+    def add_article(
+        self, paper_data: Dict[str, Any], json_files: Dict[str, str]
+    ) -> bool:
+        scraper = NodeExtractor()
+        (
+            data,
+            reborn_doi,
+            link_targets,
+            digital_object,
+            research_fields,
+            source_types,
+            creative_works_id,
+            organizations_id,
+            components_id,
+            authors_id,
+            concepts_id,
+        ) = self.read_data(paper_data)
+
+        article_id = generate_static_id(digital_object.get("name", ""))
+        dt = datetime.strptime(digital_object["datePublished"], "%Y-%m-%dT%H:%M:%S%z")
+        article, created = ArticleModel.objects.update_or_create(
+            article_id=article_id,
+            defaults={
+                "name": digital_object["name"],
+                "description": digital_object["description"],
+                "date_published": dt,
+                "license": creative_works_id[digital_object["license"]["@id"]],
+                "publisher": organizations_id[digital_object["publisher"]["@id"]],
+                "status": digital_object["status"],
+                ##
+                "reborn_doi": reborn_doi,
+                "article_id": article_id,
+                "json": digital_object,
+                "research_types": source_types,
+            },
+        )
+        if len(link_targets["scholarly_articles"]):
+            article.related_scholarly_articles.set(link_targets["scholarly_articles"])
+        else:
+            article.related_datasets.set(link_targets["datasets"])
+
+        if not created:
+            DigitalObjectAuthorModel.objects.filter(article=article).delete()
+
+        for idx, author in enumerate(digital_object["author"]):
+            article.authors.add(
+                authors_id[author["@id"]], through_defaults={"order": idx + 1}
+            )
+        filename, content_file, mime_type = self.scraper.get_file_content_and_type(
+            json_files["ro-crate-metadata.json"]
+        )
+        article.ro_crate.save(filename, content_file, save=True)
+        article.research_fields.set(research_fields)
+
+        for idx, concept in enumerate(concepts_id):
+            article.concepts.add(concepts_id[concept])
+
         for statement_index, statement_item in enumerate(data["json_files"]):
             statement_content = scraper.load_json_from_url(
                 json_files[statement_item.get("name", "")]
             )
-            print("----------------statement_content-----------------")
+
             if not statement_content:
                 continue
-
             statement_properties = {}
             statement_properties["components"] = statement_item.get("components", "")
             statement_properties["json_files"] = json_files[
                 statement_item.get("name", "")
             ]
-            for support in statement_item.get("supports", ""):
-                notation = data["LinguisticStatement"][
-                    data["statements"][support["@id"]]["notation"]["@id"]
-                ]
-                statement_properties["author"] = data["statements"][support["@id"]][
-                    "author"
-                ]
-                statement_properties["label"] = notation["label"]
-                statement_properties["concept"] = notation["concept"]
 
+            for support in statement_item.get("supports", ""):
+                # notation = data["LinguisticStatement"][
+                #     data["statements"][support["@id"]]["notation"]["@id"]
+                # ]
+                notation = data["statements"][support["@id"]]
+                statement_properties["author"] = digital_object["author"]
+                statement_properties["label"] = notation["rdfs:label"]
+                statement_properties["concept"] = notation["concepts"]
             statement, created = StatementModel.objects.update_or_create(
                 _id=statement_item["@id"],
                 defaults={
@@ -965,7 +1074,8 @@ class SQLPaperRepository(PaperRepository):
                     "json": statement_item,
                     "content": statement_content,
                     "article_id": article.id,
-                    "version": statement_item["version"],
+                    # "version": statement_item["version"],
+                    "version": 1,
                     "encodingFormat": statement_item["encodingFormat"],
                 },
             )
@@ -1027,7 +1137,7 @@ class SQLPaperRepository(PaperRepository):
 
             statement_components = []
             for component in statement_item.get("components", ""):
-                statement_components.append(items_id[component["@id"]])
+                statement_components.append(components_id[component["@id"]])
             if statement_components:
                 statement.components.set(statement_components)
 
@@ -1053,16 +1163,18 @@ class SQLPaperRepository(PaperRepository):
             # )
             # print('----------type_info["property"]--------------')
             # print(statement_content)
+
             for property in _info["property"]:
                 p = property
                 if property.replace("21.T11969/", "") in statement_content:
                     p = property.replace("21.T11969/", "")
+
                 if p in statement_content:
                     if p.endswith("#is_implemented_by"):
                         # print("#is_implemented_by")
                         # print(statement_content[p])
                         implement, created = ImplementModel.objects.update_or_create(
-                            statement_id=statement.id,
+                            article_id=article_id,
                             defaults={
                                 "url": statement_content[p],
                             },
@@ -1071,76 +1183,12 @@ class SQLPaperRepository(PaperRepository):
                             self.scraper.get_file_content_and_type(statement_content[p])
                         )
 
-                        def process_source_code_content_flexible(
-                            content_file, filename, statement_id=None
-                        ):
-                            import re
-                            from django.core.files.base import ContentFile
-                            from django.conf import settings
-                            import os
-
-                            try:
-                                content_file.seek(0)
-                                content = content_file.read()
-
-                                try:
-                                    if isinstance(content, bytes):
-                                        text_content = content.decode("utf-8")
-                                    else:
-                                        text_content = content
-
-                                    csv_link_pattern = (
-                                        r'https://service.tib.eu/[^"\s]*\.csv'
-                                    )
-
-                                    def replace_csv_link(match):
-                                        original_url = match.group(0)
-                                        csv_filename = os.path.basename(original_url)
-                                        domain_url = getattr(
-                                            settings,
-                                            "DOMAIN_URL",
-                                            os.environ.get(
-                                                "DOMAIN_URL", "https://reborn.orkg.org"
-                                            ),
-                                        )
-                                        domain_url = domain_url.rstrip("/")
-                                        if statement_id:
-                                            new_url = f"{domain_url}{settings.MEDIA_URL}files/{statement_id}/{csv_filename}"
-                                        else:
-                                            new_url = f"{domain_url}{settings.MEDIA_URL}files/{csv_filename}"
-                                        return new_url
-
-                                    modified_content = re.sub(
-                                        csv_link_pattern, replace_csv_link, text_content
-                                    )
-
-                                    if modified_content != text_content:
-                                        print(
-                                            f"Modified {filename} - replaced CSV links"
-                                        )
-                                        if isinstance(content, bytes):
-                                            modified_content = modified_content.encode(
-                                                "utf-8"
-                                            )
-                                        return ContentFile(
-                                            modified_content, name=filename
-                                        )
-
-                                except Exception as e:
-                                    print(f"Error processing content: {e}")
-
-                            except Exception as e:
-                                print(f"Error: {e}")
-
-                            content_file.seek(0)
-                            return content_file
-
                         if mime_type:
                             processed_content_file = (
                                 process_source_code_content_flexible(
                                     content_file,
                                     filename,
-                                    statement_id=statement.statement_id,
+                                    article_id=article_id,
                                 )
                             )
 
@@ -1164,12 +1212,12 @@ class SQLPaperRepository(PaperRepository):
                                 label=statement_content_item[label_items[0]]
                                 if label_items[0] in statement_content_item
                                 else "",
-                                statement_id=statement.id,
+                                statement=statement,
                                 defaults={
                                     "label": statement_content_item[label_items[0]]
                                     if label_items[0] in statement_content_item
                                     else "",
-                                    "statement_id": statement.id,
+                                    "statement": statement,
                                     "type": _info["name"],
                                     "schema_type": _type_info,
                                     "description": _info["description"],
@@ -1308,7 +1356,7 @@ class SQLPaperRepository(PaperRepository):
                                                     defaults={
                                                         "label": has_expression_label,
                                                         "source_url": has_expression_source_url,
-                                                        "statement_id": statement.statement_id,
+                                                        "article_id": article_id,
                                                     },
                                                 )
                                             )
@@ -1329,7 +1377,7 @@ class SQLPaperRepository(PaperRepository):
                                                     "source_table": has_output_source_table,
                                                     "comment": has_output_comment,
                                                     "has_characteristic": has_characteristic,
-                                                    "statement_id": statement.statement_id,
+                                                    "article_id": article_id,
                                                 },
                                             )
                                         )
@@ -1468,7 +1516,7 @@ class SQLPaperRepository(PaperRepository):
                                                     defaults={
                                                         "label": has_expression_label,
                                                         "source_url": has_expression_source_url,
-                                                        "statement_id": statement.statement_id,
+                                                        "article_id": article_id,
                                                     },
                                                 )
                                             )
@@ -1486,7 +1534,7 @@ class SQLPaperRepository(PaperRepository):
                                                     "source_table": has_input_source_table,
                                                     "comment": has_input_comment,
                                                     "has_characteristic": has_characteristic,
-                                                    "statement_id": statement.statement_id,
+                                                    "article_id": article_id,
                                                 },
                                             )
                                         )
@@ -2027,52 +2075,8 @@ class SQLPaperRepository(PaperRepository):
                                 if has_input_items:
                                     AlgorithmEvaluation.has_inputs.set(has_input_items)
 
-                    # else:
-                    #     print("---------p-------------")
-                    #     print(p)
-                    #     print("---------statement_content[p]-------------")
-                    #     print(statement_content[p])
-                    #     print("---------statement_content-------------")
-                    # print(statement_content)
-                    # _type_info, _info = self.type_registry_client.get_type_info(
-                    #     statement_content[p]["@type"].replace("doi:", "")
-                    # )
-
-                    # DescriptiveStatisticsModel,
-                    # GroupComparisonModel,
-                    # MultilevelAnalysisModel,
-                    # FactorAnalysisModel,
-                    # data_type, created = DataTypeModel.objects.update_or_create(
-                    #     url=statement_content[p],
-                    #     statement_id=statement.id,
-                    #     defaults={
-                    #         "url": statement_content[p],
-                    #         "statement_id": statement.id,
-                    #     },
-                    # )
                 else:
                     print("no", p)
-
-        # Add to search index
-        article_data = [
-            {
-                "title": article.name,
-                "abstract": article.abstract,
-                "article_id": article.id,
-            }
-        ]
-
-        # Import here to avoid circular import
-        # from core.infrastructure.search.hybrid_engine import HybridSearchEngine
-        # from core.infrastructure.search.semantic_engine import SemanticSearchEngine
-        # from core.infrastructure.search.keyword_engine import KeywordSearchEngine
-
-        # semantic_engine = SemanticSearchEngine()
-        # keyword_engine = KeywordSearchEngine()
-        # hybrid_engine = HybridSearchEngine(semantic_engine, keyword_engine)
-
-        # hybrid_engine.semantic_engine.add_articles(article_data)
-        # hybrid_engine.keyword_engine.add_articles(article_data)
 
         return True
 
@@ -2080,10 +2084,10 @@ class SQLPaperRepository(PaperRepository):
     #     logger.error(f"Error in add_article: {str(e)}")
     #     raise DatabaseError(f"Failed to add article: {str(e)}")
 
-    def _convert_article_to_paper(self, article: ArticleModel) -> Paper:
+    def _convert_article_to_paper(self, article: ArticleModel) -> Article:
         authors = []
-        # print("--------_convert_article_to_paper-----------", __file__)
-        for author in article.authors.all().order_by("articleauthor"):
+        print("--------_convert_article_to_paper-----------", __file__)
+        for author in article.authors.all():
             authors.append(
                 Author(
                     id=author.id,
@@ -2091,53 +2095,73 @@ class SQLPaperRepository(PaperRepository):
                     given_name=author.given_name,
                     family_name=author.family_name,
                     author_id=author.author_id,
-                    label=author.label,
+                    name=author.name,
                 )
             )
-        journal = None
-        if article.journal_conference:
-            journal = Journal(
-                id=article.journal_conference.id,
-                _id=article.journal_conference._id,
-                label=article.journal_conference.label,
-                journal_conference_id=article.journal_conference.journal_conference_id,
-                publisher=article.publisher_id,
-            )
 
+        all_related_items = []
+        for related_item in article.all_related_items:
+            items = article.all_related_items[related_item]
+            for item in items:
+                item_authors = []
+                for author in item.get_authors:
+                    item_authors.append(
+                        {
+                            "name": author["name"],
+                            "author_id": author["author_id"],
+                            "family_name": author["family_name"],
+                            "orcid": author["orcid"],
+                        }
+                    )
+                all_related_items.append(
+                    {
+                        "id": item.scholarly_article_id,
+                        "name": item.name,
+                        "abstract": item.abstract,
+                        "authors": item_authors,
+                        "publication_issue": {
+                            "date_published": item.is_part_of.date_published,
+                            "periodical": item.is_part_of.is_part_of.name,
+                            "publisher_name": item.is_part_of.is_part_of.publisher.name,
+                            "publisher_url": item.is_part_of.is_part_of.publisher.url,
+                        },
+                    }
+                )
         concepts = []
         for concept in article.concepts.all():
             concepts.append(Concept(id=concept.concept_id, label=concept.label))
 
         research_fields = []
-        for research_field in article.research_fields.all():
+        for research_field in article.get_research_fields():
             research_fields.append(
                 ResearchField(
-                    id=research_field.id,
-                    label=research_field.label,
-                    related_identifier=research_field.related_identifier,
-                    research_field_id=research_field.research_field_id,
+                    id=research_field["research_field_id"],
+                    label=research_field["label"],
+                    # related_identifier=research_field.related_identifier,
+                    research_field_id=research_field["research_field_id"],
                 )
             )
-        return Paper(
+
+        return Article(
             id=article.id,
             name=article.name,
             authors=authors,
-            abstract=article.abstract,
+            abstract=article.description,
             contributions=[],
             statements=article.statements.all(),
-            dois=article.identifier,
+            dois=article.reborn_doi,
             date_published=article.date_published,
             research_fields=research_fields,
+            related_items=all_related_items,
             entity=None,
             external=None,
             info={},
             timeline={},
-            journal=journal,
             publisher=article.publisher,
             # research_fields=research_fields,
             article_id=article.article_id,
             reborn_doi=article.reborn_doi,
-            paper_type=article.paper_type,
+            paper_type=article.research_types,
             concepts=concepts,
             created_at=article.created_at,
             updated_at=article.updated_at,

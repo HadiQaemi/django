@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional, cast
 from datetime import datetime
 
 from core.domain.entities import (
-    Paper,
+    Article,
     Statement,
     Author,
     Concept,
@@ -342,7 +342,7 @@ class PaperMapper:
     """Mapper for Paper entities."""
 
     @staticmethod
-    def to_entity(dto: PaperInputDTO) -> Paper:
+    def to_entity(dto: PaperInputDTO) -> Article:
         """Convert DTO to entity."""
         authors = [AuthorMapper.to_entity(author_dto) for author_dto in dto.author]
         research_fields = []
@@ -351,7 +351,7 @@ class PaperMapper:
                 ResearchFieldMapper.to_entity(rf_dto) for rf_dto in dto.research_fields
             ]
 
-        return Paper(
+        return Article(
             id=dto.id or "",
             title=dto.title,
             author=authors,
@@ -376,7 +376,7 @@ class PaperMapper:
         )
 
     @staticmethod
-    def to_dto(entity: Paper) -> PaperOutputDTO:
+    def to_dto(entity: Article) -> PaperOutputDTO:
         """Convert entity to DTO."""
         authors = [AuthorMapper.to_dto(author) for author in entity.author]
         research_fields = [
@@ -424,7 +424,7 @@ class PaperMapper:
         )
 
     @staticmethod
-    def from_dict(data: Dict[str, Any]) -> Paper:
+    def from_dict(data: Dict[str, Any]) -> Article:
         """Convert dictionary to entity."""
         # Process authors
         authors = []
@@ -523,7 +523,7 @@ class PaperMapper:
             else:
                 date_published = data["date_published"]
 
-        return Paper(
+        return Article(
             id=data.get("id", "") or data.get("_id", ""),
             title=data.get("title", "") or data.get("name", ""),
             author=authors,

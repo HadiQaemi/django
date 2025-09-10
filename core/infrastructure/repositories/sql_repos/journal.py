@@ -5,6 +5,7 @@ from core.domain.entities import Journal
 from core.domain.exceptions import DatabaseError
 from core.infrastructure.models.sql_models import (
     JournalConference as JournalConferenceModel,
+    Periodical as PeriodicalModel,
 )
 from django.core.paginator import Paginator
 
@@ -41,10 +42,10 @@ class SQLJournalRepository(JournalRepository):
     def get_count_all(self, research_fields=None) -> any:
         try:
             if not research_fields:
-                return JournalConferenceModel.objects.count()
+                return PeriodicalModel.objects.count()
             else:
                 return (
-                    JournalConferenceModel.objects.filter(
+                    PeriodicalModel.objects.filter(
                         research_fields__in=research_fields
                     )
                     .distinct()
@@ -65,42 +66,42 @@ class SQLJournalRepository(JournalRepository):
     ) -> Tuple[List[Dict[str, Any]], int]:
         """Get latest journals with filters."""
         print("-------------get_latest_journals----------", __file__)
-        try:
-            query = JournalConferenceModel.objects.all()
+        # try:
+        query = PeriodicalModel.objects.all()
 
-            if search_query:
-                query = query.filter(label__icontains=search_query)
+        if search_query:
+            query = query.filter(label__icontains=search_query)
 
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(
-                    articles__research_fields__research_field_id__in=research_fields
-                )
+        if research_fields and len(research_fields) > 0:
+            query = query.filter(
+                articles__research_fields__research_field_id__in=research_fields
+            )
 
-            if sort_order == "a-z":
-                query = query.order_by("label")
-            elif sort_order == "z-a":
-                query = query.order_by("-label")
-            elif sort_order == "newest":
-                query = query.order_by("-id")
-            else:
-                query = query.order_by("label")
+        if sort_order == "a-z":
+            query = query.order_by("name")
+        elif sort_order == "z-a":
+            query = query.order_by("-name")
+        elif sort_order == "newest":
+            query = query.order_by("-id")
+        else:
+            query = query.order_by("name")
 
-            total = query.count()
+        total = query.count()
 
-            paginator = Paginator(query, page_size)
-            page_obj = paginator.get_page(page)
+        paginator = Paginator(query, page_size)
+        page_obj = paginator.get_page(page)
+        periodicals = []
+        for periodical in page_obj:
+            periodical_dict = {
+                "id": periodical.periodical_id,
+                "journal_conference_id": periodical.periodical_id,
+                "label": periodical.name,
+                "publisher": periodical.publisher.name,
+                "url": periodical.publisher.url,
+            }
+            periodicals.append(periodical_dict)
+        return periodicals, total
 
-            journals = []
-            for journal_model in page_obj:
-                journal_dict = {
-                    "id": journal_model.id,
-                    "journal_conference_id": journal_model.journal_conference_id,
-                    "label": journal_model.label,
-                    "publisher": journal_model.publisher,
-                }
-                journals.append(journal_dict)
-            return journals, total
-
-        except Exception as e:
-            logger.error(f"Error in get_latest_journals: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")
+        # except Exception as e:
+        #     logger.error(f"Error in get_latest_journals: {str(e)}")
+        #     raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")

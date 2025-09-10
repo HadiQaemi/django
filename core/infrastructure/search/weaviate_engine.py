@@ -354,7 +354,7 @@ class WeaviateSearchEngine:
 
             try:
                 collection.data.delete_by_id(article_id)
-                logger.info(f"Deleted article from Weaviate: {article_id}")
+                logger.info(f"Deleted article from Weaviate 1: {article_id}")
                 return True
             except weaviate.exceptions.WeaviateEntityNotFoundError:
                 query_result = collection.query.fetch_objects(
@@ -365,7 +365,7 @@ class WeaviateSearchEngine:
                 if query_result.objects:
                     object_uuid = query_result.objects[0].uuid
                     collection.data.delete_by_id(object_uuid)
-                    logger.info(f"Deleted article from Weaviate: {article_id}")
+                    logger.info(f"Deleted article from Weaviate 2: {article_id}")
                     return True
                 else:
                     logger.warning(f"Article not found in Weaviate: {article_id}")

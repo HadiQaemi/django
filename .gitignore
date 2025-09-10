@@ -5,6 +5,7 @@ __pycache__/
 
 # Distribution
 media/
+staticfiles/
 venv/
 logs/
 # Environments

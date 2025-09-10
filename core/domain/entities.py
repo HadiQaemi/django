@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 
+from core.application.dtos.output_dtos import ShortScholarityOutputDTO
+
 
 @dataclass
 class Author:
@@ -13,6 +15,7 @@ class Author:
     orcid: Optional[str] = None
     author_id: Optional[str] = None
     label: Optional[str] = None
+    name: Optional[str] = None
 
     @property
     def full_name(self) -> str:
@@ -109,8 +112,7 @@ class Contribution:
 
 
 @dataclass
-class Paper:
-    """Research paper with its metadata and contributions."""
+class Article:
 
     id: str
     name: str
@@ -126,12 +128,13 @@ class Paper:
     timeline: Optional[Dict[str, Any]] = field(default_factory=dict)
     journal: Optional[Journal] = None
     conference: Optional[Conference] = None
-    publisher: Optional[Dict[str, Any]] = None
+    publisher: str = None
     research_fields: List[ResearchField] = field(default_factory=list)
     research_fields_id: List[str] = field(default_factory=list)
+    related_items: Optional[List[ShortScholarityOutputDTO]] = None
     article_id: Optional[str] = None
     reborn_doi: Optional[str] = None
-    paper_type: Optional[str] = None
+    paper_type: Optional[Any] = None
     concepts: List[Concept] = field(default_factory=list)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
