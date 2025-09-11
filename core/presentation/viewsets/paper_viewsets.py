@@ -685,7 +685,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             ip = x_forwarded_for.split(",")[0].strip()
         else:
             ip = request.META.get("REMOTE_ADDR")
-        if not (ip == "127.0.0.1" or ip == "10.114.149.127" or ip == "10.115.161.41"):
+        if not (ip == "127.0.0.1" or ip == "10.114.149.127" or ip == "10.114.149.153"):
             return Response(
                 {"error": f"Forbidden from {ip}"},
                 status=status.HTTP_403_FORBIDDEN,
