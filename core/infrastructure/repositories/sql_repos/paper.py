@@ -2096,6 +2096,11 @@ class SQLPaperRepository(PaperRepository):
                     family_name=author.family_name,
                     author_id=author.author_id,
                     name=author.name,
+                    affiliation={
+                        "organization_id": author.affiliation.organization_id,
+                        "name": author.affiliation.name,
+                        "url": author.affiliation.url,
+                    },
                 )
             )
 
@@ -2122,6 +2127,7 @@ class SQLPaperRepository(PaperRepository):
                         "publication_issue": {
                             "date_published": item.is_part_of.date_published,
                             "periodical": item.is_part_of.is_part_of.name,
+                            "periodical_url": item.is_part_of.is_part_of.periodical_id,
                             "publisher_name": item.is_part_of.is_part_of.publisher.name,
                             "publisher_url": item.is_part_of.is_part_of.publisher.url,
                         },

@@ -764,6 +764,7 @@ class PaperServiceImpl(PaperServiceInterface):
                         "name": author.name,
                         "orcid": author.orcid,
                         "author_id": author.author_id,
+                        "affiliation": author.affiliation,
                     }
                 )
             concepts = []
@@ -1262,6 +1263,7 @@ class PaperServiceImpl(PaperServiceInterface):
                         family_name=author.get("family_name", ""),
                         orcid=author.get("orcid", ""),
                         author_id=author.get("author_id", ""),
+                        affiliation=author.get("affiliation", ""),
                     )
                 )
             else:
@@ -1271,6 +1273,7 @@ class PaperServiceImpl(PaperServiceInterface):
                         family_name=author.family_name,
                         orcid=author.orcid,
                         author_id=author.author_id,
+                        affiliation=author.affiliation,
                     )
                 )
         research_fields = []

@@ -16,6 +16,7 @@ class Author:
     author_id: Optional[str] = None
     label: Optional[str] = None
     name: Optional[str] = None
+    affiliation: Optional[Any] = None
 
     @property
     def full_name(self) -> str:

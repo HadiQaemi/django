@@ -15,6 +15,7 @@ class ShortAuthorOutputDTO(BaseModel):
     family_name: Optional[str] = None
     orcid: Optional[str] = None
     author_id: Optional[str] = None
+    affiliation: Optional[Any] = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}

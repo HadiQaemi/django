@@ -196,25 +196,25 @@ class PaperViewSet(viewsets.GenericViewSet):
         """Get latest articles with filters."""
         print("----get_article--------")
         self.pagination_class = None
-        # try:
-        paper_id = request.query_params.get("id")
-        result = self.paper_service.get_paper_by_id(paper_id)
-        # print(result.result["article"]["authors"])
+        try:
+            paper_id = request.query_params.get("id")
+            result = self.paper_service.get_paper_by_id(paper_id)
+            # print(result.result["article"]["authors"])
 
-        if not result.success:
+            if not result.success:
+                return Response(
+                    {"error": result.message or "Paper not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            return Response(result.result)
+
+        except Exception as e:
+            logger.error(f"Error in get_articles: {str(e)}")
             return Response(
-                {"error": result.message or "Paper not found"},
-                status=status.HTTP_404_NOT_FOUND,
+                {"error": "Failed to retrieve latest articles"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-        return Response(result.result)
-
-        # except Exception as e:
-        #     logger.error(f"Error in get_articles: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve latest articles"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
 
     # @action(detail=True, methods=["get"], url_path="statement")
     # @method_decorator(cache_page(60 * 15))
