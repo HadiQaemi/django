@@ -252,8 +252,8 @@ class PaperServiceImpl(PaperServiceInterface):
                 "research_fields": research_fields,
                 "scientific_venue": journal_conference,
                 "publisher": publisher,
-                "reborn_date": localtime(paper.created_at).strftime("%B %d, %Y")
-                if hasattr(paper, "created_at") and paper.created_at
+                "reborn_date": localtime(paper.date_published).strftime("%B %d, %Y")
+                if hasattr(paper, "date_published") and paper.date_published
                 else None,
             }
             statements = []
@@ -626,9 +626,7 @@ class PaperServiceImpl(PaperServiceInterface):
         """Get a statement by its ID."""
         # try:
         statement_in_paper = (
-            self.statement_repository.find_paper_with_statement_details(
-                statement_id
-            )
+            self.statement_repository.find_paper_with_statement_details(statement_id)
         )
         print("------------get_statement_by_id-----------statement---------------")
         paper = None
@@ -667,12 +665,12 @@ class PaperServiceImpl(PaperServiceInterface):
                 "concepts": concepts,
                 "research_fields": paper_dto.research_fields,
                 "publisher": paper_dto.publisher,
-                "reborn_date": localtime(paper_dto.created_at).strftime(
+                "date_published": localtime(paper_dto.date_published).strftime(
                     "%B %d, %Y"
                 ),
-                "date_published": localtime(paper_dto.date_published).strftime(
-                    "%Y"
-                ),
+                # "date_published": localtime(paper_dto.date_published).strftime(
+                #     "%Y"
+                # ),
             }
             statements = []
             for statement in paper.statements.all().order_by("order"):
@@ -724,7 +722,7 @@ class PaperServiceImpl(PaperServiceInterface):
                 result={
                     "article": paper_info,
                     "statements": statements,
-                    "basises": paper.related_items
+                    "basises": paper.related_items,
                 },
                 total_count=len(statements),
             )
@@ -789,8 +787,10 @@ class PaperServiceImpl(PaperServiceInterface):
                 "concepts": concepts,
                 "research_fields": paper_dto.research_fields,
                 "publisher": paper_dto.publisher,
-                "reborn_date": localtime(paper_dto.created_at).strftime("%B %d, %Y"),
-                "date_published": localtime(paper_dto.date_published).strftime("%Y"),
+                "date_published": localtime(paper_dto.date_published).strftime(
+                    "%B %d, %Y"
+                ),
+                # "date_published": localtime(paper_dto.date_published).strftime("%Y"),
             }
             statements = []
             for statement in paper.statements.all().order_by("order"):
