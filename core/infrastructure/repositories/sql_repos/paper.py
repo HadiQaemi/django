@@ -66,6 +66,7 @@ from django.db.models import Q, F, Case, When
 from core.domain.exceptions import DatabaseError
 from django.core.paginator import Paginator
 from datetime import datetime
+import dateutil.parser
 import logging
 
 logger = logging.getLogger(__name__)
@@ -371,80 +372,80 @@ class SQLPaperRepository(PaperRepository):
     ) -> Tuple[List[Article], int]:
         """Get latest articles with filters."""
         print("-------------get_latest_articles---------------", __file__)
-        try:
-            if search_query and search_type in ["semantic", "hybrid"]:
-                from core.infrastructure.container import Container
+        # try:
+        if search_query and search_type in ["semantic", "hybrid"]:
+            from core.infrastructure.container import Container
 
-                search_repo = Container.resolve(SearchRepository)
-                if search_type == "semantic":
-                    search_results = search_repo.semantic_search_articles(
-                        search_query, page_size * 2
-                    )
-                    article_ids = [
-                        result.get("article_id")
-                        for result in search_results
-                        if result.get("article_id")
-                    ]
-                else:
-                    search_results = search_repo.hybrid_search_articles(
-                        search_query, page_size * 2
-                    )
-                    article_ids = [
-                        result.get("article_id")
-                        for result in search_results
-                        if result.get("article_id")
-                    ]
-                if not article_ids:
-                    query = self.advanced_article_search(search_query, research_fields)
-                else:
-                    preserved_order = Case(
-                        *[
-                            When(article_id=id, then=pos)
-                            for pos, id in enumerate(article_ids)
-                        ]
-                    )
-                    query = ArticleModel.objects.filter(
-                        article_id__in=article_ids
-                    ).order_by(preserved_order)
-
-                if research_fields and len(research_fields) > 0:
-                    query = query.filter(
-                        research_fields__research_field_id__in=research_fields
-                    )
+            search_repo = Container.resolve(SearchRepository)
+            if search_type == "semantic":
+                search_results = search_repo.semantic_search_articles(
+                    search_query, page_size * 2
+                )
+                article_ids = [
+                    result.get("article_id")
+                    for result in search_results
+                    if result.get("article_id")
+                ]
             else:
-                if search_query:
-                    query = self.advanced_article_search(search_query)
-                else:
-                    query = ArticleModel.objects.all()
+                search_results = search_repo.hybrid_search_articles(
+                    search_query, page_size * 2
+                )
+                article_ids = [
+                    result.get("article_id")
+                    for result in search_results
+                    if result.get("article_id")
+                ]
+            if not article_ids:
+                query = self.advanced_article_search(search_query, research_fields)
+            else:
+                preserved_order = Case(
+                    *[
+                        When(article_id=id, then=pos)
+                        for pos, id in enumerate(article_ids)
+                    ]
+                )
+                query = ArticleModel.objects.filter(
+                    article_id__in=article_ids
+                ).order_by(preserved_order)
 
-                if research_fields and len(research_fields) > 0:
-                    query = query.filter(
-                        research_fields__research_field_id__in=research_fields
-                    )
-            if search_type not in ["semantic", "hybrid"]:
-                if sort_order == "a-z":
-                    query = query.order_by("name")
-                elif sort_order == "z-a":
-                    query = query.order_by("-name")
-                elif sort_order == "newest":
-                    query = query.order_by("-created_at")
-                else:
-                    query = query.order_by("name")
+            if research_fields and len(research_fields) > 0:
+                query = query.filter(
+                    research_fields__research_field_id__in=research_fields
+                )
+        else:
+            if search_query:
+                query = self.advanced_article_search(search_query)
+            else:
+                query = ArticleModel.objects.all()
 
-            total = query.count()
+            if research_fields and len(research_fields) > 0:
+                query = query.filter(
+                    research_fields__research_field_id__in=research_fields
+                )
+        if search_type not in ["semantic", "hybrid"]:
+            if sort_order == "a-z":
+                query = query.order_by("name")
+            elif sort_order == "z-a":
+                query = query.order_by("-name")
+            elif sort_order == "newest":
+                query = query.order_by("-created_at")
+            else:
+                query = query.order_by("name")
 
-            paginator = Paginator(query, page_size)
-            page_obj = paginator.get_page(page)
-            papers = []
-            for article in page_obj:
-                paper = self._convert_article_to_paper(article)
-                papers.append(paper)
+        total = query.count()
 
-            return papers, total
+        paginator = Paginator(query, page_size)
+        page_obj = paginator.get_page(page)
+        papers = []
+        for article in page_obj:
+            paper = self._convert_article_to_paper(article)
+            papers.append(paper)
 
-        except Exception as e:
-            logger.error(f"Error in get_latest_articles: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve latest articles: {str(e)}")
+        return papers, total
+
+        # except Exception as e:
+        #     logger.error(f"Error in get_latest_articles: {str(e)}")
+        #     raise DatabaseError(f"Failed to retrieve latest articles: {str(e)}")
 
     def get_semantics_articles(
         self,
@@ -937,15 +938,22 @@ class SQLPaperRepository(PaperRepository):
                     and item.get("@id", []) != "./"
                 ][0]
                 publisher = article_data.get("publisher", "")
+
+                date_published_raw = article_data.get("datePublished", "")
+                date_published = None
+                if isinstance(date_published_raw, (int, float)):  # timestamp case
+                    date_published = datetime.fromtimestamp(date_published_raw)
+                elif isinstance(date_published_raw, str) and date_published_raw.strip():
+                    date_published = dateutil.parser.parse(date_published_raw)
                 dataset, created = DatasetModel.objects.update_or_create(
                     dataset_id=article_data.get("@id", ""),
                     defaults={
                         "dataset_id": article_data.get("@id", ""),
                         "name": article_data.get("name", ""),
                         "description": article_data.get("description", ""),
-                        "date_published": article_data.get("datePublished", ""),
+                        "date_published": date_published,
                         "identifier": article_data.get("identifier", ""),
-                        "publisher": organizations_id[publisher],
+                        "publisher": organizations_id[publisher.get("@id", "")],
                         "json": article_data,
                     },
                 )
@@ -1171,10 +1179,9 @@ class SQLPaperRepository(PaperRepository):
 
                 if p in statement_content:
                     if p.endswith("#is_implemented_by"):
-                        # print("#is_implemented_by")
-                        # print(statement_content[p])
                         implement, created = ImplementModel.objects.update_or_create(
                             article_id=article_id,
+                            statement_id=statement.id,
                             defaults={
                                 "url": statement_content[p],
                             },
@@ -2118,21 +2125,53 @@ class SQLPaperRepository(PaperRepository):
                             "orcid": author["orcid"],
                         }
                     )
-                all_related_items.append(
-                    {
-                        "id": item.scholarly_article_id,
-                        "name": item.name,
-                        "abstract": item.abstract,
-                        "authors": item_authors,
-                        "publication_issue": {
-                            "date_published": item.is_part_of.date_published,
-                            "periodical": item.is_part_of.is_part_of.name,
-                            "periodical_url": item.is_part_of.is_part_of.periodical_id,
-                            "publisher_name": item.is_part_of.is_part_of.publisher.name,
-                            "publisher_url": item.is_part_of.is_part_of.publisher.url,
-                        },
+                result = {
+                    "id": getattr(item, "scholarly_article_id", None)
+                    or item.dataset_id,
+                    "name": item.name,
+                    "abstract": getattr(item, "abstract", None) or item.description,
+                    "authors": item_authors,
+                }
+                if getattr(item, "is_part_of", None):
+                    result["publication_issue"] = {
+                        "date_published": getattr(
+                            item.is_part_of, "date_published", None
+                        ),
+                        "type": "Article",
+                        "periodical": getattr(item.is_part_of.is_part_of, "name", None),
+                        "periodical_url": getattr(
+                            item.is_part_of.is_part_of, "periodical_id", None
+                        ),
+                        "publisher_name": getattr(
+                            item.is_part_of.is_part_of.publisher, "name", None
+                        ),
+                        "publisher_url": getattr(
+                            item.is_part_of.is_part_of.publisher, "url", None
+                        ),
                     }
-                )
+
+                if getattr(item, "publisher", None):
+                    ts = getattr(item, "date_published", None)
+                    year = None
+                    if ts:
+                        if isinstance(ts, (int, float)):
+                            year = datetime.fromtimestamp(ts).year
+                        elif isinstance(ts, datetime):
+                            year = ts.year
+                        elif isinstance(ts, str):
+                            year = datetime.fromisoformat(ts).year
+
+                    result["publication_issue"] = {
+                        "date_published": year,
+                        "type": "Dataset",
+                        "periodical": getattr(item.publisher, "name", None),
+                        "periodical_url": getattr(item.publisher, "url", None),
+                        "publisher_name": "",
+                        "publisher_url": "",
+                    }
+
+                all_related_items.append(result)
+
         concepts = []
         for concept in article.concepts.all():
             concepts.append(Concept(id=concept.concept_id, label=concept.label))

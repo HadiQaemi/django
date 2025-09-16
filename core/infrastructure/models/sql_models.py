@@ -17,6 +17,15 @@ from core.domain.exceptions import ValidationError
 from core.infrastructure.repositories.sql_repos_helper import (
     articlet_ro_crate_upload_path,
 )
+from django.core.files.storage import FileSystemStorage
+
+
+class OverwriteStorage(FileSystemStorage):
+    def get_available_name(self, name, max_length=None):
+        # If the file exists, delete it so the new one can use the same name
+        if self.exists(name):
+            self.delete(name)
+        return name
 
 
 @receiver(post_save)
@@ -587,6 +596,12 @@ class Dataset(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    @property
+    def get_authors(self):
+        return self.authors.values(
+            "name", "family_name", "orcid", "author_id", "affiliation"
+        )
+
 
 class DatasetAuthor(models.Model):
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
@@ -637,7 +652,9 @@ class ScholarlyArticle(TimeStampedModel):
 
     @property
     def get_authors(self):
-        return self.authors.values("name", "family_name", "orcid", "author_id", "affiliation")
+        return self.authors.values(
+            "name", "family_name", "orcid", "author_id", "affiliation"
+        )
 
 
 class ScholarlyArticleAuthor(models.Model):
@@ -692,7 +709,10 @@ class Article(TimeStampedModel):
         through="DigitalObjectAuthor",
     )
     ro_crate = models.FileField(
-        upload_to=articlet_ro_crate_upload_path, null=True, blank=True
+        upload_to=articlet_ro_crate_upload_path,
+        storage=OverwriteStorage(),
+        null=True,
+        blank=True,
     )
     article_id = models.CharField(max_length=255, null=True)
     json = JSONField(null=True, blank=True)
@@ -919,7 +939,9 @@ class Statement(TimeStampedModel):
     version = models.CharField(max_length=255, null=True)
     encodingFormat = models.CharField(max_length=255, null=True)
     name = models.CharField(max_length=255, null=True)
-    json_ld = models.FileField(upload_to="json_ld_files/", null=True, blank=True)
+    json_ld = models.FileField(
+        upload_to="json_ld_files/", storage=OverwriteStorage(), null=True, blank=True
+    )
     label = models.CharField(null=True, blank=True)
     article = models.ForeignKey(
         Article,
@@ -964,19 +986,22 @@ class Statement(TimeStampedModel):
 
 
 def implement_source_code_upload_path(instance, filename):
-    if instance.statement and instance.article_id:
+    if instance and instance.article_id:
         return f"files/{instance.article_id}/{filename}"
     else:
-        return f"files/no_statement/{filename}"
+        return f"files/no_article/{filename}"
 
 
 class Implement(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     url = models.TextField(null=True, blank=True)
-    source_code = models.FileField(
-        upload_to=implement_source_code_upload_path, null=True, blank=True
-    )
     article_id = models.CharField(max_length=255, null=True)
+    source_code = models.FileField(
+        upload_to=implement_source_code_upload_path,
+        storage=OverwriteStorage(),
+        null=True,
+        blank=True,
+    )
     statement = models.ForeignKey(
         Statement,
         on_delete=models.CASCADE,
@@ -1063,7 +1088,7 @@ def figure_source_image_upload_path_alternative(instance, filename):
         if instance and instance.article_id:
             upload_path = f"files/{instance.article_id}/{filename}"
         else:
-            upload_path = f"files/no_statement/{filename}"
+            upload_path = f"files/no_article/{filename}"
 
         full_target_path = os.path.join(settings.MEDIA_ROOT, upload_path)
         if os.path.exists(full_target_path):
@@ -1075,7 +1100,7 @@ def figure_source_image_upload_path_alternative(instance, filename):
 
         return upload_path
     except Exception:
-        return f"files/no_statement/{filename}"
+        return f"files/no_article/{filename}"
 
 
 class Figure(TimeStampedModel):
@@ -1083,7 +1108,10 @@ class Figure(TimeStampedModel):
     label = models.TextField(null=True, blank=True)
     source_url = models.TextField(null=True, blank=True)
     source_image = models.ImageField(
-        upload_to=figure_source_image_upload_path_alternative, null=True, blank=True
+        upload_to=figure_source_image_upload_path_alternative,
+        storage=OverwriteStorage(),
+        null=True,
+        blank=True,
     )
     article_id = models.TextField(null=True, blank=True)
 
@@ -1101,7 +1129,7 @@ def dataitem_source_file_upload_path(instance, filename):
     if instance and instance.article_id:
         upload_path = f"files/{instance.article_id}/{filename}"
     else:
-        upload_path = f"files/no_statement/{filename}"
+        upload_path = f"files/no_article/{filename}"
 
     full_target_path = os.path.join(settings.MEDIA_ROOT, upload_path)
     if os.path.exists(full_target_path):
@@ -1122,7 +1150,10 @@ class DataItem(TimeStampedModel):
     article_id = models.TextField(null=True, blank=True)
     source_table = JSONField(null=True, blank=True)
     source_file = models.FileField(
-        upload_to=dataitem_source_file_upload_path, null=True, blank=True
+        upload_to=dataitem_source_file_upload_path,
+        storage=OverwriteStorage(),
+        null=True,
+        blank=True,
     )
     has_characteristic = models.ForeignKey(
         MartixSize,
