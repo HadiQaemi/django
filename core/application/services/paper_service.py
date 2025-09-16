@@ -390,7 +390,7 @@ class PaperServiceImpl(PaperServiceInterface):
         implements = []
         for implement_statement in implement_statements:
             implements.append(
-                f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{implement_statement.source_code.url}"
+                f"{os.environ.get('DOMAIN_NAME', 'http://knowledgeloom21.service.tib.eu')}{implement_statement.source_code.url}"
                 if implement_statement.source_code
                 else implement_statement.url
             )
@@ -437,7 +437,7 @@ class PaperServiceImpl(PaperServiceInterface):
                             "source": encode_id(has_expression.id),
                             "type": "has_expression",
                             "label": has_expression.label,
-                            "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_expression.source_image.url}"
+                            "source_url": f"{os.environ.get('DOMAIN_NAME', 'http://knowledgeloom21.service.tib.eu')}{has_expression.source_image.url}"
                             if has_expression.source_image
                             else has_expression.source_url,
                         }
@@ -455,7 +455,7 @@ class PaperServiceImpl(PaperServiceInterface):
                         "source": encode_id(has_input.id),
                         "type": "has_input",
                         "label": has_input.label,
-                        "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_input.source_file.url}"
+                        "source_url": f"{os.environ.get('DOMAIN_NAME', 'http://knowledgeloom21.service.tib.eu')}{has_input.source_file.url}"
                         if has_input.source_file
                         else has_input.source_url,
                         "comment": has_input.comment,
@@ -480,7 +480,7 @@ class PaperServiceImpl(PaperServiceInterface):
                             "source": encode_id(has_expression.id),
                             "type": "has_expression",
                             "label": has_expression.label,
-                            "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_expression.source_image.url}"
+                            "source_url": f"{os.environ.get('DOMAIN_NAME', 'http://knowledgeloom21.service.tib.eu')}{has_expression.source_image.url}"
                             if has_expression.source_image
                             else has_expression.source_url,
                         }
@@ -498,7 +498,7 @@ class PaperServiceImpl(PaperServiceInterface):
                         "source": encode_id(has_output.id),
                         "type": "has_output",
                         "label": has_output.label,
-                        "source_url": f"{os.environ.get('DOMAIN_NAME', 'https://reborn.orkg.org')}{has_output.source_file.url}"
+                        "source_url": f"{os.environ.get('DOMAIN_NAME', 'http://knowledgeloom21.service.tib.eu')}{has_output.source_file.url}"
                         if has_output.source_file
                         else has_output.source_url,
                         "comment": has_output.comment,

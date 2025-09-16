@@ -54,7 +54,7 @@ def process_source_code_content_flexible(content_file, filename, article_id=None
                 domain_url = getattr(
                     settings,
                     "DOMAIN_URL",
-                    os.environ.get("DOMAIN_URL", "https://reborn.orkg.org"),
+                    os.environ.get("DOMAIN_URL", "http://knowledgeloom21.service.tib.eu"),
                 )
                 domain_url = domain_url.rstrip("/")
                 if article_id:
