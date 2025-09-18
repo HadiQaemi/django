@@ -704,7 +704,6 @@ class SQLPaperRepository(PaperRepository):
                     if len(object_of_interest.get("rdfs:label", "")) > 0
                     else [],
                     defaults={
-                        "_id": object_of_interest.get("@id", ""),
                         "json": object_of_interest,
                     },
                 )
@@ -754,7 +753,6 @@ class SQLPaperRepository(PaperRepository):
                 else [],
                 defaults={
                     "json": property,
-                    "_id": property.get("@id", ""),
                 },
             )
             properties_id[property.get("@id", "")] = property_obj.id

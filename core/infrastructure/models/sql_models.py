@@ -203,11 +203,8 @@ class Matrix(TimeStampedModel):
 
 class Property(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    _id = models.CharField(max_length=255, unique=True, null=True)
     json = JSONField(null=True, blank=True)
-    label = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
+    label = models.CharField(max_length=255, unique=True, null=True)
     exact_match = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
     )
@@ -218,7 +215,6 @@ class Property(TimeStampedModel):
     class Meta:
         db_table = "properties"
         indexes = [
-            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
@@ -253,11 +249,8 @@ class Unit(TimeStampedModel):
 
 class ObjectOfInterest(TimeStampedModel):
     id = models.AutoField(primary_key=True)
-    _id = models.CharField(max_length=255, unique=True, null=True)
     json = JSONField(null=True, blank=True)
-    label = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
+    label = models.CharField(max_length=255, unique=True, null=True)
     type = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
     )
@@ -271,7 +264,6 @@ class ObjectOfInterest(TimeStampedModel):
     class Meta:
         db_table = "object_of_interests"
         indexes = [
-            models.Index(fields=["_id"]),
             models.Index(fields=["label"]),
         ]
 
