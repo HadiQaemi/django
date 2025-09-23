@@ -7,6 +7,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
 from django.utils.timezone import localtime
+from core.domain.value_objects import YearRange
 from core.infrastructure.container import Container
 from core.application.dtos.input_dtos import (
     QueryFilterInputDTO,
@@ -15,6 +16,7 @@ from core.application.dtos.input_dtos import (
 from core.presentation.serializers.paper_serializers import (
     ArticleStatementsSerializer,
     ArticleWrapperSerializer,
+    GetArticlesQuerySerializer,
     JournalSerializer,
     PaperListSerializer,
     PaperSerializer,
@@ -492,17 +494,37 @@ class PaperViewSet(viewsets.GenericViewSet):
     )
     def get_articles(self, request: Request) -> Response:
         """Get latest articles with filters."""
-        print("-------------get_latest_articles---------------", __file__)
         # try:
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("limit", 10))
-        sort_order = request.query_params.get("sort", "a-z")
-        search_query = request.query_params.get("search", "")
-        research_fields = request.query_params.getlist("research_fields[]")
-        search_type = request.query_params.get("search_type", "keyword")
+        qs = GetArticlesQuerySerializer(data=request.query_params)
+        qs.is_valid(raise_exception=True)
+        p = qs.validated_data
+        year_range = None
+        if "start_year" in p or "end_year" in p:
+            # If only one is provided, default the other
+            s = p.get("start_year", 2000)
+            e = p.get("end_year", 2025)
+            year_range = YearRange(s, e)
+        page = p["page"]
+        page_size = p["per_page"]
+        sort_order = p.get("sort", "a-z")
+        search_query = p.get("title", "") or ""
+        search_type = p["search_type"]
+        resource_type = p["resource_type"]
+        authors = p.get("authors", [])
+        scientific_venues = p.get("scientific_venues", [])
+        research_fields = p.get("research_fields", [])
+        concepts = p.get("concepts", [])
 
-        if search_type not in ["keyword", "semantic", "hybrid"]:
-            search_type = "keyword"
+        # page = int(request.query_params.get("page", 1))
+        # page_size = int(request.query_params.get("limit", 10))
+        # sort_order = request.query_params.get("sort", "a-z")
+        # search_query = request.query_params.get("search", "")
+        # research_fields = request.query_params.getlist("research_fields[]")
+        # search_type = request.query_params.get("search_type", "keyword")
+
+        # if search_type not in ["keyword", "semantic", "hybrid"]:
+        #     search_type = "keyword"
+
         result = self.paper_service.get_latest_articles(
             research_fields=research_fields,
             search_query=search_query,
@@ -510,6 +532,11 @@ class PaperViewSet(viewsets.GenericViewSet):
             page=page,
             page_size=page_size,
             search_type=search_type,
+            resource_type=resource_type,
+            year_range=year_range,
+            authors=authors,
+            scientific_venues=scientific_venues,
+            concepts=concepts,
         )
 
         items = []

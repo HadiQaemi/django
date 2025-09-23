@@ -18,7 +18,6 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
         self, search_query: str, page: int, page_size: int
     ) -> List[ResearchField]:
         """Find research fields by label."""
-        print("-------research_fields-------", __file__)
         try:
             research_fields_queryset = ResearchFieldModel.objects.filter(
                 label__icontains=search_query
@@ -29,7 +28,6 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
                     id=research_model.id,
                     label=research_model.label,
                     research_field_id=research_model.research_field_id,
-                    related_identifier=research_model.related_identifier,
                 )
                 research_fields.append(research_field)
             return research_fields

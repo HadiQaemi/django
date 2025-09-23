@@ -330,36 +330,58 @@ class SQLPaperRepository(PaperRepository):
             logger.error(f"Error in save: {str(e)}")
             raise DatabaseError(f"Failed to save paper: {str(e)}")
 
-    def advanced_article_search(self, query_text, research_field_ids=None):
-        if not query_text.strip():
+    def advanced_article_search(self, query_text, resource_type=None):
+        from django.db.models.functions import Coalesce, Greatest
+        from django.db.models import FloatField
+
+        if not query_text or not query_text.strip():
             return ArticleModel.objects.none()
 
-        search_vector = (
-            SearchVector("name", weight="A")
-            + SearchVector("abstract", weight="B")
-            + SearchVector("json", weight="C")
-        )
         words = query_text.split()
-
         if len(words) > 1:
-            phrase_query = SearchQuery(" & ".join(words), search_type="raw")
-            words_query = SearchQuery(" | ".join(words), search_type="raw")
-            search_query = phrase_query | words_query
+            phrase_q = SearchQuery(" & ".join(words), search_type="raw")
+            words_q = SearchQuery(" | ".join(words), search_type="raw")
+            search_q = phrase_q | words_q
         else:
-            search_query = SearchQuery(query_text)
+            search_q = SearchQuery(query_text)
 
-        queryset = ArticleModel.objects.annotate(
-            search=search_vector, base_rank=SearchRank(search_vector, search_query)
-        ).filter(search=search_query)
+        qs = ArticleModel.objects
 
-        if research_field_ids:
-            queryset = queryset.filter(
-                research_fields__research_field_id__in=research_field_ids
-            ).distinct()
+        qs = qs.annotate(
+            a_rank=SearchRank(F("search_vector"), search_q),  # Article tsvector
+            sa_rank=SearchRank(
+                F("related_scholarly_articles__search_vector"), search_q
+            ),  # ScholarlyArticle tsvector
+            ds_rank=SearchRank(
+                F("related_datasets__search_vector"), search_q
+            ),  # Dataset tsvector
+        )
 
-        queryset = queryset.annotate(final_rank=F("base_rank")).order_by("-final_rank")
+        if resource_type == "loom":
+            match_filter = Q(search_vector=search_q)
+        elif resource_type == "article":
+            match_filter = Q(related_scholarly_articles__search_vector=search_q)
+        elif resource_type == "dataset":
+            match_filter = Q(related_datasets__search_vector=search_q)
+        else:
+            match_filter = (
+                Q(search_vector=search_q)
+                | Q(related_scholarly_articles__search_vector=search_q)
+                | Q(related_datasets__search_vector=search_q)
+            )
 
-        return queryset
+        qs = qs.filter(match_filter)
+        qs = qs.distinct()
+        qs = qs.annotate(
+            final_rank=Greatest(
+                Coalesce(F("a_rank"), 0.0),
+                Coalesce(F("sa_rank"), 0.0),
+                Coalesce(F("ds_rank"), 0.0),
+                output_field=FloatField(),
+            )
+        ).order_by("-final_rank", "-a_rank", F("date_published").desc(nulls_last=True))
+
+        return qs
 
     def get_latest_articles(
         self,
@@ -369,9 +391,15 @@ class SQLPaperRepository(PaperRepository):
         page: int = 1,
         page_size: int = 10,
         search_type: str = "keyword",
+        resource_type: str = "loom",
+        year_range: Any = None,
+        authors: Optional[List[str]] = None,
+        scientific_venues: Optional[List[str]] = None,
+        concepts: Optional[List[str]] = None,
     ) -> Tuple[List[Article], int]:
         """Get latest articles with filters."""
         print("-------------get_latest_articles---------------", __file__)
+
         # try:
         if search_query and search_type in ["semantic", "hybrid"]:
             from core.infrastructure.container import Container
@@ -396,7 +424,7 @@ class SQLPaperRepository(PaperRepository):
                     if result.get("article_id")
                 ]
             if not article_ids:
-                query = self.advanced_article_search(search_query, research_fields)
+                query = self.advanced_article_search(search_query, resource_type)
             else:
                 preserved_order = Case(
                     *[
@@ -414,7 +442,7 @@ class SQLPaperRepository(PaperRepository):
                 )
         else:
             if search_query:
-                query = self.advanced_article_search(search_query)
+                query = self.advanced_article_search(search_query, resource_type)
             else:
                 query = ArticleModel.objects.all()
 
@@ -422,6 +450,38 @@ class SQLPaperRepository(PaperRepository):
                 query = query.filter(
                     research_fields__research_field_id__in=research_fields
                 )
+            # # print(resource_type)
+            # if authors:
+            #     query = query.filter(authors__author_id__in=authors).distinct()
+
+            if authors:
+                if resource_type == "loom":
+                    query = query.filter(authors__author_id__in=authors)
+                elif resource_type == "article":
+                    query = query.filter(
+                        related_scholarly_articles__authors__author_id__in=authors
+                    )
+                elif resource_type == "dataset":
+                    query = query.filter(
+                        related_datasets__authors__author_id__in=authors
+                    )
+                else:  # "all" -> match authors on ANY of the three
+                    query = query.filter(
+                        Q(authors__author_id__in=authors) |
+                        Q(related_scholarly_articles__authors__author_id__in=authors) |
+                        Q(related_datasets__authors__author_id__in=authors)
+                    )
+
+                query = query.distinct()
+
+            if concepts:
+                query = query.filter(concepts__concept_id__in=concepts).distinct()
+
+            if scientific_venues:
+                query = query.filter(
+                    related_scholarly_articles__is_part_of__is_part_of__periodical_id__in=scientific_venues
+                ).distinct()
+
         if search_type not in ["semantic", "hybrid"]:
             if sort_order == "a-z":
                 query = query.order_by("name")

@@ -1,5 +1,8 @@
+from django.http import QueryDict
 from rest_framework import serializers
 import re
+
+from core.domain.value_objects import ResourceType, SearchType
 
 
 class TimeRangeSerializer(serializers.Serializer):
@@ -11,12 +14,15 @@ class TimeRangeSerializer(serializers.Serializer):
 
 class AuthorSerializer(serializers.Serializer):
     """Serializer for an author."""
+
     orcid = serializers.CharField(allow_null=True, required=False)
     author_id = serializers.CharField()
     name = serializers.CharField(allow_null=True, required=False)
 
+
 class ResearchFieldSerializer(serializers.Serializer):
     """Serializer for an author."""
+
     research_field_id = serializers.CharField(allow_null=True, required=False)
     related_identifier = serializers.CharField()
     label = serializers.CharField(allow_null=True, required=False)
@@ -24,6 +30,7 @@ class ResearchFieldSerializer(serializers.Serializer):
 
 class JournalSerializer(serializers.Serializer):
     """Serializer for an author."""
+
     journal_id = serializers.CharField(allow_null=True, required=False)
     name = serializers.CharField()
     publisher = serializers.CharField(allow_null=True, required=False)
@@ -99,6 +106,7 @@ class ScientificVenueSerializer(serializers.Serializer):
     id = serializers.CharField()
     identifier = serializers.URLField()
 
+
 class PaperSerializer(serializers.Serializer):
     """Serializer for a paper."""
 
@@ -110,7 +118,7 @@ class PaperSerializer(serializers.Serializer):
 
     id = serializers.CharField(allow_null=True, required=False)
     article_id = serializers.CharField(allow_null=True, required=False)
-    
+
     # Incoming JSON uses "name" — alias to "title"
     title = serializers.CharField(source="name")
 
@@ -121,7 +129,7 @@ class PaperSerializer(serializers.Serializer):
     contributions = ContributionSerializer(many=True, required=False)
     statements = StatementSerializer(many=True, required=False)
     dois = serializers.CharField(allow_null=True, required=False)
-    
+
     # Accept date as int (year)
     date_published = serializers.IntegerField(allow_null=True, required=False)
 
@@ -129,7 +137,7 @@ class PaperSerializer(serializers.Serializer):
     external = serializers.URLField(allow_null=True, required=False)
     info = serializers.DictField(allow_null=True, required=False)
     timeline = serializers.DictField(allow_null=True, required=False)
-    
+
     journal = JournalSerializer(allow_null=True, required=False)
     conference = ConferenceSerializer(allow_null=True, required=False)
     publisher = serializers.DictField(allow_null=True, required=False)
@@ -144,9 +152,56 @@ class PaperSerializer(serializers.Serializer):
     scientific_venue = ScientificVenueSerializer(required=False)
     search_type_used = serializers.CharField(required=False)
 
+
 class PaperListSerializer(serializers.Serializer):
     items = PaperSerializer(many=True)
     total = serializers.IntegerField()
+
+
+class GetArticlesQuerySerializer(serializers.Serializer):
+    title = serializers.CharField(required=False, allow_blank=True)
+    page = serializers.IntegerField(min_value=1, default=1)
+    per_page = serializers.IntegerField(min_value=1, max_value=100, default=10)
+    start_year = serializers.IntegerField(
+        min_value=2000, max_value=2025, required=False
+    )
+    end_year = serializers.IntegerField(min_value=2000, max_value=2025, required=False)
+    sort = serializers.CharField(required=False, default="a-z", allow_blank=True)
+    search_type = serializers.ChoiceField(
+        choices=[st.value for st in SearchType], default=SearchType.KEYWORD.value
+    )
+    resource_type = serializers.ChoiceField(
+        choices=[st.value for st in ResourceType], default=ResourceType.LOOM.value
+    )
+    authors = serializers.ListField(child=serializers.CharField(), required=False)
+    scientific_venues = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+    research_fields = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+    concepts = serializers.ListField(child=serializers.CharField(), required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ARRAY_KEYS = ["authors", "scientific_venues", "research_fields", "concepts"]
+
+        if isinstance(self.initial_data, QueryDict):
+            qd: QueryDict = self.initial_data
+            for key in ARRAY_KEYS:
+                if key not in qd and f"{key}[]" in qd:
+                    # copy list under the canonical key
+                    self.initial_data.setlist(key, qd.getlist(f"{key}[]"))
+
+    def validate(self, data):
+        s = data.get("start_year")
+        e = data.get("end_year")
+        if s is not None and e is not None and s > e:
+            raise serializers.ValidationError(
+                "start_year cannot be greater than end_year."
+            )
+        return data
+
 
 class ArticleSerializer(serializers.Serializer):
     id = serializers.CharField(allow_null=True, required=False)
@@ -177,6 +232,7 @@ class ArticleSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         return instance
 
+
 class ArticleWrapperSerializer(serializers.Serializer):
     article = ArticleSerializer()
     statements = StatementSerializer(many=True, required=False)
@@ -186,6 +242,7 @@ class ArticleWrapperSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         return instance
+
 
 class ArticleStatementsSerializer(serializers.Serializer):
     article = ArticleSerializer()

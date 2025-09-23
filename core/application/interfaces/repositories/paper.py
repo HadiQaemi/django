@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.domain.entities import Article
+from core.domain.value_objects import YearRange
 
 
 class PaperRepository(ABC):
@@ -47,6 +48,12 @@ class PaperRepository(ABC):
         page: int = 1,
         page_size: int = 10,
         search_type: str = "keyword",
+        resource_type: str = "loom",
+
+        year_range: Any = None,
+        authors: Optional[List[str]] = None,
+        scientific_venues: Optional[List[str]] = None,
+        concepts: Optional[List[str]] = None,
     ) -> Tuple[List[Article], int]:
         pass
 

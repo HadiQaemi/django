@@ -154,7 +154,7 @@ class ResearchField(TimeStampedModel):
         ]
 
     def __str__(self):
-        return self.id
+        return self.label
 
 
 class SeeAlso(TimeStampedModel):
@@ -582,7 +582,7 @@ class Dataset(TimeStampedModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         Dataset.objects.filter(pk=self.pk).update(
-            search_vector=SearchVector("description")
+            search_vector=SearchVector("name", "description")
         )
 
     def __str__(self):
@@ -636,7 +636,7 @@ class ScholarlyArticle(TimeStampedModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         ScholarlyArticle.objects.filter(pk=self.pk).update(
-            search_vector=SearchVector("abstract")
+            search_vector=SearchVector("name", "abstract")
         )
 
     def __str__(self):

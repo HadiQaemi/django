@@ -107,6 +107,13 @@ class PaperService(ABC):
         sort_order: str = "a-z",
         page: int = 1,
         page_size: int = 10,
+        search_type: str = "keyword",
+        resource_type: str = "loom",
+
+        year_range: Any = None,
+        authors: Optional[List[str]] = None,
+        scientific_venues: Optional[List[str]] = None,
+        concepts: Optional[List[str]] = None,
     ) -> PaginatedResponseDTO:
         """Get latest articles with filters."""
         pass

@@ -1025,6 +1025,11 @@ class PaperServiceImpl(PaperServiceInterface):
         page: int = 1,
         page_size: int = 10,
         search_type: str = "keyword",
+        resource_type: str = "loom",
+        year_range: Any = None,
+        authors: Optional[List[str]] = None,
+        scientific_venues: Optional[List[str]] = None,
+        concepts: Optional[List[str]] = None,
     ) -> PaginatedResponseDTO:
         """Get latest articles with filters."""
         print("-------------get_latest_articles---------------", __file__)
@@ -1042,6 +1047,12 @@ class PaperServiceImpl(PaperServiceInterface):
             page=page,
             page_size=page_size,
             search_type=search_type,
+            resource_type=resource_type,
+
+            year_range=year_range,
+            authors=authors,
+            scientific_venues=scientific_venues,
+            concepts=concepts,
         )
         result = PaginatedResponseDTO(
             content=[self._map_paper_to_dto(paper) for paper in papers],

@@ -200,8 +200,8 @@ class AutoCompleteViewSet(viewsets.GenericViewSet):
             return Response({"items": result})
 
         except Exception as e:
-            logger.error(f"Error in search keywords by label: {str(e)}")
+            logger.error(f"Error in search research fields by label: {str(e)}")
             return Response(
-                {"error": "Failed to perform search keywords"},
+                {"error": "Failed to perform search research fields"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

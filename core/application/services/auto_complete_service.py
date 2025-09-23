@@ -45,7 +45,7 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             query = search_dto.query
             page = search_dto.page
             page_size = search_dto.page_size
-            print("-------get_authors_by_name-------", __file__)
+            print("-------get_authors_by_name-----22222--", __file__)
 
             authors = self.author_repository.get_authors_by_name(
                 search_query=query,
@@ -53,7 +53,7 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
                 page_size=page_size,
             )
             # cache.set(cache_key, authors, settings.CACHE_TTL)
-            return [{"id": au.author_id, "name": au.label} for au in authors]
+            return [{"id": au.author_id, "name": au.name} for au in authors]
 
         except Exception as e:
             logger.error(f"Error in search authers by name {str(e)}")

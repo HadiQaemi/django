@@ -21,16 +21,16 @@ class SQLJournalRepository(JournalRepository):
         """Find academic publishers by name."""
         print("-------get_academic_publishers_by_name-------", __file__)
         try:
-            journals_queryset = JournalConferenceModel.objects.filter(
-                label__icontains=search_query
-            ).order_by("label")[:5]
+            journals_queryset = PeriodicalModel.objects.filter(
+                name__icontains=search_query
+            ).order_by("name")[:5]
             journals = []
             for journal_model in journals_queryset:
                 journal = Journal(
                     id=journal_model.id,
-                    label=journal_model.label,
-                    journal_conference_id=journal_model.journal_conference_id,
-                    publisher=journal_model.publisher_id,
+                    label=journal_model.name,
+                    journal_conference_id=journal_model.periodical_id,
+                    publisher=journal_model.publisher.name,
                 )
                 journals.append(journal)
             return journals
@@ -45,9 +45,7 @@ class SQLJournalRepository(JournalRepository):
                 return PeriodicalModel.objects.count()
             else:
                 return (
-                    PeriodicalModel.objects.filter(
-                        research_fields__in=research_fields
-                    )
+                    PeriodicalModel.objects.filter(research_fields__in=research_fields)
                     .distinct()
                     .count()
                 )

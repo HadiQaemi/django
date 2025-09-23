@@ -18,26 +18,26 @@ class SQLAuthorRepository(AuthorRepository):
         self, search_query: str, page: int, page_size: int
     ) -> List[Author]:
         """Find authors by name."""
-        print("-------get_authors_by_name-------", __file__)
-        # try:
-        authors_queryset = AuthorModel.objects.filter(
-            label__icontains=search_query
-        ).order_by("label")[:5]
-        authors = []
-        for author_model in authors_queryset:
-            author = Author(
-                author_id=author_model.author_id,
-                orcid=author_model.orcid,
-                given_name=author_model.given_name,
-                family_name=author_model.family_name,
-                label=author_model.label,
-            )
-            authors.append(author)
-        return authors
+        print("-------get_authors_by_name----333---", __file__)
+        try:
+            authors_queryset = AuthorModel.objects.filter(
+                name__icontains=search_query
+            ).order_by("name")[:5]
+            authors = []
+            for author_model in authors_queryset:
+                author = Author(
+                    author_id=author_model.author_id,
+                    orcid=author_model.orcid,
+                    given_name=author_model.given_name,
+                    family_name=author_model.family_name,
+                    name=author_model.name,
+                )
+                authors.append(author)
+            return authors
 
-        # except Exception as e:
-        #     logger.error(f"Error in find_by_name: {str(e)}")
-        #     raise DatabaseError(f"Failed to find authors: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in find_by_name: {str(e)}")
+            raise DatabaseError(f"Failed to find authors: {str(e)}")
 
     def get_count_all(self, research_fields=None) -> any:
         try:
