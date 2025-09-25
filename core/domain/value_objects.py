@@ -18,6 +18,15 @@ class ResourceType(str, Enum):
     DATASET = "dataset"
     All = "all"
 
+class SortBy(str, Enum):
+    ALPHABET = "alphabet"
+    TIME = "time"
+
+
+class SortOrder(str, Enum):
+    ASC = "ASC"
+    DESC = "DESC"
+
 
 @dataclass(frozen=True)
 class YearRange:

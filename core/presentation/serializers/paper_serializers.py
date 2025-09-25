@@ -2,7 +2,7 @@ from django.http import QueryDict
 from rest_framework import serializers
 import re
 
-from core.domain.value_objects import ResourceType, SearchType
+from core.domain.value_objects import ResourceType, SearchType, SortBy, SortOrder
 
 
 class TimeRangeSerializer(serializers.Serializer):
@@ -169,6 +169,12 @@ class GetArticlesQuerySerializer(serializers.Serializer):
     sort = serializers.CharField(required=False, default="a-z", allow_blank=True)
     search_type = serializers.ChoiceField(
         choices=[st.value for st in SearchType], default=SearchType.KEYWORD.value
+    )
+    sort_by = serializers.ChoiceField(
+        choices=[st.value for st in SortBy], default=SortBy.ALPHABET.value
+    )
+    sort_order = serializers.ChoiceField(
+        choices=[st.value for st in SortOrder], default=SortOrder.ASC.value
     )
     resource_type = serializers.ChoiceField(
         choices=[st.value for st in ResourceType], default=ResourceType.LOOM.value

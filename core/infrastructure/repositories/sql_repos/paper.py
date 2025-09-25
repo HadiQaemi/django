@@ -387,7 +387,8 @@ class SQLPaperRepository(PaperRepository):
         self,
         research_fields: Optional[List[str]] = None,
         search_query: Optional[str] = None,
-        sort_order: str = "a-z",
+        sort_order: str = "ASC",
+        sort_by: str = "alphabet",
         page: int = 1,
         page_size: int = 10,
         search_type: str = "keyword",
@@ -467,9 +468,9 @@ class SQLPaperRepository(PaperRepository):
                     )
                 else:  # "all" -> match authors on ANY of the three
                     query = query.filter(
-                        Q(authors__author_id__in=authors) |
-                        Q(related_scholarly_articles__authors__author_id__in=authors) |
-                        Q(related_datasets__authors__author_id__in=authors)
+                        Q(authors__author_id__in=authors)
+                        | Q(related_scholarly_articles__authors__author_id__in=authors)
+                        | Q(related_datasets__authors__author_id__in=authors)
                     )
 
                 query = query.distinct()
@@ -483,14 +484,16 @@ class SQLPaperRepository(PaperRepository):
                 ).distinct()
 
         if search_type not in ["semantic", "hybrid"]:
-            if sort_order == "a-z":
-                query = query.order_by("name")
-            elif sort_order == "z-a":
-                query = query.order_by("-name")
-            elif sort_order == "newest":
-                query = query.order_by("-created_at")
-            else:
-                query = query.order_by("name")
+            if sort_by == "alphabet":
+                if sort_order == "ASC":
+                    query = query.order_by("name")
+                elif sort_order == "DESC":
+                    query = query.order_by("-name")
+            elif sort_by == "time":
+                if sort_order == "ASC":
+                    query = query.order_by("date_published")
+                elif sort_order == "DESC":
+                    query = query.order_by("-date_published")
 
         total = query.count()
 
@@ -729,17 +732,17 @@ class SQLPaperRepository(PaperRepository):
         units_id = {}
         data["units"] = [item for item in graph_data if "Unit" in item.get("@type", [])]
         for unit in data["units"]:
-            unit_obj, created = UnitModel.objects.get_or_create(
-                type=unit.get("@type", ""),
+            unit_obj, created = UnitModel.objects.update_or_create(
                 unit_id=generate_static_id(unit.get("rdfs:label", "")),
-                exact_match=unit.get("skos:exactMatch", "")
-                if len(unit.get("skos:exactMatch", "")) > 0
-                else [],
-                close_match=unit.get("skos:closeMatch", "")
-                if len(unit.get("skos:closeMatch", "")) > 0
-                else [],
-                label=unit.get("rdfs:label", ""),
                 defaults={
+                    "type": unit.get("@type", ""),
+                    "exact_match": unit.get("skos:exactMatch", "")
+                    if len(unit.get("skos:exactMatch", "")) > 0
+                    else [],
+                    "close_match": unit.get("skos:closeMatch", "")
+                    if len(unit.get("skos:closeMatch", "")) > 0
+                    else [],
+                    "label": unit.get("rdfs:label", ""),
                     "json": unit,
                 },
             )
@@ -879,6 +882,11 @@ class SQLPaperRepository(PaperRepository):
                 item for item in graph_data if "Component" in item.get("@type", [])
             ]
             for component in components:
+                raw = component.get("skos:closeMatch")
+                close_match = raw or []
+                if not isinstance(close_match, (list, tuple)):
+                    close_match = [close_match]
+
                 component_obj, created = ComponentModel.objects.get_or_create(
                     type=component.get("@type", ""),
                     label=component.get("rdfs:label", ""),
@@ -888,9 +896,7 @@ class SQLPaperRepository(PaperRepository):
                     exact_match=component.get("skos:exactMatch", "")
                     if len(component.get("skos:exactMatch", "")) > 0
                     else [],
-                    close_match=component.get("skos:closeMatch", "")
-                    if len(component.get("skos:closeMatch", "")) > 0
-                    else [],
+                    close_match=close_match,
                     defaults={
                         "json": component,
                         "_id": component.get("@id", ""),
@@ -1397,6 +1403,7 @@ class SQLPaperRepository(PaperRepository):
                                             )
                                         )
                                         if has_output_has_expression:
+
                                             has_expression_label = (
                                                 self.get_property_info(
                                                     has_output_has_expression, "label"

@@ -509,6 +509,8 @@ class PaperViewSet(viewsets.GenericViewSet):
         sort_order = p.get("sort", "a-z")
         search_query = p.get("title", "") or ""
         search_type = p["search_type"]
+        sort_by = p["sort_by"]
+        sort_order = p["sort_order"]
         resource_type = p["resource_type"]
         authors = p.get("authors", [])
         scientific_venues = p.get("scientific_venues", [])
@@ -529,6 +531,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             research_fields=research_fields,
             search_query=search_query,
             sort_order=sort_order,
+            sort_by=sort_by,
             page=page,
             page_size=page_size,
             search_type=search_type,

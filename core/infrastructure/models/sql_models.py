@@ -177,9 +177,7 @@ class Matrix(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, unique=True, null=True)
     json = JSONField(null=True, blank=True)
-    label = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
+    label = models.CharField(max_length=255, unique=True, null=True)
     type = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
     )
@@ -275,9 +273,7 @@ class Constraint(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, unique=True, null=True)
     json = JSONField(null=True, blank=True)
-    label = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
+    label = models.CharField(max_length=255, unique=True, null=True)
     exact_match = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
     )
@@ -300,9 +296,7 @@ class Operation(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     _id = models.CharField(max_length=255, unique=True, null=True)
     json = JSONField(null=True, blank=True)
-    label = ArrayField(
-        models.CharField(max_length=255), blank=True, null=True, default=list
-    )
+    label = models.CharField(max_length=255, unique=True, null=True)
     exact_match = ArrayField(
         models.CharField(max_length=255), blank=True, null=True, default=list
     )
