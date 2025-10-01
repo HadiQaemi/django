@@ -1075,8 +1075,9 @@ class SQLPaperRepository(PaperRepository):
             authors_id,
             concepts_id,
         ) = self.read_data(paper_data)
-
         article_id = generate_static_id(digital_object.get("name", ""))
+        if digital_object.get("name", "") == "TODO":
+            article_id = generate_static_id(f"{digital_object.get("name", "")}{digital_object.get("datePublished", "")}")
         dt = datetime.strptime(digital_object["datePublished"], "%Y-%m-%dT%H:%M:%S%z")
         article, created = ArticleModel.objects.update_or_create(
             article_id=article_id,
@@ -2193,7 +2194,8 @@ class SQLPaperRepository(PaperRepository):
                     "id": getattr(item, "scholarly_article_id", None)
                     or getattr(item, "identifier", None),
                     "name": item.name,
-                    "abstract": getattr(item, "abstract", None) or item.description,
+                    "abstract": getattr(item, "abstract", None)
+                    or (getattr(item, "description", None) or ""),
                     "authors": item_authors,
                 }
                 if getattr(item, "is_part_of", None):
