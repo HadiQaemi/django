@@ -1403,7 +1403,6 @@ class SQLPaperRepository(PaperRepository):
                                             )
                                         )
                                         if has_output_has_expression:
-
                                             has_expression_label = (
                                                 self.get_property_info(
                                                     has_output_has_expression, "label"
@@ -2192,7 +2191,7 @@ class SQLPaperRepository(PaperRepository):
                     )
                 result = {
                     "id": getattr(item, "scholarly_article_id", None)
-                    or item.dataset_id,
+                    or getattr(item, "identifier", None),
                     "name": item.name,
                     "abstract": getattr(item, "abstract", None) or item.description,
                     "authors": item_authors,
@@ -2225,14 +2224,12 @@ class SQLPaperRepository(PaperRepository):
                             year = ts.year
                         elif isinstance(ts, str):
                             year = datetime.fromisoformat(ts).year
-
                     result["publication_issue"] = {
                         "date_published": year,
                         "type": "Dataset",
                         "periodical": getattr(item.publisher, "name", None),
                         "periodical_url": getattr(item.publisher, "url", None),
                         "publisher_name": "",
-                        "publisher_url": "",
                     }
 
                 all_related_items.append(result)

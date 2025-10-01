@@ -924,7 +924,7 @@ class Statement(TimeStampedModel):
     content = JSONField(null=True, blank=True)
     version = models.CharField(max_length=255, null=True)
     encodingFormat = models.CharField(max_length=255, null=True)
-    name = models.CharField(max_length=255, null=True)
+    name = models.CharField(null=True, blank=True)
     json_ld = models.FileField(
         upload_to="json_ld_files/", storage=OverwriteStorage(), null=True, blank=True
     )
@@ -964,7 +964,7 @@ class Statement(TimeStampedModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         Statement.objects.filter(pk=self.pk).update(
-            search_vector=SearchVector("label", "content", "json")
+            search_vector=SearchVector("label")
         )
 
     def __str__(self):
