@@ -1077,7 +1077,7 @@ class SQLPaperRepository(PaperRepository):
         ) = self.read_data(paper_data)
         article_id = generate_static_id(digital_object.get("name", ""))
         if digital_object.get("name", "") == "TODO":
-            article_id = generate_static_id(f"{digital_object.get("name", "")}{digital_object.get("datePublished", "")}")
+            article_id = generate_static_id(f"{digital_object.get('name', '')}{digital_object.get('datePublished', '')}")
         dt = datetime.strptime(digital_object["datePublished"], "%Y-%m-%dT%H:%M:%S%z")
         article, created = ArticleModel.objects.update_or_create(
             article_id=article_id,
