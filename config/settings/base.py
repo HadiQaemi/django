@@ -190,6 +190,7 @@ REST_FRAMEWORK = {
         "anon": "100/day",
         "user": "1000/day",
     },
+    "UNICODE_JSON": True,
     "EXCEPTION_HANDLER": "core.presentation.middleware.exception_handler.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": (
