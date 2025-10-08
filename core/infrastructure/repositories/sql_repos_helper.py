@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 def generate_static_id(input_string: str) -> str:
-    """Generate a static ID from a string."""
     hash_object = hashlib.sha256(input_string.encode("utf-8"))
     return hash_object.hexdigest()[:32]
 

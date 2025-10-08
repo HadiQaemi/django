@@ -13,13 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class SQLJournalRepository(JournalRepository):
-    """PostgreSQL implementation of the Journal repository."""
-
     def get_academic_publishers_by_name(
         self, search_query: str, page: int, page_size: int
     ) -> List[Journal]:
-        """Find academic publishers by name."""
-        print("-------get_academic_publishers_by_name-------", __file__)
         try:
             journals_queryset = PeriodicalModel.objects.filter(
                 name__icontains=search_query
@@ -62,44 +58,42 @@ class SQLJournalRepository(JournalRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Dict[str, Any]], int]:
-        """Get latest journals with filters."""
-        print("-------------get_latest_journals----------", __file__)
-        # try:
-        query = PeriodicalModel.objects.all()
+        try:
+            query = PeriodicalModel.objects.all()
 
-        if search_query:
-            query = query.filter(label__icontains=search_query)
+            if search_query:
+                query = query.filter(label__icontains=search_query)
 
-        if research_fields and len(research_fields) > 0:
-            query = query.filter(
-                articles__research_fields__research_field_id__in=research_fields
-            )
+            if research_fields and len(research_fields) > 0:
+                query = query.filter(
+                    articles__research_fields__research_field_id__in=research_fields
+                )
 
-        if sort_order == "a-z":
-            query = query.order_by("name")
-        elif sort_order == "z-a":
-            query = query.order_by("-name")
-        elif sort_order == "newest":
-            query = query.order_by("-id")
-        else:
-            query = query.order_by("name")
+            if sort_order == "a-z":
+                query = query.order_by("name")
+            elif sort_order == "z-a":
+                query = query.order_by("-name")
+            elif sort_order == "newest":
+                query = query.order_by("-id")
+            else:
+                query = query.order_by("name")
 
-        total = query.count()
+            total = query.count()
 
-        paginator = Paginator(query, page_size)
-        page_obj = paginator.get_page(page)
-        periodicals = []
-        for periodical in page_obj:
-            periodical_dict = {
-                "id": periodical.periodical_id,
-                "journal_conference_id": periodical.periodical_id,
-                "label": periodical.name,
-                "publisher": periodical.publisher.name,
-                "url": periodical.publisher.url,
-            }
-            periodicals.append(periodical_dict)
-        return periodicals, total
+            paginator = Paginator(query, page_size)
+            page_obj = paginator.get_page(page)
+            periodicals = []
+            for periodical in page_obj:
+                periodical_dict = {
+                    "id": periodical.periodical_id,
+                    "journal_conference_id": periodical.periodical_id,
+                    "label": periodical.name,
+                    "publisher": periodical.publisher.name,
+                    "url": periodical.publisher.url,
+                }
+                periodicals.append(periodical_dict)
+            return periodicals, total
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_journals: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in get_latest_journals: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")

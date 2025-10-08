@@ -7,14 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 class IDEncoder:
-    """Utility class for encoding/decoding IDs"""
 
     def __init__(self):
-        # Use a secret salt from settings
         salt = getattr(settings, "HASHID_SALT", "reborn-api-default-salt-change-me")
-        # Minimum length for encoded IDs
         min_length = getattr(settings, "HASHID_MIN_LENGTH", 8)
-        # Custom alphabet (optional)
         alphabet = getattr(
             settings, "HASHID_ALPHABET", "abcdefghijklmnopqrstuvwxyz1234567890"
         )
@@ -97,15 +93,12 @@ id_encoder = IDEncoder()
 
 
 def encode_id(paper_id: Union[int, str]) -> Optional[str]:
-    """Encode a paper ID"""
     return id_encoder.encode_id(paper_id)
 
 
 def decode_paper_id(encoded_id: str) -> Optional[int]:
-    """Decode a paper ID"""
     return id_encoder.decode_id(encoded_id)
 
 
 def decode_id(encoded_id: str) -> Optional[int]:
-    """Decode a paper ID"""
     return id_encoder.decode_id(encoded_id)

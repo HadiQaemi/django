@@ -1,9 +1,3 @@
-"""
-Command for data migration in the REBORN API.
-
-This module provides a Django management command for data migration.
-"""
-
 import os
 import time
 import json
@@ -19,12 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    """Django management command for data migration."""
-
     help = "Migrate data from specified sources"
 
     def add_arguments(self, parser):
-        """Add command arguments."""
         parser.add_argument(
             "--source",
             type=str,
@@ -55,7 +46,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        """Handle command execution."""
         source = options["source"]
         input_value = options["input"]
         batch_size = options["batch_size"]
@@ -90,7 +80,6 @@ class Command(BaseCommand):
         timeout: int,
         skip_existing: bool,
     ):
-        """Process a file containing URLs."""
         if not os.path.exists(file_path):
             raise CommandError(f"File not found: {file_path}")
 
@@ -104,7 +93,6 @@ class Command(BaseCommand):
             total_urls = len(data)
             self.stdout.write(f"Found {total_urls} URLs to process")
 
-            # Process URLs in batches
             for i in range(0, total_urls, batch_size):
                 batch = data[i : i + batch_size]
                 self.stdout.write(
@@ -128,7 +116,6 @@ class Command(BaseCommand):
                         )
                         logger.error(f"Error processing URL {url}: {str(e)}")
 
-                # Wait between batches to avoid overloading the server
                 if i + batch_size < total_urls:
                     self.stdout.write(f"Waiting {timeout} seconds before next batch...")
                     time.sleep(timeout)
@@ -140,10 +127,7 @@ class Command(BaseCommand):
             raise CommandError(f"Error processing file: {str(e)}")
 
     def process_url(self, paper_service: PaperService, url: str, skip_existing: bool):
-        """Process a single URL."""
-        # Check if the paper already exists
         if skip_existing:
-            # TODO: Implement check for existing paper
             pass
 
         url_dto = ScraperUrlInputDTO(url=url)

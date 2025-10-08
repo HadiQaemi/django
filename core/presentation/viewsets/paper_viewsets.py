@@ -70,11 +70,6 @@ class PaperViewSet(viewsets.GenericViewSet):
         return action_serializer_map.get(self.action, PaperSerializer)
 
     def get_serializer(self, *args, **kwargs):
-        """
-        Return the serializer instance for the current action.
-
-        This method is required for OpenAPI schema generation.
-        """
         serializer_class = self.get_serializer_class()
         kwargs.setdefault("context", self.get_serializer_context())
         return serializer_class(*args, **kwargs)
@@ -145,16 +140,6 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def advanced_search(self, request: Request) -> Response:
-        """Query data with filters."""
-        print("------------query_data---------1--")
-        # try:
-        # serializer = PaperFilterSerializer(data=request.data)
-        # print("------------query_data---------2--")
-        # if not serializer.is_valid():
-        #     return Response(
-        #         {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        #     )
-        # print("------------query_data---------3--")
         author_param = request.query_params.get("authors", "")
         scientific_venue = request.query_params.get("scientific_venues", "")
         concept = request.query_params.get("concepts", "")
@@ -196,13 +181,10 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_article_by_id(self, request: Request) -> Response:
-        """Get latest articles with filters."""
-        print("----get_article--------")
         self.pagination_class = None
         try:
             paper_id = request.query_params.get("id")
             result = self.paper_service.get_paper_by_id(paper_id)
-            # print(result.result["article"]["authors"])
 
             if not result.success:
                 return Response(
@@ -213,7 +195,7 @@ class PaperViewSet(viewsets.GenericViewSet):
             return Response(result.result)
 
         except Exception as e:
-            logger.error(f"Error in get_articles: {str(e)}")
+            logger.error(f"Error in get_article by id: {str(e)}")
             return Response(
                 {"error": "Failed to retrieve latest articles"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -235,30 +217,28 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_statement_by_id(self, request: Request) -> Response:
-        """Get a statement by ID."""
-        print("--------------get_statement-----------------", __file__)
-        # try:
-        statement_id = request.query_params.get("id")
-        if not statement_id:
-            return Response(
-                {"error": "ID parameter is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        try:
+            statement_id = request.query_params.get("id")
+            if not statement_id:
+                return Response(
+                    {"error": "ID parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        result = self.paper_service.get_statement(statement_id)
-        if not result.success:
-            return Response(
-                {"error": result.message or "Statement not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        return Response(result.result)
+            result = self.paper_service.get_statement(statement_id)
+            if not result.success:
+                return Response(
+                    {"error": result.message or "Statement not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(result.result)
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_statement: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve statement"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+        except Exception as e:
+            logger.error(f"Error in get_statement: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve statement"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     # @action(detail=True, methods=["get"], url_path="statement")
     # @method_decorator(cache_page(60 * 15))
@@ -276,31 +256,28 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_article_statements(self, request: Request) -> Response:
-        """Get a statement by ID."""
-        print("--------------get_article_statements-----------------", __file__)
-        # try:
-        statement_id = request.query_params.get("id")
-        if not statement_id:
-            return Response(
-                {"error": "ID parameter is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        try:
+            statement_id = request.query_params.get("id")
+            if not statement_id:
+                return Response(
+                    {"error": "ID parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        # result = self.paper_service.get_statement(statement_id)
-        result = self.paper_service.get_article_statement(statement_id)
-        if not result.success:
-            return Response(
-                {"error": result.message or "Statement not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        return Response(result.result)
+            result = self.paper_service.get_article_statement(statement_id)
+            if not result.success:
+                return Response(
+                    {"error": result.message or "Statement not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(result.result)
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_statement: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve statement"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+        except Exception as e:
+            logger.error(f"Error in get_statement: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve statement"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
@@ -316,7 +293,6 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_concepts(self, request: Request) -> Response:
-        """Get concepts by name."""
         try:
             name = request.query_params.get("name", "")
             if not name:
@@ -349,7 +325,6 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_research_fields(self, request: Request) -> Response:
-        """Get research fields by label."""
         try:
             label = request.query_params.get("label", "")
 
@@ -404,55 +379,53 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_statements(self, request: Request) -> Response:
-        """Get latest statements with filters."""
-        # try:
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("limit", 10))
-        sort_order = request.query_params.get("sort", "a-z")
-        search_query = request.query_params.get("search", "")
-        research_fields = request.query_params.getlist("research_fields[]")
-        search_type = request.query_params.get("search_type", "keyword")
+        try:
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("limit", 10))
+            sort_order = request.query_params.get("sort", "a-z")
+            search_query = request.query_params.get("search", "")
+            research_fields = request.query_params.getlist("research_fields[]")
+            search_type = request.query_params.get("search_type", "keyword")
 
-        if search_type not in ["keyword", "semantic", "hybrid"]:
-            search_type = "keyword"
+            if search_type not in ["keyword", "semantic", "hybrid"]:
+                search_type = "keyword"
 
-        result = self.paper_service.get_latest_statements(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            page=page,
-            page_size=page_size,
-            search_type=search_type,
-        )
-
-        items = []
-        print("--------------get_statements-----------", __file__)
-        for statement in result.content:
-            author_name = ""
-            if hasattr(statement, "authors") and statement.authors:
-                author_name = statement.authors[0].name
-            items.append(
-                {
-                    "statement_id": statement.statement_id,
-                    "name": statement.label,
-                    "author": author_name,
-                    "scientific_venue": statement.journal_conference,
-                    "article": statement.article_name,
-                    "date_published": statement.date_published.year
-                    if statement.date_published
-                    else None,
-                    "search_type_used": search_type,
-                }
+            result = self.paper_service.get_latest_statements(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                page=page,
+                page_size=page_size,
+                search_type=search_type,
             )
 
-        return Response({"items": items, "total": result.total_elements})
+            items = []
+            for statement in result.content:
+                author_name = ""
+                if hasattr(statement, "authors") and statement.authors:
+                    author_name = statement.authors[0].name
+                items.append(
+                    {
+                        "statement_id": statement.statement_id,
+                        "name": statement.label,
+                        "author": author_name,
+                        "scientific_venue": statement.journal_conference,
+                        "article": statement.article_name,
+                        "date_published": statement.date_published.year
+                        if statement.date_published
+                        else None,
+                        "search_type_used": search_type,
+                    }
+                )
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_statements: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve latest statements"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+            return Response({"items": items, "total": result.total_elements})
+
+        except Exception as e:
+            logger.error(f"Error in get_statements: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve latest statements"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=False, methods=["get"])
     # @method_decorator(cache_page(60 * 15))
@@ -493,84 +466,73 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_articles(self, request: Request) -> Response:
-        """Get latest articles with filters."""
-        # try:
-        qs = GetArticlesQuerySerializer(data=request.query_params)
-        qs.is_valid(raise_exception=True)
-        p = qs.validated_data
-        year_range = None
-        if "start_year" in p or "end_year" in p:
-            # If only one is provided, default the other
-            s = p.get("start_year", 2000)
-            e = p.get("end_year", 2025)
-            year_range = YearRange(s, e)
-        page = p["page"]
-        page_size = p["per_page"]
-        sort_order = p.get("sort", "a-z")
-        search_query = p.get("title", "") or ""
-        search_type = p["search_type"]
-        sort_by = p["sort_by"]
-        sort_order = p["sort_order"]
-        resource_type = p["resource_type"]
-        authors = p.get("authors", [])
-        scientific_venues = p.get("scientific_venues", [])
-        research_fields = p.get("research_fields", [])
-        concepts = p.get("concepts", [])
+        try:
+            qs = GetArticlesQuerySerializer(data=request.query_params)
+            qs.is_valid(raise_exception=True)
+            p = qs.validated_data
+            year_range = None
+            if "start_year" in p or "end_year" in p:
+                # If only one is provided, default the other
+                s = p.get("start_year", 2000)
+                e = p.get("end_year", 2025)
+                year_range = YearRange(s, e)
+            page = p["page"]
+            page_size = p["per_page"]
+            sort_order = p.get("sort", "a-z")
+            search_query = p.get("title", "") or ""
+            search_type = p["search_type"]
+            sort_by = p["sort_by"]
+            sort_order = p["sort_order"]
+            resource_type = p["resource_type"]
+            authors = p.get("authors", [])
+            scientific_venues = p.get("scientific_venues", [])
+            research_fields = p.get("research_fields", [])
+            concepts = p.get("concepts", [])
 
-        # page = int(request.query_params.get("page", 1))
-        # page_size = int(request.query_params.get("limit", 10))
-        # sort_order = request.query_params.get("sort", "a-z")
-        # search_query = request.query_params.get("search", "")
-        # research_fields = request.query_params.getlist("research_fields[]")
-        # search_type = request.query_params.get("search_type", "keyword")
-
-        # if search_type not in ["keyword", "semantic", "hybrid"]:
-        #     search_type = "keyword"
-
-        result = self.paper_service.get_latest_articles(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            sort_by=sort_by,
-            page=page,
-            page_size=page_size,
-            search_type=search_type,
-            resource_type=resource_type,
-            year_range=year_range,
-            authors=authors,
-            scientific_venues=scientific_venues,
-            concepts=concepts,
-        )
-
-        items = []
-        for article in result.content:
-            author_name = ""
-            if hasattr(article, "authors") and article.authors:
-                author_name = article.authors[0].family_name
-            items.append(
-                {
-                    "article_id": article.article_id,
-                    "name": article.name,
-                    "author": author_name,
-                    # "scientific_venue": article.journal,
-                    "publisher": article.publisher,
-                    "basises": article.related_items,
-                    "date_published": localtime(article.date_published).strftime(
-                        "%B %d, %Y"
-                    )
-                    if article.date_published
-                    else None,
-                    "search_type_used": search_type,
-                }
+            result = self.paper_service.get_latest_articles(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                sort_by=sort_by,
+                page=page,
+                page_size=page_size,
+                search_type=search_type,
+                resource_type=resource_type,
+                year_range=year_range,
+                authors=authors,
+                scientific_venues=scientific_venues,
+                concepts=concepts,
             )
-        return Response({"items": items, "total": result.total_elements})
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_articles: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve latest articles"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+            items = []
+            for article in result.content:
+                author_name = ""
+                if hasattr(article, "authors") and article.authors:
+                    author_name = article.authors[0].family_name
+                items.append(
+                    {
+                        "article_id": article.article_id,
+                        "name": article.name,
+                        "author": author_name,
+                        # "scientific_venue": article.journal,
+                        "publisher": article.publisher,
+                        "basises": article.related_items,
+                        "date_published": localtime(article.date_published).strftime(
+                            "%B %d, %Y"
+                        )
+                        if article.date_published
+                        else None,
+                        "search_type_used": search_type,
+                    }
+                )
+            return Response({"items": items, "total": result.total_elements})
+
+        except Exception as e:
+            logger.error(f"Error in get_articles: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve latest articles"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
@@ -611,40 +573,38 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_authors(self, request: Request) -> Response:
-        """Get latest authors with filters."""
-        print("-------------get_authors----------", __file__)
-        # try:
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("limit", 10))
-        sort_order = request.query_params.get("sort", "a-z")
-        search_query = request.query_params.get("search", "")
-        research_fields = request.query_params.getlist("research_fields[]")
+        try:
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("limit", 10))
+            sort_order = request.query_params.get("sort", "a-z")
+            search_query = request.query_params.get("search", "")
+            research_fields = request.query_params.getlist("research_fields[]")
 
-        result = self.paper_service.get_latest_authors(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            page=page,
-            page_size=page_size,
-        )
+            result = self.paper_service.get_latest_authors(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                page=page,
+                page_size=page_size,
+            )
 
-        items = [
-            {
-                "orcid": author.orcid,
-                "author_id": author.author_id,
-                "name": author.name,
-            }
-            for author in result.content
-        ]
+            items = [
+                {
+                    "orcid": author.orcid,
+                    "author_id": author.author_id,
+                    "name": author.name,
+                }
+                for author in result.content
+            ]
 
-        return Response({"items": items, "total": result.total_elements})
+            return Response({"items": items, "total": result.total_elements})
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_authors: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve latest authors"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+        except Exception as e:
+            logger.error(f"Error in get_latest_authors: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve latest authors"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=False, methods=["get"])
     @method_decorator(cache_page(60 * 15))
@@ -686,30 +646,28 @@ class PaperViewSet(viewsets.GenericViewSet):
         ]
     )
     def get_journals(self, request: Request) -> Response:
-        """Get latest journals with filters."""
-        print("-------------get_latest_journals----------", __file__)
-        # try:
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("limit", 10))
-        sort_order = request.query_params.get("sort", "a-z")
-        search_query = request.query_params.get("search", "")
-        research_fields = request.query_params.getlist("research_fields[]")
+        try:
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("limit", 10))
+            sort_order = request.query_params.get("sort", "a-z")
+            search_query = request.query_params.get("search", "")
+            research_fields = request.query_params.getlist("research_fields[]")
 
-        result = self.paper_service.get_latest_journals(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            page=page,
-            page_size=page_size,
-        )
-        return Response({"items": result.content, "total": result.total_elements})
+            result = self.paper_service.get_latest_journals(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                page=page,
+                page_size=page_size,
+            )
+            return Response({"items": result.content, "total": result.total_elements})
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_journals: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to retrieve latest journals"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+        except Exception as e:
+            logger.error(f"Error in get_latest_journals: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve latest journals"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=False, methods=["post"])
     def add_article_with_url(self, request: Request) -> Response:
@@ -723,36 +681,35 @@ class PaperViewSet(viewsets.GenericViewSet):
                 {"error": f"Forbidden from {ip}"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        # try:
-        serializer = ScraperUrlSerializer(data=request.data)
+        try:
+            serializer = ScraperUrlSerializer(data=request.data)
 
-        if not serializer.is_valid():
+            if not serializer.is_valid():
+                return Response(
+                    {"error": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
+            result = self.paper_service.extract_paper(url_dto)
+
+            if not result.success:
+                return Response(
+                    {"error": result.message or "Failed to extract paper"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            return Response({"result": True})
+
+        except Exception as e:
+            logger.error(f"Error in add_paper: {str(e)}")
             return Response(
-                {"error": serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Failed to add paper"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-        url_dto = ScraperUrlInputDTO(url=serializer.validated_data["url"])
-        result = self.paper_service.extract_paper(url_dto)
-
-        if not result.success:
-            return Response(
-                {"error": result.message or "Failed to extract paper"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response({"result": True})
-
-        # except Exception as e:
-        #     logger.error(f"Error in add_paper: {str(e)}")
-        #     return Response(
-        #         {"error": "Failed to add paper"},
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
 
     @action(detail=False, methods=["post"])
     def add_all_papers(self, request: Request) -> Response:
-        """Add multiple papers from predefined URLs."""
         try:
             success_count = 0
             failure_count = 0

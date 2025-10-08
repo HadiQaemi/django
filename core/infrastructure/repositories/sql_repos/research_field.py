@@ -12,12 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class SQLResearchFieldRepository(ResearchFieldRepository):
-    """PostgreSQL implementation of the ResearchField repository."""
-
     def get_research_fields_by_name(
         self, search_query: str, page: int, page_size: int
     ) -> List[ResearchField]:
-        """Find research fields by label."""
         try:
             research_fields_queryset = ResearchFieldModel.objects.filter(
                 label__icontains=search_query
@@ -45,11 +42,10 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
             raise DatabaseError(f"Failed to count all research_field: {str(e)}")
 
     def find_by_label(self, label: str) -> List[ResearchField]:
-        """Find research fields by label."""
         try:
             rf_queryset = ResearchFieldModel.objects.filter(
                 label__icontains=label
-            ).order_by("label")[:5]  # Limit to 10 research fields
+            ).order_by("label")[:5]
 
             research_fields = []
             for rf_model in rf_queryset:
@@ -68,12 +64,10 @@ class SQLResearchFieldRepository(ResearchFieldRepository):
             raise DatabaseError(f"Failed to find research fields: {str(e)}")
 
     def save(self, research_field: ResearchField) -> ResearchField:
-        """Save a research field."""
         try:
             if not research_field.id:
                 research_field.id = generate_static_id(research_field.label)
 
-            # Create or update research field
             rf_model, created = ResearchFieldModel.objects.update_or_create(
                 id=research_field.id,
                 defaults={

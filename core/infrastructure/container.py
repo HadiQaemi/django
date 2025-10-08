@@ -40,15 +40,12 @@ T = TypeVar("T")
 
 
 class Container:
-    """Dependency injection container."""
-
     _instances: Dict[Type, Any] = {}
     _repositories: Dict[Type, Type] = {}
     _services: Dict[Type, Type] = {}
 
     @classmethod
     def configure(cls) -> None:
-        """Configure the container based on settings."""
         cls._repositories = {
             PaperRepository: SQLPaperRepository,
             StatementRepository: SQLStatementRepository,
@@ -67,8 +64,6 @@ class Container:
             InsightService: InsightServiceImpl,
         }
         db_type = getattr(settings, "DATABASE_TYPE", "postgres")
-        print("--------db_type--------")
-        print(db_type)
         if db_type == "postgres":
             try:
                 cls._repositories.update(
@@ -96,7 +91,6 @@ class Container:
 
     @classmethod
     def resolve(cls, interface: Type[T]) -> T:
-        """Resolve a dependency by interface."""
         if not cls._repositories or not cls._services:
             cls.configure()
 
@@ -135,20 +129,16 @@ class Container:
 
     @classmethod
     def reset(cls) -> None:
-        """Reset the container."""
         cls._instances = {}
 
     @classmethod
     def get_paper_service(cls) -> PaperService:
-        """Get the paper service."""
         return cls.resolve(PaperService)
 
     @classmethod
     def get_auto_complete_service(cls) -> AutoCompleteService:
-        """Get the auto-complete service."""
         return cls.resolve(AutoCompleteService)
 
     @classmethod
     def get_insight_service(cls) -> InsightService:
-        """Get the insight service."""
         return cls.resolve(InsightService)

@@ -1,9 +1,3 @@
-"""
-MongoDB repository implementations for the REBORN API.
-
-These repositories implement the repository interfaces using MongoDB.
-"""
-
 import logging
 from typing import List, Dict, Any, Optional, Tuple
 from pymongo import MongoClient
@@ -42,13 +36,11 @@ logger = logging.getLogger(__name__)
 
 
 def generate_static_id(input_string: str) -> str:
-    """Generate a static ID from a string."""
     hash_object = hashlib.sha256(input_string.encode("utf-8"))
     return hash_object.hexdigest()[:32]
 
 
 def fetch_reborn_doi(doi: str) -> str:
-    """Fetch the reborn DOI from a regular DOI."""
     import requests
 
     url = "https://api.datacite.org/dois"
@@ -71,16 +63,13 @@ def fetch_reborn_doi(doi: str) -> str:
 
 
 class MongoDBPaperRepository(PaperRepository):
-    """MongoDB implementation of the Paper repository."""
 
     def __init__(self):
-        """Initialize the repository."""
         self.client = MongoClient(settings.MONGODB_URI)
         self.db = self.client[settings.MONGODB_DB]
         self.scraper = NodeExtractor()
 
     def find_all(self, page: int = 1, page_size: int = 10) -> Tuple[List[Article], int]:
-        """Find all papers with pagination."""
         try:
             collection = self.db["articles"]
             skip = (page - 1) * page_size
@@ -101,7 +90,6 @@ class MongoDBPaperRepository(PaperRepository):
             raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
 
     def find_by_id(self, paper_id: str) -> Optional[Article]:
-        """Find a paper by its ID."""
         try:
             collection = self.db["articles"]
             document = collection.find_one({"article_id": paper_id})
@@ -117,7 +105,6 @@ class MongoDBPaperRepository(PaperRepository):
             raise DatabaseError(f"Failed to retrieve paper: {str(e)}")
 
     def search_by_title(self, title: str) -> List[Article]:
-        """Search papers by title."""
         try:
             collection = self.db["articles"]
             regex = Regex(title, "i")
@@ -150,7 +137,6 @@ class MongoDBPaperRepository(PaperRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Article], int]:
-        """Query papers with filters."""
         try:
             collection = self.db["statements"]
             match = {}
@@ -279,14 +265,12 @@ class MongoDBPaperRepository(PaperRepository):
             raise DatabaseError(f"Failed to query papers: {str(e)}")
 
     def save(self, paper: Article) -> Article:
-        """Save a paper."""
         try:
             collection = self.db["articles"]
 
             if not paper.id:
                 paper.id = generate_static_id(paper.title)
 
-            # Convert to dictionary
             paper_dict = {}
             for key, value in paper.__dict__.items():
                 if key == "author":
@@ -299,12 +283,10 @@ class MongoDBPaperRepository(PaperRepository):
                 else:
                     paper_dict[key] = value
 
-            # Add timestamps
             if not paper_dict.get("created_at"):
                 paper_dict["created_at"] = datetime.utcnow()
             paper_dict["updated_at"] = datetime.utcnow()
 
-            # Upsert
             result = collection.update_one(
                 {"_id": paper_dict["id"]}, {"$set": paper_dict}, upsert=True
             )
@@ -325,13 +307,11 @@ class MongoDBPaperRepository(PaperRepository):
         page_size: int = 10,
         search_type: str = "keyword",
         resource_type: str = "loom",
-
         year_range: Any = None,
         authors: Optional[List[str]] = None,
         scientific_venues: Optional[List[str]] = None,
         concepts: Optional[List[str]] = None,
     ) -> Tuple[List[Article], int]:
-        """Get latest articles with filters."""
         try:
             collection = self.db["articles"]
             query = {}
@@ -377,7 +357,6 @@ class MongoDBPaperRepository(PaperRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Article], int]:
-        """Get articles by IDs from semantic search."""
         try:
             collection = self.db["articles"]
             query = {}
@@ -415,7 +394,6 @@ class MongoDBPaperRepository(PaperRepository):
             raise DatabaseError(f"Failed to retrieve articles by IDs: {str(e)}")
 
     def delete_database(self) -> bool:
-        """Delete the database."""
         try:
             self.client.drop_database(settings.MONGODB_DB)
             return True
@@ -427,236 +405,189 @@ class MongoDBPaperRepository(PaperRepository):
     def add_article(
         self, paper_data: Dict[str, Any], json_files: Dict[str, str]
     ) -> bool:
-        # """Add an article from scraped data."""
-        # try:
-        scraper = NodeExtractor()
-        graph_data = paper_data.get("@graph", [])
-        data = {}
+        try:
+            scraper = NodeExtractor()
+            graph_data = paper_data.get("@graph", [])
+            data = {}
 
-        data["Dataset"] = [
-            item for item in graph_data if "Dataset" in item.get("@type", [])
-        ]
+            data["Dataset"] = [
+                item for item in graph_data if "Dataset" in item.get("@type", [])
+            ]
 
-        data["researchField"] = [
-            item for item in graph_data if "ResearchField" in item.get("@type", [])
-        ]
-        research_fields = []
-        research_field_ids = []
+            data["researchField"] = [
+                item for item in graph_data if "ResearchField" in item.get("@type", [])
+            ]
+            research_fields = []
+            research_field_ids = []
 
-        for research_field in data["researchField"]:
-            research_field_id = generate_static_id(research_field["label"])
-            item_check = self.db.research_fields.find_one({"@id": research_field_id})
-
-            if item_check is None:
-                research_field["@id"] = research_field_id
-                self.db.research_fields.insert_one(research_field)
+            for research_field in data["researchField"]:
+                research_field_id = generate_static_id(research_field["label"])
                 item_check = self.db.research_fields.find_one(
                     {"@id": research_field_id}
                 )
 
-            research_fields.append(item_check)
-            research_field_ids.append(research_field_id)
-        print("research_fields:")
-        print(research_fields)
-        data["author"] = [item for item in graph_data if item.get("@type") == "Person"]
-        authors = []
+                if item_check is None:
+                    research_field["@id"] = research_field_id
+                    self.db.research_fields.insert_one(research_field)
+                    item_check = self.db.research_fields.find_one(
+                        {"@id": research_field_id}
+                    )
 
-        for author in data["author"]:
-            temp = author.copy()
-            temp["research_fields_id"] = research_fields
-            temp["label"] = (
-                f"{author.get('givenName', '')} {author.get('familyName', '')}"
-            )
-            author_id = generate_static_id(author["@id"])
-            temp["id"] = author_id
-
-            item_check = self.db.authors.find_one({"id": author_id})
-            if item_check is None:
-                self.db.authors.insert_one(temp)
-
-            authors.append(author_id)
-        print("authors:")
-        print(authors)
-        data["publisher"] = [
-            item for item in graph_data if "Publisher" in item.get("@type", [])
-        ]
-
-        data["journal"] = [
-            item for item in graph_data if "Journal" in item.get("@type", [])
-        ]
-        journals_conferences = []
-
-        for journal in data["journal"]:
-            journal["research_fields_id"] = research_field_ids
-            journal["publisher"] = data["publisher"]
-            result = self.db.journals_conferences.insert_one(journal)
-            journals_conferences.append(result.inserted_id)
-
-        print("journals_conferences:")
-        print(journals_conferences)
-
-        data["conference"] = [
-            item for item in graph_data if "Conference" in item.get("@type", [])
-        ]
-
-        for conference in data["conference"]:
-            conference["research_fields_id"] = research_field_ids
-            conference["publisher"] = data["publisher"]
-            result = self.db.journals_conferences.insert_one(conference)
-            journals_conferences.append(result.inserted_id)
-
-        print("journals_conferences:")
-        print(journals_conferences)
-
-        data["concept"] = [
-            item for item in graph_data if "Concept" in item.get("@type", [])
-        ]
-        data["concept"] = [
-            item for item in graph_data if "Concept" in item.get("@type", [])
-        ]
-        concepts = []
-        print('data["concept"]:')
-        print(data["concept"])
-        for concept in data["concept"]:
-            concept_id = generate_static_id(concept["label"])
-            item_check = self.db.concepts.find_one({"id": concept_id})
-
-            if item_check is None:
-                concept["id"] = concept_id
-                concept["research_fields_id"] = research_field_ids
-                result = self.db.concepts.insert_one(concept)
-                concept_id = result.inserted_id
-            else:
-                concept_id = item_check["_id"]
-
-            concepts.append(concept_id)
-
-        # Process other entity types
-        for entity_type in [
-            "ObjectOfInterest",
-            "matrix",
-            "property",
-            "constraint",
-            "operation",
-            "unit",
-        ]:
-            data[entity_type] = [
-                item
-                for item in graph_data
-                if entity_type.title() in item.get("@type", [])
+                research_fields.append(item_check)
+                research_field_ids.append(research_field_id)
+            data["author"] = [
+                item for item in graph_data if item.get("@type") == "Person"
             ]
-            print(f"entity_type:${entity_type}")
-            print(data[entity_type])
-            print(entity_type.lower() + "s")
-            if data[entity_type]:
-                self.db[entity_type.lower() + "s"].insert_many(data[entity_type])
+            authors = []
 
-        # Process component, variable, measure, identifier, notation, supports, file
-        for entity_type in [
-            "component",
-            "variable",
-            "measure",
-            "identifier",
-            "notation",
-            "supports",
-            "file",
-        ]:
-            data[entity_type] = [
+            for author in data["author"]:
+                temp = author.copy()
+                temp["research_fields_id"] = research_fields
+                temp["label"] = (
+                    f"{author.get('givenName', '')} {author.get('familyName', '')}"
+                )
+                author_id = generate_static_id(author["@id"])
+                temp["id"] = author_id
+
+                item_check = self.db.authors.find_one({"id": author_id})
+                if item_check is None:
+                    self.db.authors.insert_one(temp)
+
+                authors.append(author_id)
+            data["publisher"] = [
+                item for item in graph_data if "Publisher" in item.get("@type", [])
+            ]
+
+            data["journal"] = [
+                item for item in graph_data if "Journal" in item.get("@type", [])
+            ]
+            journals_conferences = []
+
+            for journal in data["journal"]:
+                journal["research_fields_id"] = research_field_ids
+                journal["publisher"] = data["publisher"]
+                result = self.db.journals_conferences.insert_one(journal)
+                journals_conferences.append(result.inserted_id)
+
+            data["conference"] = [
+                item for item in graph_data if "Conference" in item.get("@type", [])
+            ]
+
+            for conference in data["conference"]:
+                conference["research_fields_id"] = research_field_ids
+                conference["publisher"] = data["publisher"]
+                result = self.db.journals_conferences.insert_one(conference)
+                journals_conferences.append(result.inserted_id)
+
+            data["concept"] = [
+                item for item in graph_data if "Concept" in item.get("@type", [])
+            ]
+            data["concept"] = [
+                item for item in graph_data if "Concept" in item.get("@type", [])
+            ]
+            concepts = []
+            for concept in data["concept"]:
+                concept_id = generate_static_id(concept["label"])
+                item_check = self.db.concepts.find_one({"id": concept_id})
+
+                if item_check is None:
+                    concept["id"] = concept_id
+                    concept["research_fields_id"] = research_field_ids
+                    result = self.db.concepts.insert_one(concept)
+                    concept_id = result.inserted_id
+                else:
+                    concept_id = item_check["_id"]
+
+                concepts.append(concept_id)
+
+            # Process other entity types
+            for entity_type in [
+                "ObjectOfInterest",
+                "matrix",
+                "property",
+                "constraint",
+                "operation",
+                "unit",
+            ]:
+                data[entity_type] = [
+                    item
+                    for item in graph_data
+                    if entity_type.title() in item.get("@type", [])
+                ]
+                if data[entity_type]:
+                    self.db[entity_type.lower() + "s"].insert_many(data[entity_type])
+
+            # Process component, variable, measure, identifier, notation, supports, file
+            for entity_type in [
+                "component",
+                "variable",
+                "measure",
+                "identifier",
+                "notation",
+                "supports",
+                "file",
+            ]:
+                data[entity_type] = [
+                    self._replace_with_full_data(item, data)
+                    for item in graph_data
+                    if entity_type.title() in item.get("@type", [])
+                ]
+                if data[entity_type]:
+                    self.db[entity_type + "s"].insert_many(data[entity_type])
+
+            ScholarlyArticle = [
                 self._replace_with_full_data(item, data)
                 for item in graph_data
-                if entity_type.title() in item.get("@type", [])
+                if "ScholarlyArticle" in item.get("@type", [])
             ]
-            if data[entity_type]:
-                self.db[entity_type + "s"].insert_many(data[entity_type])
 
-        ScholarlyArticle = [
-            self._replace_with_full_data(item, data)
-            for item in graph_data
-            if "ScholarlyArticle" in item.get("@type", [])
-        ]
-
-        ScholarlyArticle[0]["article_id"] = generate_static_id(
-            ScholarlyArticle[0]["name"]
-        )
-        ScholarlyArticle[0]["research_fields_id"] = research_field_ids
-        ScholarlyArticle[0]["researchField"] = research_fields
-        ScholarlyArticle[0]["research_field"] = research_fields
-        ScholarlyArticle[0]["Dataset"] = data["Dataset"][0]
-        ScholarlyArticle[0]["rebornDOI"] = fetch_reborn_doi(ScholarlyArticle[0]["@id"])
-
-        article = self.db.articles.insert_one(ScholarlyArticle[0])
-        inserted_id = article.inserted_id
-
-        data["statements"] = [
-            self._replace_with_full_data(item, data)
-            for item in graph_data
-            if item.get("encodingFormat", "") == "application/ld+json"
-            and "File" in item.get("@type", [])
-        ]
-
-        # Add to search index
-        # article_data = [
-        #     {
-        #         "title": ScholarlyArticle[0]["name"],
-        #         "abstract": ScholarlyArticle[0]["abstract"],
-        #         "article_id": str(article.inserted_id),
-        #     }
-        # ]
-
-        # Import here to avoid circular import
-        # from core.infrastructure.search.hybrid_engine import HybridSearchEngine
-        # from core.infrastructure.search.semantic_engine import SemanticSearchEngine
-        # from core.infrastructure.search.keyword_engine import KeywordSearchEngine
-
-        # semantic_engine = SemanticSearchEngine()
-        # keyword_engine = KeywordSearchEngine()
-        # hybrid_engine = HybridSearchEngine(semantic_engine, keyword_engine)
-
-        # hybrid_engine.semantic_engine.add_articles(article_data)
-        # hybrid_engine.keyword_engine.add_articles(article_data)
-
-        for statement in data["statements"]:
-            temp = statement.copy()
-            temp["content"] = scraper.load_json_from_url(
-                json_files[statement.get("name", "")]
+            ScholarlyArticle[0]["article_id"] = generate_static_id(
+                ScholarlyArticle[0]["name"]
             )
-            temp["article_id"] = inserted_id
-            temp["concepts_id"] = concepts
-            temp["research_fields_id"] = research_field_ids
-            temp["journals_conferences_id"] = journals_conferences
-            temp["authors_id"] = authors
-            temp["datePublished"] = datetime(
-                int(ScholarlyArticle[0]["datePublished"]), 6, 6
-            )
-            print(temp["supports"])
-            temp["statement_id"] = generate_static_id(
-                temp["supports"][0]["notation"]["label"]
+            ScholarlyArticle[0]["research_fields_id"] = research_field_ids
+            ScholarlyArticle[0]["researchField"] = research_fields
+            ScholarlyArticle[0]["research_field"] = research_fields
+            ScholarlyArticle[0]["Dataset"] = data["Dataset"][0]
+            ScholarlyArticle[0]["rebornDOI"] = fetch_reborn_doi(
+                ScholarlyArticle[0]["@id"]
             )
 
-            # statement_result = self.db.statements.insert_one(temp)
+            article = self.db.articles.insert_one(ScholarlyArticle[0])
+            inserted_id = article.inserted_id
 
-            # Add to search index
-            # statement_data = [
-            #     {
-            #         "text": temp["supports"][0]["notation"]["label"],
-            #         "abstract": ScholarlyArticle[0]["abstract"],
-            #         "statement_id": str(statement_result.inserted_id),
-            #     }
-            # ]
+            data["statements"] = [
+                self._replace_with_full_data(item, data)
+                for item in graph_data
+                if item.get("encodingFormat", "") == "application/ld+json"
+                and "File" in item.get("@type", [])
+            ]
 
-            # hybrid_engine.semantic_engine.add_statements(statement_data)
-            # hybrid_engine.keyword_engine.add_statements(statement_data)
+            for statement in data["statements"]:
+                temp = statement.copy()
+                temp["content"] = scraper.load_json_from_url(
+                    json_files[statement.get("name", "")]
+                )
+                temp["article_id"] = inserted_id
+                temp["concepts_id"] = concepts
+                temp["research_fields_id"] = research_field_ids
+                temp["journals_conferences_id"] = journals_conferences
+                temp["authors_id"] = authors
+                temp["datePublished"] = datetime(
+                    int(ScholarlyArticle[0]["datePublished"]), 6, 6
+                )
+                temp["statement_id"] = generate_static_id(
+                    temp["supports"][0]["notation"]["label"]
+                )
 
-        return True
+            return True
 
-    # except Exception as e:
-    #     logger.error(f"Error in add_article: {str(e)}")
-    #     raise DatabaseError(f"Failed to add article isssssssss: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in add_article: {str(e)}")
+            raise DatabaseError(f"Failed to add article {str(e)}")
 
     def _replace_with_full_data(
         self, item: Dict[str, Any], data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Replace references with full data."""
         field_mapping = {
             "author": "author",
             "journal": "journal",
@@ -705,17 +636,14 @@ class MongoDBPaperRepository(PaperRepository):
 
 
 class MongoDBStatementRepository(StatementRepository):
-    """MongoDB implementation of the Statement repository."""
 
     def __init__(self):
-        """Initialize the repository."""
         self.client = MongoClient(settings.MONGODB_URI)
         self.db = self.client[settings.MONGODB_DB]
 
     def find_all(
         self, page: int = 1, page_size: int = 10
     ) -> Tuple[List[Statement], int]:
-        """Find all statements with pagination."""
         try:
             collection = self.db["statements"]
             skip = (page - 1) * page_size
@@ -736,7 +664,6 @@ class MongoDBStatementRepository(StatementRepository):
             raise DatabaseError(f"Failed to retrieve statements: {str(e)}")
 
     def find_by_id(self, statement_id: str) -> Optional[Statement]:
-        """Find a statement by its ID."""
         try:
             collection = self.db["statements"]
             document = collection.find_one({"statement_id": statement_id})
@@ -752,11 +679,9 @@ class MongoDBStatementRepository(StatementRepository):
             raise DatabaseError(f"Failed to retrieve statement: {str(e)}")
 
     def find_by_paper_id(self, paper_id: str) -> List[Statement]:
-        """Find statements by paper ID."""
         try:
             collection = self.db["statements"]
 
-            # First get the article ObjectId
             article_collection = self.db["articles"]
             article = article_collection.find_one({"article_id": paper_id})
 
@@ -765,7 +690,6 @@ class MongoDBStatementRepository(StatementRepository):
 
             article_id = article["_id"]
 
-            # Now find statements with this article_id
             cursor = collection.find({"article_id": article_id})
             statements = []
 
@@ -781,7 +705,6 @@ class MongoDBStatementRepository(StatementRepository):
             raise DatabaseError(f"Failed to retrieve statements by paper ID: {str(e)}")
 
     def save(self, statement: Statement) -> Statement:
-        """Save a statement."""
         try:
             collection = self.db["statements"]
 
@@ -790,7 +713,6 @@ class MongoDBStatementRepository(StatementRepository):
                     statement.article_id + str(datetime.utcnow())
                 )
 
-            # Convert to dictionary
             statement_dict = {}
             for key, value in statement.__dict__.items():
                 if key == "author":
@@ -800,12 +722,10 @@ class MongoDBStatementRepository(StatementRepository):
                 else:
                     statement_dict[key] = value
 
-            # Add timestamps
             if not statement_dict.get("created_at"):
                 statement_dict["created_at"] = datetime.utcnow()
             statement_dict["updated_at"] = datetime.utcnow()
 
-            # Upsert
             result = collection.update_one(
                 {"_id": statement_dict["id"]}, {"$set": statement_dict}, upsert=True
             )
@@ -824,7 +744,6 @@ class MongoDBStatementRepository(StatementRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Statement], int]:
-        """Get latest statements with filters."""
         try:
             collection = self.db["statements"]
             match_stage = {}
@@ -891,7 +810,6 @@ class MongoDBStatementRepository(StatementRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Statement], int]:
-        """Get statements by IDs from semantic search."""
         try:
             collection = self.db["statements"]
             match_stage = {}
@@ -946,35 +864,27 @@ class MongoDBStatementRepository(StatementRepository):
 
 
 class MongoDBAuthorRepository(AuthorRepository):
-    """MongoDB implementation of the Author repository."""
-
     def __init__(self):
-        """Initialize the repository."""
         self.client = MongoClient(settings.MONGODB_URI)
         self.db = self.client[settings.MONGODB_DB]
 
     def get_authors_by_name(self, name: str) -> List[Author]:
-        """Find authors by name."""
         pass
 
     def get_academic_publishers_by_name(self, name: str) -> List[Author]:
-        """Find academic publishers by name."""
         pass
 
     def save(self, author: Author) -> Author:
-        """Save an author."""
         try:
             collection = self.db["authors"]
 
             if not author.id:
                 author.id = generate_static_id(author.given_name + author.family_name)
 
-            # Convert to dictionary
             author_dict = {}
             for key, value in author.__dict__.items():
                 author_dict[key] = value
 
-            # Upsert
             result = collection.update_one(
                 {"_id": author_dict["id"]}, {"$set": author_dict}, upsert=True
             )
@@ -993,7 +903,6 @@ class MongoDBAuthorRepository(AuthorRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Author], int]:
-        """Get latest authors with filters."""
         try:
             collection = self.db["authors"]
             query = {}
@@ -1034,15 +943,12 @@ class MongoDBAuthorRepository(AuthorRepository):
 
 
 class MongoDBConceptRepository(ConceptRepository):
-    """MongoDB implementation of the Concept repository."""
 
     def __init__(self):
-        """Initialize the repository."""
         self.client = MongoClient(settings.MONGODB_URI)
         self.db = self.client[settings.MONGODB_DB]
 
     def find_by_label(self, label: str) -> List[Concept]:
-        """Find concepts by label."""
         try:
             collection = self.db["concepts"]
             regex = Regex(label, "i")
@@ -1063,19 +969,16 @@ class MongoDBConceptRepository(ConceptRepository):
             raise DatabaseError(f"Failed to find concepts: {str(e)}")
 
     def save(self, concept: Concept) -> Concept:
-        """Save a concept."""
         try:
             collection = self.db["concepts"]
 
             if not concept.id:
                 concept.id = generate_static_id(concept.label)
 
-            # Convert to dictionary
             concept_dict = {}
             for key, value in concept.__dict__.items():
                 concept_dict[key] = value
 
-            # Upsert
             result = collection.update_one(
                 {"_id": concept_dict["id"]}, {"$set": concept_dict}, upsert=True
             )
@@ -1087,7 +990,6 @@ class MongoDBConceptRepository(ConceptRepository):
             raise DatabaseError(f"Failed to save concept: {str(e)}")
 
     def get_latest_concepts(self, limit: int = 8) -> List[Concept]:
-        """Get latest concepts."""
         try:
             collection = self.db["concepts"]
             cursor = collection.find().limit(limit)
@@ -1112,7 +1014,6 @@ class MongoDBConceptRepository(ConceptRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Concept], int]:
-        """Get latest keywords with filters."""
         try:
             collection = self.db["concepts"]
             query = {}
@@ -1153,15 +1054,12 @@ class MongoDBConceptRepository(ConceptRepository):
 
 
 class MongoDBResearchFieldRepository(ResearchFieldRepository):
-    """MongoDB implementation of the ResearchField repository."""
 
     def __init__(self):
-        """Initialize the repository."""
         self.client = MongoClient(settings.MONGODB_URI)
         self.db = self.client[settings.MONGODB_DB]
 
     def find_by_label(self, label: str) -> List[ResearchField]:
-        """Find research fields by label."""
         try:
             collection = self.db["research_fields"]
             regex = Regex(label, "i")
@@ -1182,19 +1080,16 @@ class MongoDBResearchFieldRepository(ResearchFieldRepository):
             raise DatabaseError(f"Failed to find research fields: {str(e)}")
 
     def save(self, research_field: ResearchField) -> ResearchField:
-        """Save a research field."""
         try:
             collection = self.db["research_fields"]
 
             if not research_field.id:
                 research_field.id = generate_static_id(research_field.label)
 
-            # Convert to dictionary
             rf_dict = {}
             for key, value in research_field.__dict__.items():
                 rf_dict[key] = value
 
-            # Upsert
             result = collection.update_one(
                 {"_id": rf_dict["id"]}, {"$set": rf_dict}, upsert=True
             )
@@ -1207,15 +1102,12 @@ class MongoDBResearchFieldRepository(ResearchFieldRepository):
 
 
 class MongoDBJournalRepository(JournalRepository):
-    """MongoDB implementation of the Journal repository."""
 
     def __init__(self):
-        """Initialize the repository."""
         self.client = MongoClient(settings.MONGODB_URI)
         self.db = self.client[settings.MONGODB_DB]
 
     def find_by_name(self, name: str) -> List[Dict[str, Any]]:
-        """Find journals by name."""
         try:
             collection = self.db["journals_conferences"]
             regex = Regex(name, "i")
@@ -1242,7 +1134,6 @@ class MongoDBJournalRepository(JournalRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Dict[str, Any]], int]:
-        """Get latest journals with filters."""
         try:
             collection = self.db["journals_conferences"]
             query = {}

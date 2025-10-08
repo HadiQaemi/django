@@ -1,9 +1,3 @@
-"""
-Entity mappers for the REBORN API.
-
-These mappers convert between domain entities and DTOs.
-"""
-
 from typing import List, Dict, Any, Optional, cast
 from datetime import datetime
 
@@ -40,11 +34,9 @@ from core.application.dtos.output_dtos import (
 
 
 class AuthorMapper:
-    """Mapper for Author entities."""
 
     @staticmethod
     def to_entity(dto: AuthorInputDTO) -> Author:
-        """Convert DTO to entity."""
         return Author(
             id=dto.id or "",
             given_name=dto.given_name,
@@ -54,7 +46,6 @@ class AuthorMapper:
 
     @staticmethod
     def to_dto(entity: Author) -> AuthorOutputDTO:
-        """Convert entity to DTO."""
         return AuthorOutputDTO(
             id=entity.id,
             given_name=entity.given_name,
@@ -64,7 +55,6 @@ class AuthorMapper:
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> Author:
-        """Convert dictionary to entity."""
         return Author(
             id=data.get("id", "") or data.get("@id", ""),
             given_name=data.get("given_name", "") or data.get("givenName", ""),
@@ -74,23 +64,19 @@ class AuthorMapper:
 
 
 class ConceptMapper:
-    """Mapper for Concept entities."""
 
     @staticmethod
     def to_entity(dto: ConceptInputDTO) -> Concept:
-        """Convert DTO to entity."""
         return Concept(id=dto.id or "", label=dto.label, identifier=dto.identifier)
 
     @staticmethod
     def to_dto(entity: Concept) -> ConceptOutputDTO:
-        """Convert entity to DTO."""
         return ConceptOutputDTO(
             id=entity.id, label=entity.label, identifier=entity.identifier
         )
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> Concept:
-        """Convert dictionary to entity."""
         return Concept(
             id=data.get("id", "") or data.get("@id", ""),
             label=data.get("label", ""),
@@ -99,39 +85,32 @@ class ConceptMapper:
 
 
 class ResearchFieldMapper:
-    """Mapper for ResearchField entities."""
 
     @staticmethod
     def to_entity(dto: ResearchFieldInputDTO) -> ResearchField:
-        """Convert DTO to entity."""
         return ResearchField(id=dto.id or "", label=dto.label)
 
     @staticmethod
     def to_dto(entity: ResearchField) -> ResearchFieldOutputDTO:
-        """Convert entity to DTO."""
         return ResearchFieldOutputDTO(id=entity.id, label=entity.label)
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> ResearchField:
-        """Convert dictionary to entity."""
         return ResearchField(
             id=data.get("id", "") or data.get("@id", ""), label=data.get("label", "")
         )
 
 
 class JournalMapper:
-    """Mapper for Journal entities."""
 
     @staticmethod
     def to_dto(entity: Journal) -> JournalOutputDTO:
-        """Convert entity to DTO."""
         return JournalOutputDTO(
             id=entity.id, label=entity.label, publisher=entity.publisher
         )
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> Journal:
-        """Convert dictionary to entity."""
         return Journal(
             id=data.get("id", "") or data.get("@id", ""),
             label=data.get("label", ""),
@@ -140,18 +119,15 @@ class JournalMapper:
 
 
 class ConferenceMapper:
-    """Mapper for Conference entities."""
 
     @staticmethod
     def to_dto(entity: Conference) -> ConferenceOutputDTO:
-        """Convert entity to DTO."""
         return ConferenceOutputDTO(
             id=entity.id, label=entity.label, publisher=entity.publisher
         )
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> Conference:
-        """Convert dictionary to entity."""
         return Conference(
             id=data.get("id", "") or data.get("@id", ""),
             label=data.get("label", ""),
@@ -160,11 +136,9 @@ class ConferenceMapper:
 
 
 class NotationMapper:
-    """Mapper for Notation entities."""
 
     @staticmethod
     def to_dto(entity: Notation) -> NotationOutputDTO:
-        """Convert entity to DTO."""
         concept_dto = None
         if entity.concept:
             concept_dto = ConceptMapper.to_dto(entity.concept)
@@ -173,7 +147,6 @@ class NotationMapper:
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> Notation:
-        """Convert dictionary to entity."""
         concept = None
         if "concept" in data and data["concept"]:
             concept = ConceptMapper.from_dict(data["concept"])
@@ -186,11 +159,9 @@ class NotationMapper:
 
 
 class ContributionMapper:
-    """Mapper for Contribution entities."""
 
     @staticmethod
     def to_entity(dto: ContributionInputDTO) -> Contribution:
-        """Convert DTO to entity."""
         authors = [AuthorMapper.to_entity(author_dto) for author_dto in dto.author]
 
         return Contribution(
@@ -207,7 +178,6 @@ class ContributionMapper:
 
     @staticmethod
     def to_dto(entity: Contribution) -> ContributionOutputDTO:
-        """Convert entity to DTO."""
         authors = [AuthorMapper.to_dto(author) for author in entity.author]
 
         return ContributionOutputDTO(
@@ -224,7 +194,6 @@ class ContributionMapper:
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> Contribution:
-        """Convert dictionary to entity."""
         authors = []
         if "author" in data and data["author"]:
             authors = [AuthorMapper.from_dict(author) for author in data["author"]]
@@ -243,11 +212,9 @@ class ContributionMapper:
 
 
 class StatementMapper:
-    """Mapper for Statement entities."""
 
     @staticmethod
     def to_entity(dto: StatementInputDTO) -> Statement:
-        """Convert DTO to entity."""
         authors = [AuthorMapper.to_entity(author_dto) for author_dto in dto.author]
         notation = None
         if dto.notation:
@@ -271,7 +238,6 @@ class StatementMapper:
 
     @staticmethod
     def to_dto(entity: Statement) -> StatementOutputDTO:
-        """Convert entity to DTO."""
         authors = [AuthorMapper.to_dto(author) for author in entity.author]
         notation = None
         if entity.notation:
@@ -291,7 +257,6 @@ class StatementMapper:
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> Statement:
-        """Convert dictionary to entity."""
         authors = []
         if "author" in data and data["author"]:
             if isinstance(data["author"], list):
@@ -339,11 +304,9 @@ class StatementMapper:
 
 
 class PaperMapper:
-    """Mapper for Paper entities."""
 
     @staticmethod
     def to_entity(dto: PaperInputDTO) -> Article:
-        """Convert DTO to entity."""
         authors = [AuthorMapper.to_entity(author_dto) for author_dto in dto.author]
         research_fields = []
         if dto.research_fields:
@@ -356,28 +319,27 @@ class PaperMapper:
             title=dto.title,
             author=authors,
             abstract=dto.abstract,
-            contributions=[],  # Will be filled separately
-            statements=[],  # Will be filled separately
+            contributions=[],
+            statements=[],
             dois=dto.dois,
             date_published=dto.date_published,
             entity=dto.entity,
             external=str(dto.external) if dto.external else None,
             info=dto.info or {},
             timeline={},
-            journal=None,  # Will be filled separately
-            conference=None,  # Will be filled separately
+            journal=None, 
+            conference=None,
             publisher=dto.publisher,
             research_fields=research_fields,
             research_fields_id=[rf.id for rf in research_fields],
             article_id=dto.article_id,
             reborn_doi=None,
             paper_type=dto.paper_type,
-            concepts=[],  # Will be filled separately
+            concepts=[],
         )
 
     @staticmethod
     def to_dto(entity: Article) -> PaperOutputDTO:
-        """Convert entity to DTO."""
         authors = [AuthorMapper.to_dto(author) for author in entity.author]
         research_fields = [
             ResearchFieldMapper.to_dto(rf) for rf in entity.research_fields
@@ -425,8 +387,6 @@ class PaperMapper:
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> Article:
-        """Convert dictionary to entity."""
-        # Process authors
         authors = []
         if "author" in data and data["author"]:
             if isinstance(data["author"], list):
@@ -434,7 +394,6 @@ class PaperMapper:
             else:
                 authors = [AuthorMapper.from_dict(data["author"])]
 
-        # Process research fields
         research_fields = []
         research_fields_id = []
         if "research_fields" in data and data["research_fields"]:
@@ -444,7 +403,6 @@ class PaperMapper:
                 ]
                 research_fields_id = [rf.id for rf in research_fields]
 
-        # Process contributions
         contributions = []
         if "contributions" in data and data["contributions"]:
             if isinstance(data["contributions"], list):
@@ -453,13 +411,11 @@ class PaperMapper:
                     for contribution in data["contributions"]
                 ]
             elif isinstance(data["contributions"], dict):
-                # Handle the case where contributions is a dict
                 contributions = [
                     ContributionMapper.from_dict({"id": k, **v})
                     for k, v in data["contributions"].items()
                 ]
 
-        # Process statements
         statements = []
         if "statements" in data and data["statements"]:
             if isinstance(data["statements"], list):
@@ -468,17 +424,14 @@ class PaperMapper:
                     for statement in data["statements"]
                 ]
 
-        # Process journal
         journal = None
         if "journal" in data and data["journal"]:
             journal = JournalMapper.from_dict(data["journal"])
 
-        # Process conference
         conference = None
         if "conference" in data and data["conference"]:
             conference = ConferenceMapper.from_dict(data["conference"])
 
-        # Process concepts
         concepts = []
         if "concepts" in data and data["concepts"]:
             if isinstance(data["concepts"], list):
@@ -486,7 +439,6 @@ class PaperMapper:
                     ConceptMapper.from_dict(concept) for concept in data["concepts"]
                 ]
 
-        # Process dates
         created_at = None
         if "created_at" in data and data["created_at"]:
             if isinstance(data["created_at"], str):
@@ -513,7 +465,6 @@ class PaperMapper:
                         data["date_published"].replace("Z", "+00:00")
                     )
                 except ValueError:
-                    # Try other format
                     try:
                         date_published = datetime.strptime(
                             data["date_published"], "%Y-%m-%d"

@@ -1,9 +1,3 @@
-"""
-Tests for domain entities in the REBORN API.
-
-This module provides unit tests for domain entities.
-"""
-
 import pytest
 from datetime import datetime
 
@@ -21,10 +15,7 @@ from core.domain.entities import (
 
 
 class TestAuthor:
-    """Tests for the Author entity."""
-
     def test_init(self):
-        """Test Author initialization."""
         author = Author(
             id="author1", given_name="John", family_name="Doe", label="John Doe"
         )
@@ -35,17 +26,13 @@ class TestAuthor:
         assert author.label == "John Doe"
 
     def test_full_name(self):
-        """Test Author full_name property."""
         author = Author(id="author1", given_name="John", family_name="Doe", label=None)
 
         assert author.full_name == "John Doe"
 
 
 class TestConcept:
-    """Tests for the Concept entity."""
-
     def test_init(self):
-        """Test Concept initialization."""
         concept = Concept(id="concept1", label="Machine Learning", identifier="ML001")
 
         assert concept.id == "concept1"
@@ -54,10 +41,7 @@ class TestConcept:
 
 
 class TestResearchField:
-    """Tests for the ResearchField entity."""
-
     def test_init(self):
-        """Test ResearchField initialization."""
         research_field = ResearchField(id="rf1", label="Computer Science")
 
         assert research_field.id == "rf1"
@@ -65,10 +49,7 @@ class TestResearchField:
 
 
 class TestNotation:
-    """Tests for the Notation entity."""
-
     def test_init(self):
-        """Test Notation initialization."""
         concept = Concept(id="concept1", label="Machine Learning", identifier="ML001")
 
         notation = Notation(
@@ -81,10 +62,7 @@ class TestNotation:
 
 
 class TestStatement:
-    """Tests for the Statement entity."""
-
     def test_init(self):
-        """Test Statement initialization."""
         author = Author(
             id="author1", given_name="John", family_name="Doe", label="John Doe"
         )
@@ -113,10 +91,7 @@ class TestStatement:
 
 
 class TestContribution:
-    """Tests for the Contribution entity."""
-
     def test_init(self):
-        """Test Contribution initialization."""
         author = Author(
             id="author1", given_name="John", family_name="Doe", label="John Doe"
         )
@@ -145,10 +120,7 @@ class TestContribution:
 
 
 class TestPaper:
-    """Tests for the Paper entity."""
-
     def test_init(self):
-        """Test Paper initialization."""
         author = Author(
             id="author1", given_name="John", family_name="Doe", label="John Doe"
         )

@@ -11,13 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 class SQLConceptRepository(ConceptRepository):
-    """PostgreSQL implementation of the Concept repository."""
 
     def get_keywords_by_label(
         self, search_query: str, page: int, page_size: int
     ) -> List[Concept]:
-        """Find concepts by label."""
-        print("-------concepts-------", __file__)
         try:
             concepts_queryset = ConceptModel.objects.filter(
                 label__icontains=search_query
@@ -37,7 +34,6 @@ class SQLConceptRepository(ConceptRepository):
             raise DatabaseError(f"Failed to find authors: {str(e)}")
 
     def get_count_all(self) -> any:
-        print("-------get_count_all-------", __file__)
         try:
             return ConceptModel.objects.count()
 
@@ -46,7 +42,6 @@ class SQLConceptRepository(ConceptRepository):
             raise DatabaseError(f"Failed to count all research_field: {str(e)}")
 
     def find_by_label(self, label: str) -> List[Concept]:
-        """Find concepts by label."""
         try:
             concepts_queryset = ConceptModel.objects.filter(
                 label__icontains=label
@@ -68,7 +63,6 @@ class SQLConceptRepository(ConceptRepository):
             raise DatabaseError(f"Failed to find concepts: {str(e)}")
 
     def save(self, concept: Concept) -> Concept:
-        """Save a concept."""
         try:
             if not concept.id:
                 concept.id = generate_static_id(concept.label)
@@ -86,7 +80,6 @@ class SQLConceptRepository(ConceptRepository):
             raise DatabaseError(f"Failed to save concept: {str(e)}")
 
     def get_latest_concepts(self, limit: int = 8) -> List[Concept]:
-        """Get latest concepts."""
         try:
             concepts_queryset = ConceptModel.objects.all().order_by("-id")[:limit]
 
@@ -113,7 +106,6 @@ class SQLConceptRepository(ConceptRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Concept], int]:
-        """Get latest keywords with filters."""
         try:
             query = ConceptModel.objects.all()
 
@@ -123,7 +115,6 @@ class SQLConceptRepository(ConceptRepository):
             if research_fields and len(research_fields) > 0:
                 query = query.filter(research_fields_id__overlap=research_fields)
 
-            # Apply sorting
             if sort_order == "a-z":
                 query = query.order_by("label")
             elif sort_order == "z-a":

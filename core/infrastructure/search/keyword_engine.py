@@ -1,9 +1,3 @@
-"""
-Keyword search engine implementation.
-
-This module implements a keyword search engine using Elasticsearch.
-"""
-
 from elasticsearch import Elasticsearch, NotFoundError
 from typing import List, Dict, Any, Optional
 import logging
@@ -14,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class KeywordSearchEngine:
-    """Keyword search engine implementation."""
 
     def __init__(
         self,
@@ -22,7 +15,6 @@ class KeywordSearchEngine:
         articles_index_name: str = "articles_index",
         statements_index_name: str = "statements_index",
     ):
-        """Initialize the search engine."""
         self.host = host or os.environ.get("ELASTIC_URL", "http://localhost:9200")
         self.articles_index_name = articles_index_name
         self.statements_index_name = statements_index_name
@@ -45,7 +37,6 @@ class KeywordSearchEngine:
             self.client = None
 
     def _create_index(self, index_name: str) -> None:
-        """Create an index if it doesn't exist."""
         if not self.client:
             return
 
@@ -61,7 +52,6 @@ class KeywordSearchEngine:
             raise
 
     def add_articles(self, articles: List[Dict[str, str]]) -> None:
-        """Add articles to the search index."""
         if not self.client:
             logger.warning(
                 "Elasticsearch client is not available. Skipping add_articles."
@@ -71,7 +61,6 @@ class KeywordSearchEngine:
         try:
             self._create_index(self.articles_index_name)
 
-            # Validate articles
             valid_articles = []
             for article in articles:
                 if "title" in article and "article_id" in article:
@@ -83,7 +72,6 @@ class KeywordSearchEngine:
                 logger.warning("No valid articles to add")
                 return
 
-            # Add articles to index
             for article in valid_articles:
                 self.client.index(
                     index=self.articles_index_name,
@@ -95,7 +83,6 @@ class KeywordSearchEngine:
                     },
                 )
 
-            # Refresh index to make changes visible
             self.client.indices.refresh(index=self.articles_index_name)
 
             logger.info(
@@ -107,7 +94,6 @@ class KeywordSearchEngine:
             raise
 
     def add_statements(self, statements: List[Dict[str, str]]) -> None:
-        """Add statements to the search index."""
         if not self.client:
             logger.warning(
                 "Elasticsearch client is not available. Skipping add_statements."
@@ -117,7 +103,6 @@ class KeywordSearchEngine:
         try:
             self._create_index(self.statements_index_name)
 
-            # Validate statements
             valid_statements = []
             for statement in statements:
                 if "text" in statement and "statement_id" in statement:
@@ -129,7 +114,6 @@ class KeywordSearchEngine:
                 logger.warning("No valid statements to add")
                 return
 
-            # Add statements to index
             for statement in valid_statements:
                 self.client.index(
                     index=self.statements_index_name,
@@ -141,7 +125,6 @@ class KeywordSearchEngine:
                     },
                 )
 
-            # Refresh index to make changes visible
             self.client.indices.refresh(index=self.statements_index_name)
 
             logger.info(
@@ -153,7 +136,6 @@ class KeywordSearchEngine:
             raise
 
     def search_articles(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
-        """Search articles by query."""
         if not self.client:
             logger.warning(
                 "Elasticsearch client is not available. Skipping search_articles."
@@ -161,17 +143,14 @@ class KeywordSearchEngine:
             return []
 
         try:
-            # Validate k
             if k <= 0:
                 logger.warning(f"Invalid k: {k}, using default value 5")
                 k = 5
 
-            # Check if index exists
             if not self.client.indices.exists(index=self.articles_index_name):
                 logger.warning(f"Index not found: {self.articles_index_name}")
                 return []
 
-            # Search index
             response = self.client.search(
                 index=self.articles_index_name,
                 body={
@@ -198,7 +177,6 @@ class KeywordSearchEngine:
             raise
 
     def search_statements(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
-        """Search statements by query."""
         if not self.client:
             logger.warning(
                 "Elasticsearch client is not available. Skipping search_statements."
@@ -206,17 +184,14 @@ class KeywordSearchEngine:
             return []
 
         try:
-            # Validate k
             if k <= 0:
                 logger.warning(f"Invalid k: {k}, using default value 5")
                 k = 5
 
-            # Check if index exists
             if not self.client.indices.exists(index=self.statements_index_name):
                 logger.warning(f"Index not found: {self.statements_index_name}")
                 return []
 
-            # Search index
             response = self.client.search(
                 index=self.statements_index_name,
                 body={
@@ -245,7 +220,6 @@ class KeywordSearchEngine:
     def _format_results(
         self, response: Dict[str, Any], id_field: str
     ) -> List[Dict[str, Any]]:
-        """Format search results."""
         results = []
 
         for hit in response["hits"]["hits"]:
@@ -261,7 +235,6 @@ class KeywordSearchEngine:
         return results
 
     def delete_indices(self) -> None:
-        """Delete search indices."""
         if not self.client:
             logger.warning(
                 "Elasticsearch client is not available. Skipping delete_indices."
@@ -281,7 +254,6 @@ class KeywordSearchEngine:
             raise
 
     def __del__(self) -> None:
-        """Clean up resources."""
         if hasattr(self, "client") and self.client:
             self.client.close()
             logger.info("Elasticsearch client closed.")

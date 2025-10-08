@@ -42,7 +42,6 @@ logger = logging.getLogger(__name__)
 
 
 class PaperServiceImpl(PaperServiceInterface):
-    """Implementation of the paper service."""
 
     def __init__(
         self,
@@ -64,35 +63,32 @@ class PaperServiceImpl(PaperServiceInterface):
     def get_all_papers(
         self, page: int = 1, page_size: int = 10
     ) -> PaginatedResponseDTO:
-        """Get all papers with pagination."""
         # cache_key = f"all_papers_{page}_{page_size}"
         # cached_result = cache.get(cache_key)
-        print("------------get_all_papers------------", __file__)
         # if cached_result:
         #     return cached_result
 
-        # try:
-        papers, total = self.paper_repository.find_all(page, page_size)
-        result = PaginatedResponseDTO(
-            content=[self._map_paper_to_dto(paper) for paper in papers],
-            total_elements=total,
-            page=page,
-            page_size=page_size,
-            total_pages=math.ceil(total / page_size),
-        )
+        try:
+            papers, total = self.paper_repository.find_all(page, page_size)
+            result = PaginatedResponseDTO(
+                content=[self._map_paper_to_dto(paper) for paper in papers],
+                total_elements=total,
+                page=page,
+                page_size=page_size,
+                total_pages=math.ceil(total / page_size),
+            )
 
-        # Cache for 15 minutes
-        # cache.set(cache_key, result, settings.CACHE_TTL)
-        return result
+            # Cache for 15 minutes
+            # cache.set(cache_key, result, settings.CACHE_TTL)
+            return result
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_all_papers: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in get_all_papers: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve papers: {str(e)}")
 
     def get_all_statements(
         self, page: int = 1, page_size: int = 10
     ) -> PaginatedResponseDTO:
-        """Get all statements with pagination."""
         # cache_key = f"all_statements_{page}_{page_size}"
         # cached_result = cache.get(cache_key)
 
@@ -121,7 +117,6 @@ class PaperServiceImpl(PaperServiceInterface):
             raise DatabaseError(f"Failed to retrieve statements: {str(e)}")
 
     def search_by_title(self, title: str) -> List[PaperOutputDTO]:
-        """Search papers by title."""
         try:
             papers = self.paper_repository.search_by_title(title)
             return [self._map_paper_to_dto(paper) for paper in papers]
@@ -131,208 +126,204 @@ class PaperServiceImpl(PaperServiceInterface):
             raise DatabaseError(f"Failed to search papers: {str(e)}")
 
     def query_data(self, query_filter: QueryFilterInputDTO) -> PaginatedResponseDTO:
-        """Query data with filters."""
-        print("------query_data------", __file__)
-        # try:
-        papers, total = self.paper_repository.query_papers(
-            title=query_filter.title,
-            start_year=query_filter.start_year,
-            end_year=query_filter.end_year,
-            author_ids=query_filter.author_ids,
-            scientific_venue_ids=query_filter.scientific_venue_ids,
-            concept_ids=query_filter.concept_ids,
-            research_field_ids=query_filter.research_field_ids,
-            page=query_filter.page,
-            page_size=query_filter.per_page,
-        )
+        try:
+            papers, total = self.paper_repository.query_papers(
+                title=query_filter.title,
+                start_year=query_filter.start_year,
+                end_year=query_filter.end_year,
+                author_ids=query_filter.author_ids,
+                scientific_venue_ids=query_filter.scientific_venue_ids,
+                concept_ids=query_filter.concept_ids,
+                research_field_ids=query_filter.research_field_ids,
+                page=query_filter.page,
+                page_size=query_filter.per_page,
+            )
 
-        # Convert Paper objects to serializable dictionaries
-        serialized_papers = []
-        for paper in papers:
-            # Extract authors safely
-            authors = []
-            if hasattr(paper, "authors") and paper.authors:
-                if hasattr(paper.authors, "all"):  # QuerySet
-                    authors = [
-                        {"id": author.author_id, "label": str(author.label)}
-                        for author in paper.authors.all()
-                    ]
-                elif isinstance(paper.authors, list):  # List
-                    authors = [
-                        {
-                            "id": author.author_id,
-                            "label": str(author.label),
-                            "orcid": author.orcid,
-                        }
-                        for author in paper.authors
-                    ]
-                else:  # Single author
-                    authors = [
-                        {
-                            "id": getattr(paper.authors, "id", ""),
-                            "label": str(paper.authors),
-                        }
-                    ]
-
-            # Extract concepts safely
-            concepts = []
-            if hasattr(paper, "concepts") and paper.concepts:
-                if hasattr(paper.concepts, "all"):  # QuerySet
-                    concepts = [
-                        {"id": concept.id, "label": concept.label}
-                        for concept in paper.concepts.all()
-                    ]
-                elif isinstance(paper.concepts, list):  # List
-                    concepts = [
-                        {
-                            "id": getattr(concept, "id", ""),
-                            "label": getattr(concept, "label", str(concept)),
-                        }
-                        for concept in paper.concepts
-                    ]
-
-            # Extract research fields safely
-            research_fields = []
-            if hasattr(paper, "research_fields") and paper.research_fields:
-                if hasattr(paper.research_fields, "all"):  # QuerySet
-                    research_fields = [
-                        {
-                            "id": rf.research_field_id,
-                            "label": rf.label,
-                            "identifier": getattr(rf, "_id", str(rf)),
-                        }
-                        for rf in paper.research_fields.all()
-                    ]
-                elif isinstance(paper.research_fields, list):  # List
-                    research_fields = [
-                        {
-                            "id": getattr(rf, "research_field_id", ""),
-                            "label": getattr(rf, "label", str(rf)),
-                            "related_identifier": getattr(
-                                rf, "related_identifier", str(rf)
-                            ),
-                        }
-                        for rf in paper.research_fields
-                    ]
-
-            # Extract journal/conference safely
-            journal_conference = None
-            if hasattr(paper, "journal_conference") and paper.journal_conference:
-                journal_conference = {
-                    "id": getattr(paper.journal_conference, "id", ""),
-                    "label": getattr(
-                        paper.journal_conference,
-                        "label",
-                        str(paper.journal_conference),
-                    ),
-                    "identifier": getattr(paper.journal_conference, "_id", ""),
-                }
-            elif hasattr(paper, "journal") and paper.journal:
-                journal_conference = {
-                    "id": getattr(paper.journal, "journal_conference_id", ""),
-                    "identifier": getattr(paper.journal, "_id", ""),
-                    "label": getattr(paper.journal, "label", str(paper.journal)),
-                }
-
-            publisher = None
-            if hasattr(paper, "publisher") and paper.publisher:
-                publisher = paper.publisher.label
-            paper_dict = {
-                "article_id": getattr(paper, "article_id", ""),
-                "name": getattr(paper, "name", getattr(paper, "title", "")),
-                "abstract": getattr(paper, "abstract", ""),
-                "date_published": paper.date_published.year
-                if hasattr(paper, "date_published")
-                and localtime(paper.date_published).strftime("%Y")
-                else None,
-                "dois": getattr(paper, "dois", ""),
-                "reborn_doi": getattr(paper, "reborn_doi", ""),
-                "authors": authors,
-                "concepts": concepts,
-                "research_fields": research_fields,
-                "scientific_venue": journal_conference,
-                "publisher": publisher,
-                "reborn_date": localtime(paper.date_published).strftime("%B %d, %Y")
-                if hasattr(paper, "date_published") and paper.date_published
-                else None,
-            }
-            statements = []
-            for statement in paper.statements.all().order_by("order"):
-                has_part = statement.has_part_statements.first()
+            serialized_papers = []
+            for paper in papers:
+                # Extract authors safely
                 authors = []
-                for author in statement.authors.all():
-                    authors.append(
-                        {
-                            "name": author.label,
-                            "author_id": author.author_id,
-                            "orcid": author._id
-                            if author._id.startswith("https://orcid.org/")
-                            else None,
-                        }
-                    )
+                if hasattr(paper, "authors") and paper.authors:
+                    if hasattr(paper.authors, "all"):  # QuerySet
+                        authors = [
+                            {"id": author.author_id, "label": str(author.label)}
+                            for author in paper.authors.all()
+                        ]
+                    elif isinstance(paper.authors, list):  # List
+                        authors = [
+                            {
+                                "id": author.author_id,
+                                "label": str(author.label),
+                                "orcid": author.orcid,
+                            }
+                            for author in paper.authors
+                        ]
+                    else:  # Single author
+                        authors = [
+                            {
+                                "id": getattr(paper.authors, "id", ""),
+                                "label": str(paper.authors),
+                            }
+                        ]
 
+                # Extract concepts safely
                 concepts = []
-                for concept in statement.concepts.all():
-                    concepts.append(
+                if hasattr(paper, "concepts") and paper.concepts:
+                    if hasattr(paper.concepts, "all"):  # QuerySet
+                        concepts = [
+                            {"id": concept.id, "label": concept.label}
+                            for concept in paper.concepts.all()
+                        ]
+                    elif isinstance(paper.concepts, list):  # List
+                        concepts = [
+                            {
+                                "id": getattr(concept, "id", ""),
+                                "label": getattr(concept, "label", str(concept)),
+                            }
+                            for concept in paper.concepts
+                        ]
+
+                # Extract research fields safely
+                research_fields = []
+                if hasattr(paper, "research_fields") and paper.research_fields:
+                    if hasattr(paper.research_fields, "all"):  # QuerySet
+                        research_fields = [
+                            {
+                                "id": rf.research_field_id,
+                                "label": rf.label,
+                                "identifier": getattr(rf, "_id", str(rf)),
+                            }
+                            for rf in paper.research_fields.all()
+                        ]
+                    elif isinstance(paper.research_fields, list):  # List
+                        research_fields = [
+                            {
+                                "id": getattr(rf, "research_field_id", ""),
+                                "label": getattr(rf, "label", str(rf)),
+                                "related_identifier": getattr(
+                                    rf, "related_identifier", str(rf)
+                                ),
+                            }
+                            for rf in paper.research_fields
+                        ]
+
+                # Extract journal/conference safely
+                journal_conference = None
+                if hasattr(paper, "journal_conference") and paper.journal_conference:
+                    journal_conference = {
+                        "id": getattr(paper.journal_conference, "id", ""),
+                        "label": getattr(
+                            paper.journal_conference,
+                            "label",
+                            str(paper.journal_conference),
+                        ),
+                        "identifier": getattr(paper.journal_conference, "_id", ""),
+                    }
+                elif hasattr(paper, "journal") and paper.journal:
+                    journal_conference = {
+                        "id": getattr(paper.journal, "journal_conference_id", ""),
+                        "identifier": getattr(paper.journal, "_id", ""),
+                        "label": getattr(paper.journal, "label", str(paper.journal)),
+                    }
+
+                publisher = None
+                if hasattr(paper, "publisher") and paper.publisher:
+                    publisher = paper.publisher.label
+                paper_dict = {
+                    "article_id": getattr(paper, "article_id", ""),
+                    "name": getattr(paper, "name", getattr(paper, "title", "")),
+                    "abstract": getattr(paper, "abstract", ""),
+                    "date_published": paper.date_published.year
+                    if hasattr(paper, "date_published")
+                    and localtime(paper.date_published).strftime("%Y")
+                    else None,
+                    "dois": getattr(paper, "dois", ""),
+                    "reborn_doi": getattr(paper, "reborn_doi", ""),
+                    "authors": authors,
+                    "concepts": concepts,
+                    "research_fields": research_fields,
+                    "scientific_venue": journal_conference,
+                    "publisher": publisher,
+                    "reborn_date": localtime(paper.date_published).strftime("%B %d, %Y")
+                    if hasattr(paper, "date_published") and paper.date_published
+                    else None,
+                }
+                statements = []
+                for statement in paper.statements.all().order_by("order"):
+                    has_part = statement.has_part_statements.first()
+                    authors = []
+                    for author in statement.authors.all():
+                        authors.append(
+                            {
+                                "name": author.label,
+                                "author_id": author.author_id,
+                                "orcid": author._id
+                                if author._id.startswith("https://orcid.org/")
+                                else None,
+                            }
+                        )
+
+                    concepts = []
+                    for concept in statement.concepts.all():
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.concept_id,
+                                "see_also": concept.see_also,
+                            }
+                        )
+                    statements.append(
                         {
-                            "label": concept.label,
-                            "concept_id": concept.concept_id,
-                            "see_also": concept.see_also,
+                            "statement_id": statement.statement_id,
+                            "label": statement.label,
+                            "authors": authors,
+                            "concepts": concepts,
+                            "type": {
+                                "name": has_part.schema_type.name,
+                                "description": has_part.schema_type.description,
+                                "type_id": has_part.schema_type.type_id,
+                                "properties": [
+                                    s.split("#", 1)[1] if "#" in s else ""
+                                    for s in has_part.schema_type.property
+                                ],
+                            },
                         }
                     )
-                statements.append(
+                # Create serializable paper dictionary
+
+                serialized_papers.append(
                     {
-                        "statement_id": statement.statement_id,
-                        "label": statement.label,
-                        "authors": authors,
-                        "concepts": concepts,
-                        "type": {
-                            "name": has_part.schema_type.name,
-                            "description": has_part.schema_type.description,
-                            "type_id": has_part.schema_type.type_id,
-                            "properties": [
-                                s.split("#", 1)[1] if "#" in s else ""
-                                for s in has_part.schema_type.property
-                            ],
-                        },
+                        "article": paper_dict,
+                        "statements": statements,
+                        "basises": paper.related_items,
                     }
                 )
-            # Create serializable paper dictionary
 
-            serialized_papers.append(
+            total_pages = (total + query_filter.per_page - 1) // query_filter.per_page
+            has_next = query_filter.page < total_pages
+            has_previous = query_filter.page > 1
+
+            return Response(
                 {
-                    "article": paper_dict,
-                    "statements": statements,
-                    "basises": paper.related_items,
+                    "results": serialized_papers,
+                    "total_count": total,
+                    "page": query_filter.page,
+                    "page_size": query_filter.per_page,
+                    "total_pages": total_pages,
+                    "has_next": has_next,
+                    "has_previous": has_previous,
                 }
             )
 
-        total_pages = (total + query_filter.per_page - 1) // query_filter.per_page
-        has_next = query_filter.page < total_pages
-        has_previous = query_filter.page > 1
-
-        return Response(
-            {
-                "results": serialized_papers,
-                "total_count": total,
-                "page": query_filter.page,
-                "page_size": query_filter.per_page,
-                "total_pages": total_pages,
-                "has_next": has_next,
-                "has_previous": has_previous,
-            }
-        )
-
-        # except Exception as e:
-        #     logger.error(f"Error in query_data: {str(e)}")
-        #     return CommonResponseDTO(
-        #         success=False, message=f"Failed to query data: {str(e)}"
-        #     )
+        except Exception as e:
+            logger.error(f"Error in query_data: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to query data: {str(e)}"
+            )
 
     def statement_data_type(self, statement: str) -> any:
         data_type = []
         components = []
-        print("-----statement.components.all()-------")
         for component in statement.components.all():
             units = []
             for unit in component.units.all():
@@ -587,55 +578,10 @@ class PaperServiceImpl(PaperServiceInterface):
         return data_type
 
     def get_statement(self, statement_id: str) -> CommonResponseDTO:
-        """Get a statement with related data."""
-        print("-------------------get_statement-----------------", __file__)
-        # try:
-        statement = self.statement_repository.find_by_id(statement_id)
-        authors = []
-        for author in statement.authors.all():
-            authors.append(
-                {
-                    "name": author.name,
-                    "orcid": author.orcid,
-                    "author_id": author.author_id,
-                }
-            )
-
-        concepts = []
-        for concept in statement.concepts.all():
-            concepts.append({"label": concept.label, "concept_id": concept.concept_id})
-        data_type = []
-        if statement_id == statement.statement_id:
-            data_type = self.statement_data_type(statement)
-        result = CommonResponseDTO(
-            success=True,
-            result={
-                "data_type": data_type,
-            },
-            total_count=1,
-        )
-        return result
-
-        # except Exception as e:
-        #     logger.error(f"Error in get_statement: {str(e)}")
-        #     return CommonResponseDTO(
-        #         success=False, message=f"Failed to retrieve statement: {str(e)}"
-        #     )
-
-    def get_article_statement(self, statement_id: str) -> CommonResponseDTO:
-        """Get a statement by its ID."""
-        # try:
-        statement_in_paper = (
-            self.statement_repository.find_paper_with_statement_details(statement_id)
-        )
-        print("------------get_statement_by_id-----------statement---------------")
-        paper = None
-        if statement_in_paper:
-            paper = self.paper_repository.find_by_id(statement_in_paper.article_id)
-        if paper:
-            paper_dto = self._map_paper_to_dto(paper)
+        try:
+            statement = self.statement_repository.find_by_id(statement_id)
             authors = []
-            for author in paper_dto.authors:
+            for author in statement.authors.all():
                 authors.append(
                     {
                         "name": author.name,
@@ -643,223 +589,264 @@ class PaperServiceImpl(PaperServiceInterface):
                         "author_id": author.author_id,
                     }
                 )
-            concepts = []
-            if paper_dto.concepts:
-                for concept in paper_dto.concepts:
-                    concepts.append(
-                        {
-                            "label": concept.label,
-                            "concept_id": concept.id,
-                        }
-                    )
-            paper_info = {
-                "name": paper_dto.name,
-                "article_id": paper_dto.article_id,
-                "authors": authors,
-                "abstract": paper_dto.abstract,
-                "dois": paper_dto.dois,
-                "reborn_doi": paper_dto.reborn_doi,
-                # "scientific_venue": paper_dto.journal
-                # if paper_dto.journal
-                # else paper_dto.conference,
-                "concepts": concepts,
-                "research_fields": paper_dto.research_fields,
-                "publisher": paper_dto.publisher,
-                "date_published": localtime(paper_dto.date_published).strftime(
-                    "%B %d, %Y"
-                ),
-                # "date_published": localtime(paper_dto.date_published).strftime(
-                #     "%Y"
-                # ),
-            }
-            statements = []
-            for statement in paper.statements.all().order_by("order"):
-                has_part = statement.has_part_statements.first()
-                authors = []
-                for author in statement.authors.all():
-                    authors.append(
-                        {
-                            "name": author.name,
-                            "author_id": author.author_id,
-                            "orcid": author.orcid
-                            if author.orcid.startswith("https://orcid.org/")
-                            else None,
-                        }
-                    )
 
-                concepts = []
-                for concept in statement.concepts.all():
-                    concepts.append(
-                        {
-                            "label": concept.label,
-                            "concept_id": concept.concept_id,
-                            "see_also": concept.see_also,
-                        }
-                    )
-                data_type = {}
-                if statement_id == statement.statement_id:
-                    data_type = self.statement_data_type(statement)
-                statements.append(
-                    {
-                        "statement_id": statement.statement_id,
-                        "label": statement.label,
-                        "authors": authors,
-                        "concepts": concepts,
-                        "data_type": data_type,
-                        "type": {
-                            "name": has_part.schema_type.name,
-                            "description": has_part.schema_type.description,
-                            "type_id": has_part.schema_type.type_id,
-                            "properties": [
-                                s.split("#", 1)[1] if "#" in s else ""
-                                for s in has_part.schema_type.property
-                            ],
-                        },
-                    }
+            concepts = []
+            for concept in statement.concepts.all():
+                concepts.append(
+                    {"label": concept.label, "concept_id": concept.concept_id}
                 )
+            data_type = []
+            if statement_id == statement.statement_id:
+                data_type = self.statement_data_type(statement)
             result = CommonResponseDTO(
                 success=True,
                 result={
-                    "article": paper_info,
-                    "statements": statements,
-                    "basises": paper.related_items,
+                    "data_type": data_type,
                 },
-                total_count=len(statements),
+                total_count=1,
             )
             return result
+
+        except Exception as e:
+            logger.error(f"Error in get_statement: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to retrieve statement: {str(e)}"
+            )
+
+    def get_article_statement(self, statement_id: str) -> CommonResponseDTO:
+        try:
+            statement_in_paper = (
+                self.statement_repository.find_paper_with_statement_details(
+                    statement_id
+                )
+            )
+            paper = None
+            if statement_in_paper:
+                paper = self.paper_repository.find_by_id(statement_in_paper.article_id)
+            if paper:
+                paper_dto = self._map_paper_to_dto(paper)
+                authors = []
+                for author in paper_dto.authors:
+                    authors.append(
+                        {
+                            "name": author.name,
+                            "orcid": author.orcid,
+                            "author_id": author.author_id,
+                        }
+                    )
+                concepts = []
+                if paper_dto.concepts:
+                    for concept in paper_dto.concepts:
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.id,
+                            }
+                        )
+                paper_info = {
+                    "name": paper_dto.name,
+                    "article_id": paper_dto.article_id,
+                    "authors": authors,
+                    "abstract": paper_dto.abstract,
+                    "dois": paper_dto.dois,
+                    "reborn_doi": paper_dto.reborn_doi,
+                    # "scientific_venue": paper_dto.journal
+                    # if paper_dto.journal
+                    # else paper_dto.conference,
+                    "concepts": concepts,
+                    "research_fields": paper_dto.research_fields,
+                    "publisher": paper_dto.publisher,
+                    "date_published": localtime(paper_dto.date_published).strftime(
+                        "%B %d, %Y"
+                    ),
+                    # "date_published": localtime(paper_dto.date_published).strftime(
+                    #     "%Y"
+                    # ),
+                }
+                statements = []
+                for statement in paper.statements.all().order_by("order"):
+                    has_part = statement.has_part_statements.first()
+                    authors = []
+                    for author in statement.authors.all():
+                        authors.append(
+                            {
+                                "name": author.name,
+                                "author_id": author.author_id,
+                                "orcid": author.orcid
+                                if author.orcid.startswith("https://orcid.org/")
+                                else None,
+                            }
+                        )
+
+                    concepts = []
+                    for concept in statement.concepts.all():
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.concept_id,
+                                "see_also": concept.see_also,
+                            }
+                        )
+                    data_type = {}
+                    if statement_id == statement.statement_id:
+                        data_type = self.statement_data_type(statement)
+                    statements.append(
+                        {
+                            "statement_id": statement.statement_id,
+                            "label": statement.label,
+                            "authors": authors,
+                            "concepts": concepts,
+                            "data_type": data_type,
+                            "type": {
+                                "name": has_part.schema_type.name,
+                                "description": has_part.schema_type.description,
+                                "type_id": has_part.schema_type.type_id,
+                                "properties": [
+                                    s.split("#", 1)[1] if "#" in s else ""
+                                    for s in has_part.schema_type.property
+                                ],
+                            },
+                        }
+                    )
+                result = CommonResponseDTO(
+                    success=True,
+                    result={
+                        "article": paper_info,
+                        "statements": statements,
+                        "basises": paper.related_items,
+                    },
+                    total_count=len(statements),
+                )
+                return result
+
+                # Cache for 15 minutes
+                # cache.set(cache_key, result, settings.CACHE_TTL)
+                # return result
+
+                return CommonResponseDTO(
+                    success=False, message=f"Paper with ID {statement_id} not found"
+                )
+
+        except Exception as e:
+            logger.error(f"Error in get_paper_by_id: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to retrieve paper: {str(e)}"
+            )
+
+    def get_paper_by_id(self, paper_id: str) -> CommonResponseDTO:
+        # cache_key = f"paper_{paper_id}"
+        # cached_result = cache.get(cache_key)
+
+        # if cached_result:
+        #     return cached_result
+        try:
+            paper = self.paper_repository.find_by_id(paper_id)
+            if paper:
+                paper_dto = self._map_paper_to_dto(paper)
+                authors = []
+                for author in paper_dto.authors:
+                    authors.append(
+                        {
+                            "name": author.name,
+                            "orcid": author.orcid,
+                            "author_id": author.author_id,
+                            "affiliation": author.affiliation,
+                        }
+                    )
+                concepts = []
+                if paper_dto.concepts:
+                    for concept in paper_dto.concepts:
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.id,
+                            }
+                        )
+                paper_info = {
+                    "name": paper_dto.name,
+                    "article_id": paper_dto.article_id,
+                    "authors": authors,
+                    "abstract": paper_dto.abstract,
+                    "dois": paper_dto.dois,
+                    "reborn_doi": paper_dto.reborn_doi,
+                    # "scientific_venue": paper_dto.journal
+                    # if paper_dto.journal
+                    # else paper_dto.conference,
+                    "concepts": concepts,
+                    "research_fields": paper_dto.research_fields,
+                    "publisher": paper_dto.publisher,
+                    "date_published": localtime(paper_dto.date_published).strftime(
+                        "%B %d, %Y"
+                    ),
+                    # "date_published": localtime(paper_dto.date_published).strftime("%Y"),
+                }
+                statements = []
+                for statement in paper.statements.all().order_by("order"):
+                    has_part = statement.has_part_statements.first()
+                    authors = []
+                    for author in statement.authors.all():
+                        authors.append(
+                            {
+                                "name": author.name,
+                                "author_id": author.author_id,
+                                "orcid": author.orcid,
+                            }
+                        )
+
+                    concepts = []
+                    for concept in statement.concepts.all():
+                        concepts.append(
+                            {
+                                "label": concept.label,
+                                "concept_id": concept.concept_id,
+                                "definition": concept.definition,
+                                "see_also": concept.see_also,
+                            }
+                        )
+
+                    statements.append(
+                        {
+                            "statement_id": statement.statement_id,
+                            "label": statement.label,
+                            "authors": authors,
+                            "concepts": concepts,
+                            "type": {
+                                "name": has_part.schema_type.name,
+                                "description": has_part.schema_type.description,
+                                "type_id": has_part.schema_type.type_id,
+                                "properties": [
+                                    s.split("#", 1)[1] if "#" in s else ""
+                                    for s in has_part.schema_type.property
+                                ],
+                            },
+                        }
+                    )
+                result = CommonResponseDTO(
+                    success=True,
+                    result={
+                        "article": paper_info,
+                        "statements": statements,
+                        "basises": paper.related_items,
+                    },
+                    total_count=len(statements),
+                )
+                return result
 
             # Cache for 15 minutes
             # cache.set(cache_key, result, settings.CACHE_TTL)
             # return result
 
             return CommonResponseDTO(
-                success=False, message=f"Paper with ID {statement_id} not found"
+                success=False, message=f"Paper with ID {paper_id} not found"
             )
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_paper_by_id: {str(e)}")
-        #     return CommonResponseDTO(
-        #         success=False, message=f"Failed to retrieve paper: {str(e)}"
-        #     )
-
-    def get_paper_by_id(self, paper_id: str) -> CommonResponseDTO:
-        """Get a paper by its ID."""
-        # cache_key = f"paper_{paper_id}"
-        # cached_result = cache.get(cache_key)
-
-        # if cached_result:
-        #     return cached_result
-        print("-----------get_paper_by_id--------------", __file__)
-        # try:
-        paper = self.paper_repository.find_by_id(paper_id)
-        if paper:
-            paper_dto = self._map_paper_to_dto(paper)
-            # print(paper_dto)
-            authors = []
-            for author in paper_dto.authors:
-                authors.append(
-                    {
-                        "name": author.name,
-                        "orcid": author.orcid,
-                        "author_id": author.author_id,
-                        "affiliation": author.affiliation,
-                    }
-                )
-            concepts = []
-            if paper_dto.concepts:
-                for concept in paper_dto.concepts:
-                    concepts.append(
-                        {
-                            "label": concept.label,
-                            "concept_id": concept.id,
-                        }
-                    )
-            paper_info = {
-                "name": paper_dto.name,
-                "article_id": paper_dto.article_id,
-                "authors": authors,
-                "abstract": paper_dto.abstract,
-                "dois": paper_dto.dois,
-                "reborn_doi": paper_dto.reborn_doi,
-                # "scientific_venue": paper_dto.journal
-                # if paper_dto.journal
-                # else paper_dto.conference,
-                "concepts": concepts,
-                "research_fields": paper_dto.research_fields,
-                "publisher": paper_dto.publisher,
-                "date_published": localtime(paper_dto.date_published).strftime(
-                    "%B %d, %Y"
-                ),
-                # "date_published": localtime(paper_dto.date_published).strftime("%Y"),
-            }
-            statements = []
-            for statement in paper.statements.all().order_by("order"):
-                has_part = statement.has_part_statements.first()
-                authors = []
-                for author in statement.authors.all():
-                    authors.append(
-                        {
-                            "name": author.name,
-                            "author_id": author.author_id,
-                            "orcid": author.orcid,
-                        }
-                    )
-
-                concepts = []
-                for concept in statement.concepts.all():
-                    concepts.append(
-                        {
-                            "label": concept.label,
-                            "concept_id": concept.concept_id,
-                            "definition": concept.definition,
-                            "see_also": concept.see_also,
-                        }
-                    )
-
-                statements.append(
-                    {
-                        "statement_id": statement.statement_id,
-                        "label": statement.label,
-                        "authors": authors,
-                        "concepts": concepts,
-                        "type": {
-                            "name": has_part.schema_type.name,
-                            "description": has_part.schema_type.description,
-                            "type_id": has_part.schema_type.type_id,
-                            "properties": [
-                                s.split("#", 1)[1] if "#" in s else ""
-                                for s in has_part.schema_type.property
-                            ],
-                        },
-                    }
-                )
-            result = CommonResponseDTO(
-                success=True,
-                result={
-                    "article": paper_info,
-                    "statements": statements,
-                    "basises": paper.related_items,
-                },
-                total_count=len(statements),
+        except Exception as e:
+            logger.error(f"Error in get_paper_by_id: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to retrieve paper: {str(e)}"
             )
-            return result
-
-        # Cache for 15 minutes
-        # cache.set(cache_key, result, settings.CACHE_TTL)
-        # return result
-
-        return CommonResponseDTO(
-            success=False, message=f"Paper with ID {paper_id} not found"
-        )
-
-        # except Exception as e:
-        #     logger.error(f"Error in get_paper_by_id: {str(e)}")
-        #     return CommonResponseDTO(
-        #         success=False, message=f"Failed to retrieve paper: {str(e)}"
-        #     )
 
     def get_authors(self, search_term: str) -> List[AuthorOutputDTO]:
-        """Get authors by search term."""
         try:
             authors = self.author_repository.find_by_name(search_term)
             return [
@@ -877,7 +864,6 @@ class PaperServiceImpl(PaperServiceInterface):
             return []
 
     def get_concepts(self, search_term: str) -> List[ConceptOutputDTO]:
-        """Get concepts by search term."""
         try:
             concepts = self.concept_repository.find_by_label(search_term)
             return [
@@ -892,7 +878,6 @@ class PaperServiceImpl(PaperServiceInterface):
             return []
 
     def get_latest_concepts(self) -> List[ConceptOutputDTO]:
-        """Get latest concepts."""
         try:
             concepts = self.concept_repository.get_latest_concepts()
             return [
@@ -907,7 +892,6 @@ class PaperServiceImpl(PaperServiceInterface):
             return []
 
     def get_titles(self, search_term: str) -> List[Dict[str, Any]]:
-        """Get paper titles by search term."""
         try:
             papers = self.paper_repository.search_by_title(search_term)
             return [{"id": paper.id, "name": paper.title} for paper in papers]
@@ -933,7 +917,6 @@ class PaperServiceImpl(PaperServiceInterface):
         """Get research fields by search term."""
         try:
             research_fields = self.research_field_repository.find_by_label(search_term)
-            print("---------research_fields----------")
             return [
                 {
                     "research_field_id": rf.research_field_id,
@@ -951,7 +934,6 @@ class PaperServiceImpl(PaperServiceInterface):
         """Get a paper with related data."""
         try:
             paper = self.paper_repository.find_by_id(paper_id)
-            print("-----------get_paper--------------", __file__)
             # Group statements by article ID
             grouped_data = {}
             if paper:
@@ -990,32 +972,32 @@ class PaperServiceImpl(PaperServiceInterface):
 
         # if cached_result:
         #     return cached_result
-        print("------------get_latest_statements-----------", __file__)
-        # try:
-        statements, total = self.statement_repository.get_latest_statements(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            page=page,
-            page_size=page_size,
-            search_type=search_type,
-        )
+        try:
+            statements, total = self.statement_repository.get_latest_statements(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                page=page,
+                page_size=page_size,
+                search_type=search_type,
+            )
 
-        result = PaginatedResponseDTO(
-            content=[self._map_statement_to_dto(statement) for statement in statements],
-            total_elements=total,
-            page=page,
-            page_size=page_size,
-            total_pages=math.ceil(total / page_size),
-        )
-        print(result.content)
-        # Cache for 15 minutes
-        # cache.set(cache_key, result, settings.CACHE_TTL)
-        return result
+            result = PaginatedResponseDTO(
+                content=[
+                    self._map_statement_to_dto(statement) for statement in statements
+                ],
+                total_elements=total,
+                page=page,
+                page_size=page_size,
+                total_pages=math.ceil(total / page_size),
+            )
+            # Cache for 15 minutes
+            # cache.set(cache_key, result, settings.CACHE_TTL)
+            return result
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_statements: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve latest statements: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in get_latest_statements: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve latest statements: {str(e)}")
 
     def get_latest_articles(
         self,
@@ -1033,43 +1015,42 @@ class PaperServiceImpl(PaperServiceInterface):
         concepts: Optional[List[str]] = None,
     ) -> PaginatedResponseDTO:
         """Get latest articles with filters."""
-        print("-------------get_latest_articles---------------", __file__)
         # cache_key = f"latest_articles_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
         # cached_result = cache.get(cache_key)
 
         # if cached_result:
         #     return cached_result
 
-        # try:
-        papers, total = self.paper_repository.get_latest_articles(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            sort_by=sort_by,
-            page=page,
-            page_size=page_size,
-            search_type=search_type,
-            resource_type=resource_type,
-            year_range=year_range,
-            authors=authors,
-            scientific_venues=scientific_venues,
-            concepts=concepts,
-        )
-        result = PaginatedResponseDTO(
-            content=[self._map_paper_to_dto(paper) for paper in papers],
-            total_elements=total,
-            page=page,
-            page_size=page_size,
-            total_pages=math.ceil(total / page_size),
-        )
+        try:
+            papers, total = self.paper_repository.get_latest_articles(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                sort_by=sort_by,
+                page=page,
+                page_size=page_size,
+                search_type=search_type,
+                resource_type=resource_type,
+                year_range=year_range,
+                authors=authors,
+                scientific_venues=scientific_venues,
+                concepts=concepts,
+            )
+            result = PaginatedResponseDTO(
+                content=[self._map_paper_to_dto(paper) for paper in papers],
+                total_elements=total,
+                page=page,
+                page_size=page_size,
+                total_pages=math.ceil(total / page_size),
+            )
 
-        # Cache for 15 minutes
-        # cache.set(cache_key, result, settings.CACHE_TTL)
-        return result
+            # Cache for 15 minutes
+            # cache.set(cache_key, result, settings.CACHE_TTL)
+            return result
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_articles: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve latest articles: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in get_latest_articles: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve latest articles: {str(e)}")
 
     def get_latest_keywords(
         self,
@@ -1132,39 +1113,38 @@ class PaperServiceImpl(PaperServiceInterface):
 
         # if cached_result:
         #     return cached_result
-        print("-------------get_latest_authors----------", __file__)
-        # try:
-        authors, total = self.author_repository.get_latest_authors(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            page=page,
-            page_size=page_size,
-        )
-        result = PaginatedResponseDTO(
-            content=[
-                ShortAuthorOutputDTO(
-                    name=author.name,
-                    author_id=author.author_id,
-                    orcid=author.orcid
-                    if author.orcid and author.orcid.startswith("https://orcid.org")
-                    else None,
-                )
-                for author in authors
-            ],
-            total_elements=total,
-            page=page,
-            page_size=page_size,
-            total_pages=math.ceil(total / page_size),
-        )
+        try:
+            authors, total = self.author_repository.get_latest_authors(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                page=page,
+                page_size=page_size,
+            )
+            result = PaginatedResponseDTO(
+                content=[
+                    ShortAuthorOutputDTO(
+                        name=author.name,
+                        author_id=author.author_id,
+                        orcid=author.orcid
+                        if author.orcid and author.orcid.startswith("https://orcid.org")
+                        else None,
+                    )
+                    for author in authors
+                ],
+                total_elements=total,
+                page=page,
+                page_size=page_size,
+                total_pages=math.ceil(total / page_size),
+            )
 
-        # Cache for 15 minutes
-        # cache.set(cache_key, result, settings.CACHE_TTL)
-        return result
+            # Cache for 15 minutes
+            # cache.set(cache_key, result, settings.CACHE_TTL)
+            return result
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_authors: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve latest authors: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in get_latest_authors: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve latest authors: {str(e)}")
 
     def get_latest_journals(
         self,
@@ -1175,72 +1155,72 @@ class PaperServiceImpl(PaperServiceInterface):
         page_size: int = 10,
     ) -> PaginatedResponseDTO:
         """Get latest journals with filters."""
-        print("-------------get_latest_journals----------", __file__)
         # cache_key = f"latest_journals_{research_fields}_{search_query}_{sort_order}_{page}_{page_size}"
         # cached_result = cache.get(cache_key)
 
         # if cached_result:
         #     return cached_result
 
-        # try:
-        journals, total = self.journal_repository.get_latest_journals(
-            research_fields=research_fields,
-            search_query=search_query,
-            sort_order=sort_order,
-            page=page,
-            page_size=page_size,
-        )
-        print(journals)
-        content = []
-        for journal in journals:
-            if isinstance(journal, dict):
-                content.append(
-                    {
-                        "periodical_id": journal.get("journal_conference_id", ""),
-                        "name": journal.get("label", ""),
-                        "url": journal.get("url", ""),
-                        "publisher": journal.get("publisher", {})
-                        if journal.get("publisher")
-                        else "",
-                    }
-                )
-        result = PaginatedResponseDTO(
-            content=content,
-            total_elements=total,
-            page=page,
-            page_size=page_size,
-            total_pages=math.ceil(total / page_size),
-        )
+        try:
+            journals, total = self.journal_repository.get_latest_journals(
+                research_fields=research_fields,
+                search_query=search_query,
+                sort_order=sort_order,
+                page=page,
+                page_size=page_size,
+            )
+            content = []
+            for journal in journals:
+                if isinstance(journal, dict):
+                    content.append(
+                        {
+                            "periodical_id": journal.get("journal_conference_id", ""),
+                            "name": journal.get("label", ""),
+                            "url": journal.get("url", ""),
+                            "publisher": journal.get("publisher", {})
+                            if journal.get("publisher")
+                            else "",
+                        }
+                    )
+            result = PaginatedResponseDTO(
+                content=content,
+                total_elements=total,
+                page=page,
+                page_size=page_size,
+                total_pages=math.ceil(total / page_size),
+            )
 
-        # Cache for 15 minutes
-        # cache.set(cache_key, result, settings.CACHE_TTL)
-        return result
+            # Cache for 15 minutes
+            # cache.set(cache_key, result, settings.CACHE_TTL)
+            return result
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_journals: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in get_latest_journals: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")
 
     def extract_paper(self, url_dto: ScraperUrlInputDTO) -> CommonResponseDTO:
         # """Extract a paper from a URL."""
-        # try:
-        url = str(url_dto.url)
-        self.scraper.set_url(url)
-        json_files = self.scraper.all_json_files()
-        ro_crate = self.scraper.load_json_from_url(json_files["ro-crate-metadata.json"])
-        self.paper_repository.add_article(ro_crate, json_files)
-        # Invalidate relevant caches
-        # cache.delete_pattern("all_papers_*")
-        # cache.delete_pattern("latest_articles_*")
+        try:
+            url = str(url_dto.url)
+            self.scraper.set_url(url)
+            json_files = self.scraper.all_json_files()
+            ro_crate = self.scraper.load_json_from_url(
+                json_files["ro-crate-metadata.json"]
+            )
+            self.paper_repository.add_article(ro_crate, json_files)
+            # Invalidate relevant caches
+            # cache.delete_pattern("all_papers_*")
+            # cache.delete_pattern("latest_articles_*")
 
-        return CommonResponseDTO(
-            success=True, message="Paper extracted and saved successfully"
-        )
+            return CommonResponseDTO(
+                success=True, message="Paper extracted and saved successfully"
+            )
 
-        # except Exception as e:
-        #     logger.error(f"Error in extract_paper: {str(e)}")
-        #     return CommonResponseDTO(
-        #         success=False, message=f"Failed to extract paper: {str(e)}"
-        #     )
+        except Exception as e:
+            logger.error(f"Error in extract_paper: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to extract paper: {str(e)}"
+            )
 
     def delete_database(self) -> CommonResponseDTO:
         """Delete the database."""
@@ -1266,7 +1246,6 @@ class PaperServiceImpl(PaperServiceInterface):
     def _map_paper_to_dto(self, paper) -> ShortPaperOutputDTO:
         """Map a paper entity to its DTO."""
         authors = []
-        # print("----------_map_paper_to_dto------------", __file__)
         for author in paper.authors:
             if isinstance(author, dict):
                 authors.append(
@@ -1302,7 +1281,6 @@ class PaperServiceImpl(PaperServiceInterface):
         related_items = []
         if paper.related_items:
             for related_item in paper.related_items:
-                # print(related_item)
                 paper_authors = []
                 for author in related_item["authors"]:
                     paper_authors.append(

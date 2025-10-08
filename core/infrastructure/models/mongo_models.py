@@ -1,11 +1,8 @@
 import mongoengine as me
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 
 class Author(me.Document):
-    """Author model for MongoDB."""
-
     id = me.StringField(primary_key=True)
     given_name = me.StringField(required=True)
     family_name = me.StringField(required=True)
@@ -16,8 +13,6 @@ class Author(me.Document):
 
 
 class Concept(me.Document):
-    """Concept model for MongoDB."""
-
     id = me.StringField(primary_key=True)
     label = me.StringField(required=True)
     identifier = me.StringField()
@@ -27,8 +22,6 @@ class Concept(me.Document):
 
 
 class ResearchField(me.Document):
-    """Research field model for MongoDB."""
-
     id = me.StringField(primary_key=True)
     label = me.StringField(required=True)
 
@@ -36,8 +29,6 @@ class ResearchField(me.Document):
 
 
 class JournalConference(me.Document):
-    """Journal or conference model for MongoDB."""
-
     id = me.StringField(primary_key=True)
     label = me.StringField(required=True)
     publisher = me.DictField()
@@ -50,23 +41,17 @@ class JournalConference(me.Document):
 
 
 class Notation(me.EmbeddedDocument):
-    """Notation model for MongoDB."""
-
     id = me.StringField()
     label = me.StringField(required=True)
     concept = me.DictField()
 
 
 class Support(me.EmbeddedDocument):
-    """Support model for MongoDB."""
-
     id = me.StringField()
     notation = me.EmbeddedDocumentField(Notation)
 
 
 class Statement(me.Document):
-    """Statement model for MongoDB."""
-
     id = me.StringField(primary_key=True)
     statement_id = me.StringField()
     content = me.DictField()
@@ -98,23 +83,17 @@ class Statement(me.Document):
 
 
 class DatasetPart(me.EmbeddedDocument):
-    """Dataset part model for MongoDB."""
-
     id = me.StringField()
     name = me.StringField()
 
 
 class Dataset(me.EmbeddedDocument):
-    """Dataset model for MongoDB."""
-
     id = me.StringField()
     has_part = me.ListField(me.EmbeddedDocumentField(DatasetPart))
     date_published = me.DateTimeField()
 
 
 class Article(me.Document):
-    """Article model for MongoDB."""
-
     id = me.StringField(primary_key=True)
     article_id = me.StringField(unique=True)
     name = me.StringField(required=True)
@@ -149,8 +128,6 @@ class Article(me.Document):
 
 
 class Contribution(me.Document):
-    """Contribution model for MongoDB."""
-
     id = me.StringField(primary_key=True)
     paper_id = me.StringField(required=True)
     json_id = me.StringField()

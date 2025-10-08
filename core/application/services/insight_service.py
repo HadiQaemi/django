@@ -43,7 +43,6 @@ class InsightServiceImpl(InsightServiceInterface):
         self.insight_repository = insight_repository
 
     def get_research_insights(self, research_fields=None) -> any:
-        print(research_fields, __file__)
 
         try:
             concepts_with_usage = self.insight_repository.get_concepts_with_usage(

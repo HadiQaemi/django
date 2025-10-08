@@ -68,7 +68,6 @@ class PaperInputDTO(BaseModel):
 
     @validator("research_fields", pre=True, always=True)
     def set_research_fields(cls, v):
-        """Default to empty list if research_fields is None."""
         return v or []
 
 

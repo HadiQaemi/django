@@ -130,7 +130,6 @@ class Command(BaseCommand):
             )
 
     def _handle_index(self, search_repo, options):
-        print("------_handle_index--------0")
         batch_size = options["batch_size"]
         reset = options["reset"]
         limit = options["limit"]
@@ -163,13 +162,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Resetting Weaviate indices..."))
             search_repo.delete_indices()
             self.stdout.write(self.style.SUCCESS("Weaviate indices reset successfully"))
-        print("------_handle_index--------1")
         if not only_statements:
             self._process_articles(search_repo, batch_size, limit, since_date)
 
         if not only_articles:
             self._process_statements(search_repo, batch_size, limit, since_date)
-        print("------_handle_index--------2")
 
     def _handle_delete(self, search_repo, options):
         article_id = options.get("article_id")
@@ -258,7 +255,6 @@ class Command(BaseCommand):
             )
 
     def _process_articles(self, search_repo, batch_size, limit, since_date=None):
-        print("------_process_articles--------0")
         queryset = ArticleModel.objects.all().order_by("id")
 
         if since_date:
@@ -277,7 +273,6 @@ class Command(BaseCommand):
 
         start_time = time.time()
         indexed_count = 0
-        print("------_process_articles--------1")
         for batch in tqdm(range(batches), desc="Indexing article batches"):
             offset = batch * batch_size
             articles_batch = queryset[offset : offset + batch_size]
@@ -295,10 +290,8 @@ class Command(BaseCommand):
                 articles_data.append(article_data)
 
             if articles_data:
-                print("------_process_articles--------2")
                 search_repo.add_articles(articles_data)
                 indexed_count += len(articles_data)
-                print("------_process_articles--------3")
 
             if (batch + 1) % 10 == 0 or batch == batches - 1:
                 elapsed = time.time() - start_time

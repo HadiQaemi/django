@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Articles API Docs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Swagger UI styles (CDN) -->
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+  <style>
+    body { margin: 0; }
+    #swagger-ui { max-width: 1200px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+
+  <!-- Swagger UI bundle (CDN) -->
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script>
+    // === Inline OpenAPI spec (from your schema), edited to be valid OpenAPI 3 JSON ===
+    const spec = {
+      "openapi": "3.0.0",
+      "info": {
+        "title": "Articles API",
+        "version": "1.0.0",
+        "description": "OpenAPI schema for the Articles and NLP-SQL service."
+      },
+      "servers": [
+        {
+          "url": "http://localhost:8000",
+          "description": "Local server"
+        }
+      ],
+      "paths": {
+        "/api/v1/articles/add_all_papers/": {
+          "post": {
+            "summary": "Add multiple papers",
+            "description": "Add multiple papers from predefined URLs.",
+            "operationId": "articles_add_all_papers",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Papers added successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/add_article_with_url/": {
+          "post": {
+            "summary": "Add article with URL",
+            "operationId": "articles_add_article_with_url",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Article added successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/advanced_search/": {
+          "get": {
+            "summary": "Advanced search",
+            "description": "Query data with filters.",
+            "operationId": "articles_advanced_search",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Search results returned successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/get_article_by_id/": {
+          "get": {
+            "summary": "Get article by ID",
+            "description": "Get latest articles with filters.",
+            "operationId": "articles_get_article_by_id",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Article returned successfully" },
+              "404": { "description": "Article not found" }
+            }
+          }
+        },
+        "/api/v1/articles/get_article_statements/": {
+          "get": {
+            "summary": "Get article statements",
+            "description": "Get a statement by ID.",
+            "operationId": "articles_get_article_statements",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Statements returned successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/get_articles/": {
+          "get": {
+            "summary": "Get articles",
+            "description": "Get latest articles with filters.",
+            "operationId": "articles_get_articles",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Articles returned successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/get_authors/": {
+          "get": {
+            "summary": "Get authors",
+            "description": "Get latest authors with filters.",
+            "operationId": "articles_get_authors",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Authors returned successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/get_concepts/": {
+          "get": {
+            "summary": "Get concepts",
+            "description": "Get concepts by name.",
+            "operationId": "articles_get_concepts",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Concepts returned successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/get_journals/": {
+          "get": {
+            "summary": "Get journals",
+            "description": "Get latest journals with filters.",
+            "operationId": "articles_get_journals",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Journals returned successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/get_research_fields/": {
+          "get": {
+            "summary": "Get research fields",
+            "description": "Get research fields by label.",
+            "operationId": "articles_get_research_fields",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Research fields returned successfully" }
+            }
+          }
+        },
+        "/api/v1/articles/get_statement_by_id/": {
+          "get": {
+            "summary": "Get statement by ID",
+            "description": "Get a statement by ID.",
+            "operationId": "articles_get_statement_by_id",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Statement returned successfully" },
+              "404": { "description": "Statement not found" }
+            }
+          }
+        },
+        "/api/v1/articles/get_statements/": {
+          "get": {
+            "summary": "Get statements",
+            "description": "Get latest statements with filters.",
+            "operationId": "articles_get_statements",
+            "tags": ["articles"],
+            "responses": {
+              "200": { "description": "Statements returned successfully" }
+            }
+          }
+        }
+      }
+    };
+
+    // Initialize Swagger UI using the inline spec (works from file://)
+    window.onload = function () {
+      window.ui = SwaggerUIBundle({
+        spec: spec,
+        dom_id: "#swagger-ui"
+      });
+    };
+  </script>
+</body>
+</html>

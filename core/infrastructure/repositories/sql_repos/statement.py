@@ -20,12 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 class SQLStatementRepository(StatementRepository):
-    """PostgreSQL implementation of the Statement repository."""
-
     def find_all(
         self, page: int = 1, page_size: int = 10
     ) -> Tuple[List[Statement], int]:
-        """Find all statements with pagination."""
         try:
             queryset = StatementModel.objects.all().order_by("id")
             total = queryset.count()
@@ -64,51 +61,35 @@ class SQLStatementRepository(StatementRepository):
     def find_paper_with_statement_details(
         self, statement_id: str
     ) -> Optional[Statement]:
-        """Find a statement by its ID."""
-        # try:
-        print(
-            "--------------find_paper_with_statement_details-----find_by_id-----------------",
-            __file__,
-        )
-        statement_model = StatementModel.objects.filter(
-            statement_id=statement_id
-        ).first()
+        try:
+            statement_model = StatementModel.objects.filter(
+                statement_id=statement_id
+            ).first()
 
-        if statement_model:
-            return self._convert_article_to_paper_statement(
-                statement_model.article, statement_id
-            )
+            if statement_model:
+                return self._convert_article_to_paper_statement(
+                    statement_model.article, statement_id
+                )
 
-        # if statement_model:
-        #     return self._convert_statement_to_entity(statement_model)
+            return None
 
-        return None
-
-        # except Exception as e:
-        #     logger.error(f"Error in find_by_id: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve statement: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in find_by_id: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve statement: {str(e)}")
 
     def find_by_id(self, statement_id: str) -> Optional[Statement]:
-        """Find a statement by its ID."""
-        # try:
-        print(
-            "--------------SQLStatementRepository-----find_by_id-----------------",
-            __file__,
-        )
-        statement_model = StatementModel.objects.filter(
-            statement_id=statement_id
-        ).first()
-        # if statement_model:
-        #     return self._convert_statement_to_entity(statement_model)
+        try:
+            statement_model = StatementModel.objects.filter(
+                statement_id=statement_id
+            ).first()
 
-        return statement_model
+            return statement_model
 
-        # except Exception as e:
-        #     logger.error(f"Error in find_by_id: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve statement: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in find_by_id: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve statement: {str(e)}")
 
     def find_by_paper_id(self, paper_id: str) -> List[Statement]:
-        """Find statements by paper ID."""
         try:
             statements_queryset = StatementModel.objects.filter(article_id=paper_id)
 
@@ -124,7 +105,6 @@ class SQLStatementRepository(StatementRepository):
             raise DatabaseError(f"Failed to retrieve statements by paper ID: {str(e)}")
 
     def save(self, statement: Statement) -> Statement:
-        """Save a statement."""
         try:
             if not statement.id:
                 statement.id = generate_static_id(
@@ -184,7 +164,6 @@ class SQLStatementRepository(StatementRepository):
         self, article: ArticleModel, statement_id
     ) -> Article:
         authors = []
-        print("--------_convert_article_to_paper_statement-----------", __file__)
         for author in article.authors.all():
             authors.append(
                 Author(
@@ -197,18 +176,11 @@ class SQLStatementRepository(StatementRepository):
                 )
             )
         journal = None
-        # if article.journal_conference:
-        #     journal = Journal(
-        #         id=article.journal_conference.id,
-        #         label=article.journal_conference.label,
-        #         publisher=article.publisher_id,
-        #     )
 
         concepts = []
         for concept in article.concepts.all():
             concepts.append(Concept(id=concept.concept_id, label=concept.label))
 
-        print("--------------find_by_id----1111111111111--------", __file__)
         return Article(
             id=article.id,
             name=article.name,
@@ -234,7 +206,6 @@ class SQLStatementRepository(StatementRepository):
         )
 
     def advanced_statement_search(self, query_text, research_field_ids=None):
-        print("-----advanced_statement_search------------")
         if not query_text.strip():
             return StatementModel.objects.none()
 
@@ -280,82 +251,85 @@ class SQLStatementRepository(StatementRepository):
         page_size: int = 10,
         search_type: str = "keyword",
     ) -> Tuple[List[Statement], int]:
-        print("----------get_latest_statements------", __file__)
-        # try:
-        if search_query and search_type in ["semantic", "hybrid"]:
-            from core.infrastructure.container import Container
+        try:
+            if search_query and search_type in ["semantic", "hybrid"]:
+                from core.infrastructure.container import Container
 
-            search_repo = Container.resolve(SearchRepository)
+                search_repo = Container.resolve(SearchRepository)
 
-            if search_type == "semantic":
-                search_results = search_repo.semantic_search_statements(
-                    search_query, page_size * 2
-                )
-                statement_ids = [
-                    result.get("statement_id")
-                    for result in search_results
-                    if result.get("statement_id")
-                ]
-            else:
-                search_results = search_repo.hybrid_search_statements(
-                    search_query, page_size * 2
-                )
-                statement_ids = [
-                    result.get("statement_id")
-                    for result in search_results
-                    if result.get("statement_id")
-                ]
-
-            if not statement_ids:
-                query = self.advanced_statement_search(search_query, research_fields)
-            else:
-                preserved_order = Case(
-                    *[
-                        When(statement_id=id, then=pos)
-                        for pos, id in enumerate(statement_ids)
+                if search_type == "semantic":
+                    search_results = search_repo.semantic_search_statements(
+                        search_query, page_size * 2
+                    )
+                    statement_ids = [
+                        result.get("statement_id")
+                        for result in search_results
+                        if result.get("statement_id")
                     ]
-                )
-                query = StatementModel.objects.filter(
-                    statement_id__in=statement_ids
-                ).order_by(preserved_order)
+                else:
+                    search_results = search_repo.hybrid_search_statements(
+                        search_query, page_size * 2
+                    )
+                    statement_ids = [
+                        result.get("statement_id")
+                        for result in search_results
+                        if result.get("statement_id")
+                    ]
 
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(
-                    article__research_fields__research_field_id__in=research_fields
-                )
-        else:
-            if search_query:
-                query = self.advanced_statement_search(search_query, research_fields)
+                if not statement_ids:
+                    query = self.advanced_statement_search(
+                        search_query, research_fields
+                    )
+                else:
+                    preserved_order = Case(
+                        *[
+                            When(statement_id=id, then=pos)
+                            for pos, id in enumerate(statement_ids)
+                        ]
+                    )
+                    query = StatementModel.objects.filter(
+                        statement_id__in=statement_ids
+                    ).order_by(preserved_order)
+
+                if research_fields and len(research_fields) > 0:
+                    query = query.filter(
+                        article__research_fields__research_field_id__in=research_fields
+                    )
             else:
-                query = StatementModel.objects.select_related("article").all()
+                if search_query:
+                    query = self.advanced_statement_search(
+                        search_query, research_fields
+                    )
+                else:
+                    query = StatementModel.objects.select_related("article").all()
 
-            if research_fields and len(research_fields) > 0:
-                query = query.filter(
-                    article__research_fields__research_field_id__in=research_fields
-                )
-        if search_type not in ["semantic", "hybrid"]:
-            if sort_order == "a-z":
-                query = query.order_by("label")
-            elif sort_order == "z-a":
-                query = query.order_by("-label")
-            elif sort_order == "newest":
-                query = query.order_by("-created_at")
-            else:
-                query = query.order_by("label")
+                if research_fields and len(research_fields) > 0:
+                    query = query.filter(
+                        article__research_fields__research_field_id__in=research_fields
+                    )
+            if search_type not in ["semantic", "hybrid"]:
+                if sort_order == "a-z":
+                    query = query.order_by("label")
+                elif sort_order == "z-a":
+                    query = query.order_by("-label")
+                elif sort_order == "newest":
+                    query = query.order_by("-created_at")
+                else:
+                    query = query.order_by("label")
 
-        total = query.count()
-        paginator = Paginator(query, page_size)
-        page_obj = paginator.get_page(page)
+            total = query.count()
+            paginator = Paginator(query, page_size)
+            page_obj = paginator.get_page(page)
 
-        statements = []
-        for statement_model in page_obj:
-            statement = self._convert_statement_to_entity(statement_model)
-            statements.append(statement)
-        return statements, total
+            statements = []
+            for statement_model in page_obj:
+                statement = self._convert_statement_to_entity(statement_model)
+                statements.append(statement)
+            return statements, total
 
-        # except Exception as e:
-        #     logger.error(f"Error in get_latest_statements: {str(e)}")
-        #     raise DatabaseError(f"Failed to retrieve latest statements: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in get_latest_statements: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve latest statements: {str(e)}")
 
     def get_semantics_statements(
         self,
@@ -364,11 +338,9 @@ class SQLStatementRepository(StatementRepository):
         page: int = 1,
         page_size: int = 10,
     ) -> Tuple[List[Statement], int]:
-        """Get statements by IDs from semantic search."""
         try:
             query = StatementModel.objects.filter(id__in=ids).select_related("article")
 
-            # Apply sorting
             if sort_order == "a-z":
                 query = query.order_by("article__name")
             elif sort_order == "z-a":
@@ -378,10 +350,8 @@ class SQLStatementRepository(StatementRepository):
             else:
                 query = query.order_by("article__name")
 
-            # Get total count before pagination (limited to 10 as in the original)
             total = min(query.count(), 10)
 
-            # Apply pagination
             paginator = Paginator(query, page_size)
             page_obj = paginator.get_page(page)
 

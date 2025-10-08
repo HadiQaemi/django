@@ -1,19 +1,16 @@
 import os
 from django.conf import settings
-from django.db import models, transaction
-from django.db.models import Q, JSONField
+from django.db import models
+from django.db.models import JSONField
 from django.db.models.signals import post_save, post_migrate
 from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.search import SearchVectorField, SearchVector
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.dispatch import receiver
-from django.apps import apps
 
 from polymorphic.models import PolymorphicModel
-from core.domain.exceptions import ValidationError
 from core.infrastructure.repositories.sql_repos_helper import (
     articlet_ro_crate_upload_path,
 )
@@ -22,7 +19,6 @@ from django.core.files.storage import FileSystemStorage
 
 class OverwriteStorage(FileSystemStorage):
     def get_available_name(self, name, max_length=None):
-        # If the file exists, delete it so the new one can use the same name
         if self.exists(name):
             self.delete(name)
         return name
@@ -30,24 +26,20 @@ class OverwriteStorage(FileSystemStorage):
 
 @receiver(post_save)
 def fix_polymorphic_ctype(sender, instance, created, **kwargs):
-    """Auto-fix polymorphic_ctype when objects are saved"""
     if hasattr(instance, "polymorphic_ctype") and hasattr(sender, "_meta"):
         try:
-            # Get correct ContentType
             correct_ct = ContentType.objects.get_for_model(sender)
 
-            # Fix if wrong or missing
             if instance.polymorphic_ctype != correct_ct:
                 sender.objects.filter(pk=instance.pk).update(
                     polymorphic_ctype=correct_ct
                 )
         except Exception:
-            pass  # Silently fail to avoid breaking other operations
+            pass
 
 
 @receiver(post_migrate)
 def ensure_contenttypes_exist(sender, **kwargs):
-    """Ensure ContentTypes exist for all polymorphic models after migration"""
     if sender.name in ["core", "core.infrastructure"]:
         from django.apps import apps
 
@@ -543,6 +535,35 @@ class PublicationIssue(TimeStampedModel):
         return f"{self.publication_issue_id}-{self.date_published}"
 
 
+class Book(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    book_id = models.TextField(null=True, blank=True)
+    name = models.TextField(null=True, blank=True)
+    date_published = models.TextField(null=True, blank=True)
+    publisher = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="books",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    search_vector = SearchVectorField(null=True)
+
+    class Meta:
+        db_table = "books"
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Book.objects.filter(pk=self.pk).update(search_vector=SearchVector("name"))
+
+    def __str__(self):
+        return f"{self.name}-{self.date_published}"
+
+
 class Dataset(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     dataset_id = models.CharField(max_length=255, null=True)
@@ -656,6 +677,62 @@ class ScholarlyArticleAuthor(models.Model):
         return f"{self.article.name} - {self.author.family_name} ({self.order})"
 
 
+class Chapter(TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    chapter_id = models.CharField(max_length=255, null=True)
+    name = models.CharField(max_length=255, null=True)
+    abstract = models.TextField(null=True, blank=True)
+    is_part_of = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="chapters",
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    authors = models.ManyToManyField(
+        Author,
+        related_name="chapters",
+        blank=True,
+        through="ChapterAuthor",
+    )
+    page_end = models.CharField(max_length=255, null=True)
+    page_start = models.CharField(max_length=255, null=True)
+    json = JSONField(null=True, blank=True)
+    search_vector = SearchVectorField(null=True)
+
+    class Meta:
+        db_table = "chapters"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Chapter.objects.filter(pk=self.pk).update(
+            search_vector=SearchVector("name", "abstract")
+        )
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def get_authors(self):
+        return self.authors.values(
+            "name", "family_name", "orcid", "author_id", "affiliation"
+        )
+
+
+class ChapterAuthor(models.Model):
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "chapter_authors"
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.chapter.name} - {self.author.family_name} ({self.order})"
+
+
 class Article(TimeStampedModel):
     id = models.AutoField(primary_key=True)
     name = models.TextField(null=True, blank=True)
@@ -712,7 +789,7 @@ class Article(TimeStampedModel):
         base_field=models.CharField(max_length=64),
         default=list,
         blank=True,
-        help_text="High-level tags like ['dataset','scholarly_article']",
+        help_text="High-level tags like ['dataset','scholarly_article', 'chapter']",
     )
 
     search_vector = SearchVectorField(null=True)
@@ -728,6 +805,12 @@ class Article(TimeStampedModel):
         blank=True,
         related_name="articles",
         help_text="Scholarly articles related to this article",
+    )
+    related_chapters = models.ManyToManyField(
+        Chapter,
+        blank=True,
+        related_name="articles",
+        help_text="Chapters related to this article",
     )
 
     class Meta:
@@ -758,6 +841,9 @@ class Article(TimeStampedModel):
                 self.related_scholarly_articles.all()
             )
 
+        if "chapter" in self.research_types:
+            related_items["chapters"] = list(self.related_chapters.all())
+
         return related_items
 
     def get_research_fields(self):
@@ -768,99 +854,9 @@ class Article(TimeStampedModel):
             return self.related_datasets.all()
         elif research_type == "scholarly_article":
             return self.related_scholarly_articles.all()
+        elif research_type == "chapter":
+            return self.related_chapters.all()
         return None
-
-
-# class Article(TimeStampedModel):
-#     id = models.AutoField(primary_key=True)
-#     _id = models.CharField(max_length=255, null=True)
-#     ro_crate = models.FileField(upload_to="ro_crate_files/", null=True, blank=True)
-#     article_id = models.CharField(max_length=255, null=True)
-#     json = JSONField(null=True, blank=True)
-#     name = models.CharField(max_length=255)
-#     abstract = models.TextField(null=True, blank=True)
-#     date_published = models.DateTimeField(null=True, blank=True)
-#     reborn_date_published = models.DateTimeField(null=True, blank=True)
-#     identifier = models.TextField(null=True, blank=True)
-#     reborn_doi = models.TextField(null=True, blank=True)
-#     paper_type = models.TextField(null=True, blank=True)
-#     concepts = models.ManyToManyField(Concept, related_name="articles", blank=True)
-#     authors = models.ManyToManyField(
-#         Author, related_name="articles", blank=True, through="ArticleAuthor"
-#     )
-#     research_fields = models.ManyToManyField(
-#         ResearchField, related_name="articles", blank=True
-#     )
-#     journal_conference = models.ForeignKey(
-#         JournalConference,
-#         on_delete=models.CASCADE,
-#         related_name="articles",
-#         null=True,
-#         blank=True,
-#         db_index=True,
-#     )
-#     digital_object = models.ForeignKey(
-#         DigitalObject,
-#         on_delete=models.CASCADE,
-#         related_name="articles",
-#         null=True,
-#         blank=True,
-#         db_index=True,
-#     )
-#     publisher = models.ForeignKey(
-#         PublicationIssue,
-#         on_delete=models.CASCADE,
-#         related_name="articles",
-#         null=True,
-#         blank=True,
-#         db_index=True,
-#     )
-#     search_vector = SearchVectorField(null=True)
-
-#     # what type the research points to, an app-level business label (optional)
-#     research_type = models.CharField(
-#         max_length=64,
-#         null=True,
-#         blank=True,
-#         choices=[
-#             ("dataset", "Dataset"),
-#             ("research", "ScholarlyArticle"),
-#             # add more types later...
-#         ],
-#     )
-#     # the polymorphic link:
-#     target_content_type = models.ForeignKey(
-#         ContentType, on_delete=models.PROTECT, null=True, blank=True
-#     )
-#     target_object_id = models.PositiveIntegerField(null=True, blank=True)
-#     target = GenericForeignKey("target_content_type", "target_object_id")
-
-#     class Meta:
-#         db_table = "articles"
-#         indexes = [
-#             GinIndex(fields=["search_vector"]),
-#             models.Index(fields=["name"]),
-#             models.Index(fields=["target_content_type", "target_object_id"]),
-#         ]
-
-#     def clean(self):
-#         super().clean()
-#         if self.target_content_type:
-#             model = self.target_content_type.model
-#             mapping = {"dataset": "Dataset", "research": "ScholarlyArticle"}
-#             if self.research_type and mapping.get(self.research_type) != model:
-#                 raise ValidationError(
-#                     {"research_type": "Does not match the linked object type."}
-#                 )
-
-#     def save(self, *args, **kwargs):
-#         super().save(*args, **kwargs)
-#         Article.objects.filter(pk=self.pk).update(
-#             search_vector=SearchVector("name", "abstract", "json")
-#         )
-
-#     def __str__(self):
-#         return self.name
 
 
 class DigitalObjectAuthor(models.Model):
@@ -874,19 +870,6 @@ class DigitalObjectAuthor(models.Model):
 
     def __str__(self):
         return f"{self.article.name} - {self.author.family_name} ({self.order})"
-
-
-# class DigitalObjectAuthor(models.Model):
-#     digital_object = models.ForeignKey(DigitalObject, on_delete=models.CASCADE)
-#     author = models.ForeignKey(Author, on_delete=models.CASCADE)
-#     order = models.PositiveIntegerField(default=0)
-
-#     class Meta:
-#         db_table = "digital_objects_authors"
-#         ordering = ["order"]
-
-#     def __str__(self):
-#         return f"{self.digital_object.name} - {self.author.family_name} ({self.order})"
 
 
 class SchemaType(TimeStampedModel):
@@ -963,9 +946,7 @@ class Statement(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        Statement.objects.filter(pk=self.pk).update(
-            search_vector=SearchVector("label")
-        )
+        Statement.objects.filter(pk=self.pk).update(search_vector=SearchVector("label"))
 
     def __str__(self):
         return self.name

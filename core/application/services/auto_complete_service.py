@@ -34,7 +34,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
         self.journal_repository = journal_repository
 
     def get_authors_by_name(self, search_dto: AutoCompleteInputDTO) -> SearchResultsDTO:
-        """Perform search on authors by name."""
         # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
         # cached_result = cache.get(cache_key)
 
@@ -45,7 +44,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
             query = search_dto.query
             page = search_dto.page
             page_size = search_dto.page_size
-            print("-------get_authors_by_name-----22222--", __file__)
 
             authors = self.author_repository.get_authors_by_name(
                 search_query=query,
@@ -64,7 +62,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
     def get_academic_publishers_by_name(
         self, search_dto: AutoCompleteInputDTO
     ) -> SearchResultsDTO:
-        """Perform search on academic publishers by name."""
         # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
         # cached_result = cache.get(cache_key)
 
@@ -98,7 +95,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
     def get_keywords_by_label(
         self, search_dto: AutoCompleteInputDTO
     ) -> SearchResultsDTO:
-        """Perform search on keywords by name."""
         # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
         # cached_result = cache.get(cache_key)
 
@@ -127,7 +123,6 @@ class AutoCompleteServiceImpl(AutoCompleteServiceInterface):
     def get_research_fields_by_name(
         self, search_dto: AutoCompleteInputDTO
     ) -> CommonResponseDTO:
-        """Perform search on research fields by name."""
         # cache_key = f"get_authors_{search_dto.query}_{search_dto.search_type}_{search_dto.sort_order}_{search_dto.page}_{search_dto.page_size}"
         # cached_result = cache.get(cache_key)
 

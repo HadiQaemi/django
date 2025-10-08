@@ -1,9 +1,3 @@
-"""
-Tests for the paper service in the REBORN API.
-
-This module provides unit tests for the paper service.
-"""
-
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime
@@ -22,7 +16,6 @@ from core.domain.exceptions import EntityNotFound, DatabaseError
 
 @pytest.fixture
 def mock_repositories():
-    """Create mock repositories for testing."""
     paper_repo = MagicMock()
     statement_repo = MagicMock()
     author_repo = MagicMock()
@@ -42,7 +35,6 @@ def mock_repositories():
 
 @pytest.fixture
 def paper_service(mock_repositories):
-    """Create a paper service instance for testing."""
     (
         paper_repo,
         statement_repo,
@@ -65,10 +57,8 @@ def paper_service(mock_repositories):
 
 
 class TestPaperService:
-    """Tests for the paper service."""
 
     def test_get_all_papers(self, paper_service, mock_repositories, sample_paper):
-        """Test get_all_papers method."""
         paper_repo = mock_repositories[0]
         paper_repo.find_all.return_value = ([sample_paper], 1)
 
@@ -88,7 +78,6 @@ class TestPaperService:
     def test_get_paper_by_id_success(
         self, paper_service, mock_repositories, sample_paper, sample_statement
     ):
-        """Test get_paper_by_id method with a successful result."""
         paper_repo = mock_repositories[0]
         statement_repo = mock_repositories[1]
 
@@ -110,7 +99,6 @@ class TestPaperService:
         statement_repo.find_by_paper_id.assert_called_once_with("paper1")
 
     def test_get_paper_by_id_not_found(self, paper_service, mock_repositories):
-        """Test get_paper_by_id method with a not found result."""
         paper_repo = mock_repositories[0]
         paper_repo.find_by_id.return_value = None
 
@@ -125,7 +113,6 @@ class TestPaperService:
     def test_get_all_statements(
         self, paper_service, mock_repositories, sample_statement
     ):
-        """Test get_all_statements method."""
         statement_repo = mock_repositories[1]
         statement_repo.find_all.return_value = ([sample_statement], 1)
 
@@ -142,7 +129,6 @@ class TestPaperService:
         statement_repo.find_all.assert_called_once_with(1, 10)
 
     def test_search_by_title(self, paper_service, mock_repositories, sample_paper):
-        """Test search_by_title method."""
         paper_repo = mock_repositories[0]
         paper_repo.search_by_title.return_value = [sample_paper]
 
@@ -155,7 +141,6 @@ class TestPaperService:
         paper_repo.search_by_title.assert_called_once_with("Test")
 
     def test_query_data(self, paper_service, mock_repositories, sample_paper):
-        """Test query_data method."""
         paper_repo = mock_repositories[0]
         paper_repo.query_papers.return_value = ([sample_paper], 1)
 
@@ -195,7 +180,6 @@ class TestPaperService:
     def test_get_statement_by_id(
         self, paper_service, mock_repositories, sample_statement
     ):
-        """Test get_statement_by_id method."""
         statement_repo = mock_repositories[1]
         statement_repo.find_by_id.return_value = sample_statement
 
@@ -209,7 +193,6 @@ class TestPaperService:
         statement_repo.find_by_id.assert_called_once_with("statement1")
 
     def test_get_authors(self, paper_service, mock_repositories, sample_author):
-        """Test get_authors method."""
         author_repo = mock_repositories[2]
         author_repo.find_by_name.return_value = [sample_author]
 
@@ -223,7 +206,6 @@ class TestPaperService:
         author_repo.find_by_name.assert_called_once_with("John")
 
     def test_get_concepts(self, paper_service, mock_repositories, sample_concept):
-        """Test get_concepts method."""
         concept_repo = mock_repositories[3]
         concept_repo.find_by_label.return_value = [sample_concept]
 
@@ -238,7 +220,6 @@ class TestPaperService:
     def test_get_latest_concepts(
         self, paper_service, mock_repositories, sample_concept
     ):
-        """Test get_latest_concepts method."""
         concept_repo = mock_repositories[3]
         concept_repo.get_latest_concepts.return_value = [sample_concept]
 
@@ -251,13 +232,11 @@ class TestPaperService:
         concept_repo.get_latest_concepts.assert_called_once()
 
     def test_extract_paper(self, paper_service, mock_repositories):
-        """Test extract_paper method."""
         paper_repo = mock_repositories[0]
         paper_repo.add_article.return_value = True
 
         url_dto = ScraperUrlInputDTO(url="https://example.com")
 
-        # Mock scraper methods
         paper_service.scraper.set_url = MagicMock()
         paper_service.scraper.all_json_files = MagicMock(
             return_value={"ro-crate-metadata.json": "url1"}
@@ -277,7 +256,6 @@ class TestPaperService:
         paper_repo.add_article.assert_called_once()
 
     def test_delete_database(self, paper_service, mock_repositories):
-        """Test delete_database method."""
         paper_repo = mock_repositories[0]
         paper_repo.delete_database.return_value = True
 
@@ -289,7 +267,6 @@ class TestPaperService:
         paper_repo.delete_database.assert_called_once()
 
     def test_error_handling(self, paper_service, mock_repositories):
-        """Test error handling in the service."""
         paper_repo = mock_repositories[0]
         paper_repo.find_all.side_effect = DatabaseError("Test error")
 

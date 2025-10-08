@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class NLSQLViewSet(ViewSet):
-    """ViewSet for NL-SQL operations"""
-
     permission_classes = [AllowAny]
 
     def __init__(self, *args, **kwargs):
@@ -31,7 +29,6 @@ class NLSQLViewSet(ViewSet):
     )
     @action(detail=False, methods=["get"], url_path="health")
     def health_check(self, request):
-        """Check NL-SQL service health"""
         try:
             health_status = self.nlsql_service.health_check()
 
@@ -58,7 +55,6 @@ class NLSQLViewSet(ViewSet):
     )
     @action(detail=False, methods=["get"], url_path="status")
     def service_status(self, request):
-        """Get detailed service status"""
         try:
             service_status = self.nlsql_service.get_service_status()
             return Response(service_status, status=status.HTTP_200_OK)
@@ -110,7 +106,6 @@ class NLSQLViewSet(ViewSet):
     )
     @action(detail=False, methods=["post"], url_path="generate-sql")
     def generate_sql(self, request):
-        """Generate SQL from natural language question"""
         try:
             question = request.data.get("question", "").strip()
             schema = request.data.get("schema")
@@ -121,10 +116,8 @@ class NLSQLViewSet(ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Generate SQL using the NL-SQL service
             result = self.nlsql_service.generate_sql(question, schema)
 
-            # Convert result to dict for JSON response
             response_data = {
                 "success": result.success,
                 "sql": result.sql,
@@ -203,45 +196,46 @@ class NLSQLViewSet(ViewSet):
     )
     @action(detail=False, methods=["post"], url_path="query-data")
     def query_data(self, request):
-        """Generate SQL and execute it on CSV data"""
-        # try:
-        question = request.data.get("question", "").strip()
-        data_item_id = request.data.get("source")
+        try:
+            question = request.data.get("question", "").strip()
+            data_item_id = request.data.get("source")
 
-        if not data_item_id:
-            return Response(
-                {"error": "Source is required and cannot be empty"},
-                status=status.HTTP_400_BAD_REQUEST,
+            if not data_item_id:
+                return Response(
+                    {"error": "Source is required and cannot be empty"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            result = self.nlsql_service.generate_and_execute_sql(
+                question=question,
+                data_item_id=data_item_id,
+                table_name=f"t{data_item_id}",
             )
 
-        # Generate SQL and execute on data
-        result = self.nlsql_service.generate_and_execute_sql(
-            question=question, data_item_id=data_item_id, table_name=f"t{data_item_id}"
-        )
+            response_data = {
+                "success": result.success,
+                "data": result.data,
+                "columns": result.columns,
+                "row_count": result.row_count,
+                "sql": result.sql,
+                "question": result.question,
+                "error": result.error,
+            }
 
-        # Convert result to dict for JSON response
-        response_data = {
-            "success": result.success,
-            "data": result.data,
-            "columns": result.columns,
-            "row_count": result.row_count,
-            "sql": result.sql,
-            "question": result.question,
-            "error": result.error,
-        }
+            if result.success:
+                return Response(response_data, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
-        if result.success:
-            return Response(response_data, status=status.HTTP_200_OK)
-        else:
-            return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # except Exception as e:
-        #     logger.error(f"Query data error: {str(e)}")
-        #     return Response(
-        #         {
-        #             "success": False,
-        #             "error": f"Internal server error: {str(e)}",
-        #             "question": request.data.get("question", ""),
-        #         },
-        #         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     )
+        except Exception as e:
+            logger.error(f"Query data error: {str(e)}")
+            return Response(
+                {
+                    "success": False,
+                    "error": f"Internal server error: {str(e)}",
+                    "question": request.data.get("question", ""),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

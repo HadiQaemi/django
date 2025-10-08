@@ -6,62 +6,46 @@ from core.domain.value_objects import ResourceType, SearchType, SortBy, SortOrde
 
 
 class TimeRangeSerializer(serializers.Serializer):
-    """Serializer for a time range."""
-
     start = serializers.IntegerField(required=False)
     end = serializers.IntegerField(required=False)
 
 
 class AuthorSerializer(serializers.Serializer):
-    """Serializer for an author."""
-
     orcid = serializers.CharField(allow_null=True, required=False)
     author_id = serializers.CharField()
     name = serializers.CharField(allow_null=True, required=False)
 
 
 class ResearchFieldSerializer(serializers.Serializer):
-    """Serializer for an author."""
-
     research_field_id = serializers.CharField(allow_null=True, required=False)
     related_identifier = serializers.CharField()
     label = serializers.CharField(allow_null=True, required=False)
 
 
 class JournalSerializer(serializers.Serializer):
-    """Serializer for an author."""
-
     journal_id = serializers.CharField(allow_null=True, required=False)
     name = serializers.CharField()
     publisher = serializers.CharField(allow_null=True, required=False)
 
 
 class ConceptSerializer(serializers.Serializer):
-    """Serializer for a concept."""
-
     id = serializers.CharField(allow_null=True, required=False)
     label = serializers.CharField()
     identifier = serializers.CharField(allow_null=True, required=False)
 
 
 class ResearchFieldSerializer(serializers.Serializer):
-    """Serializer for a research field."""
-
     id = serializers.CharField(allow_null=True, required=False)
     label = serializers.CharField()
 
 
 class NotationSerializer(serializers.Serializer):
-    """Serializer for a notation."""
-
     id = serializers.CharField(allow_null=True, required=False)
     label = serializers.CharField()
     concept = ConceptSerializer(allow_null=True, required=False)
 
 
 class StatementSerializer(serializers.Serializer):
-    """Serializer for a statement."""
-
     statement_id = serializers.CharField()
     name = serializers.CharField()
     author = AuthorSerializer(many=True)
@@ -72,8 +56,6 @@ class StatementSerializer(serializers.Serializer):
 
 
 class ContributionSerializer(serializers.Serializer):
-    """Serializer for a contribution."""
-
     id = serializers.CharField(allow_null=True, required=False)
     title = serializers.CharField()
     author = AuthorSerializer(many=True)
@@ -86,16 +68,12 @@ class ContributionSerializer(serializers.Serializer):
 
 
 class JournalSerializer(serializers.Serializer):
-    """Serializer for a journal."""
-
     id = serializers.CharField()
     label = serializers.CharField()
     publisher = serializers.DictField(allow_null=True, required=False)
 
 
 class ConferenceSerializer(serializers.Serializer):
-    """Serializer for a conference."""
-
     id = serializers.CharField()
     label = serializers.CharField()
     publisher = serializers.DictField(allow_null=True, required=False)
@@ -108,8 +86,6 @@ class ScientificVenueSerializer(serializers.Serializer):
 
 
 class PaperSerializer(serializers.Serializer):
-    """Serializer for a paper."""
-
     def create(self, validated_data):
         return validated_data
 
@@ -119,10 +95,8 @@ class PaperSerializer(serializers.Serializer):
     id = serializers.CharField(allow_null=True, required=False)
     article_id = serializers.CharField(allow_null=True, required=False)
 
-    # Incoming JSON uses "name" — alias to "title"
     title = serializers.CharField(source="name")
 
-    # Incoming JSON has author as string, not nested list
     author = serializers.CharField()
 
     abstract = serializers.CharField(required=False)
@@ -130,7 +104,6 @@ class PaperSerializer(serializers.Serializer):
     statements = StatementSerializer(many=True, required=False)
     dois = serializers.CharField(allow_null=True, required=False)
 
-    # Accept date as int (year)
     date_published = serializers.IntegerField(allow_null=True, required=False)
 
     entity = serializers.CharField(allow_null=True, required=False)
@@ -148,7 +121,6 @@ class PaperSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(allow_null=True, required=False)
     updated_at = serializers.DateTimeField(allow_null=True, required=False)
 
-    # New field in your example
     scientific_venue = ScientificVenueSerializer(required=False)
     search_type_used = serializers.CharField(required=False)
 
@@ -262,8 +234,6 @@ class ArticleStatementsSerializer(serializers.Serializer):
 
 
 class PaperFilterSerializer(serializers.Serializer):
-    """Serializer for paper filtering."""
-
     title = serializers.CharField(allow_null=True, required=False)
     time_range = TimeRangeSerializer(allow_null=True, required=False)
     authors = serializers.ListField(child=serializers.CharField(), required=False)
@@ -279,8 +249,6 @@ class PaperFilterSerializer(serializers.Serializer):
 
 
 class SearchQuerySerializer(serializers.Serializer):
-    """Serializer for search queries."""
-
     query = serializers.CharField()
     search_type = serializers.ChoiceField(
         choices=["hybrid", "semantic", "keyword"], default="hybrid"
@@ -301,8 +269,6 @@ class AutoCompleteItemSerializer(serializers.Serializer):
 
 
 class AutoCompleteSerializer(serializers.Serializer):
-    """Serializer for search queries."""
-
     items = serializers.ListField(child=AutoCompleteItemSerializer(), required=False)
 
 
@@ -319,8 +285,6 @@ class InsightItemsSerializer(serializers.Serializer):
 
 
 class InsightSerializer(serializers.Serializer):
-    """Serializer for search queries."""
-
     items = InsightItemsSerializer(required=False)
 
 
@@ -343,8 +307,6 @@ class ScraperFlagSerializer(serializers.Serializer):
 
 
 class SearchResultItemSerializer(serializers.Serializer):
-    """Serializer for a search result item."""
-
     id = serializers.CharField()
     name = serializers.CharField()
     author = serializers.CharField()
@@ -356,8 +318,6 @@ class SearchResultItemSerializer(serializers.Serializer):
 
 
 class SearchResultsSerializer(serializers.Serializer):
-    """Serializer for search results."""
-
     items = SearchResultItemSerializer(many=True)
     total = serializers.IntegerField()
     page = serializers.IntegerField()

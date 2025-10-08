@@ -1,4 +1,3 @@
-
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -36,10 +35,6 @@ class PaperRepository(ABC):
         pass
 
     @abstractmethod
-    def save(self, paper: Article) -> Article:
-        pass
-
-    @abstractmethod
     def get_latest_articles(
         self,
         research_fields: Optional[List[str]] = None,
@@ -50,7 +45,6 @@ class PaperRepository(ABC):
         page_size: int = 10,
         search_type: str = "keyword",
         resource_type: str = "loom",
-
         year_range: Any = None,
         authors: Optional[List[str]] = None,
         scientific_venues: Optional[List[str]] = None,

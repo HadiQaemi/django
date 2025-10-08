@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SQLGenerationResult:
-    """Result of SQL generation request"""
-
     success: bool
     sql: Optional[str] = None
     question: str = ""
@@ -28,8 +26,6 @@ class SQLGenerationResult:
 
 @dataclass
 class SQLExecutionResult:
-    """Result of SQL execution on data"""
-
     success: bool
     data: Optional[List[Dict]] = None
     columns: Optional[List[str]] = None
@@ -40,10 +36,7 @@ class SQLExecutionResult:
 
 
 class NLSQLClientService:
-    """Client service for communicating with NL-SQL Docker service"""
-
     def __init__(self):
-        # Get NL-SQL service URL from settings or use default
         self.base_url = getattr(
             settings, "NLSQL_SERVICE_URL", "https://97ca1b164798.ngrok-free.app/"
         )
@@ -58,7 +51,6 @@ class NLSQLClientService:
         self.db_conn = None
 
     def health_check(self) -> Dict[str, Any]:
-        """Check if NL-SQL service is healthy"""
         try:
             response = requests.get(f"{self.base_url}/health", timeout=self.timeout)
             response.raise_for_status()
@@ -68,7 +60,6 @@ class NLSQLClientService:
             return {"status": "unhealthy", "error": str(e)}
 
     def get_service_status(self) -> Dict[str, Any]:
-        """Get detailed service status"""
         try:
             response = requests.get(f"{self.base_url}/status", timeout=self.timeout)
             response.raise_for_status()
@@ -78,10 +69,8 @@ class NLSQLClientService:
             return {"status": "error", "error": str(e)}
 
     def _get_db_connection(self):
-        """Get or create DuckDB connection"""
         if self.db_conn is None:
             self.db_conn = duckdb.connect(":memory:")
-            # self.db_conn = duckdb.connect(self.db_path)
             self.db_conn.execute("SET memory_limit='2GB'")
             self.db_conn.execute("SET threads=4")
         return self.db_conn
@@ -96,14 +85,12 @@ class NLSQLClientService:
 
             if schema:
                 payload["schema"] = schema
-            print(schema)
             response = requests.post(
                 f"{self.base_url}/generate_sql",
                 json=payload,
                 headers={"Content-Type": "application/json"},
                 timeout=self.timeout,
             )
-            print(response.text)
             response.raise_for_status()
             result_data = response.json()
             return SQLGenerationResult(
@@ -129,7 +116,6 @@ class NLSQLClientService:
             )
 
     def _get_file_path(self, source_file):
-        """Get actual file path from Django file field"""
         try:
             if hasattr(source_file, "path"):
                 return source_file.path
@@ -146,7 +132,6 @@ class NLSQLClientService:
             return None
 
     def _clean_column_name(self, column_name: str) -> str:
-        """Clean column names to be SQL-friendly"""
         import re
 
         clean_name = str(column_name).strip()
@@ -207,7 +192,6 @@ class NLSQLClientService:
         return clean_name
 
     def _clean_data_value(self, value):
-        """Clean individual data values"""
         if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
 
@@ -235,83 +219,85 @@ class NLSQLClientService:
     def _load_csv_to_duckdb(
         self, file_path: str, table_name: str, question: str
     ) -> bool:
-        # try:
-        import pandas as pd
-
-        logger.info(f"Loading and cleaning CSV: {file_path}")
         try:
-            df = pd.read_csv(file_path, encoding="utf-8")
-        except UnicodeDecodeError:
+            import pandas as pd
+
+            logger.info(f"Loading and cleaning CSV: {file_path}")
             try:
-                df = pd.read_csv(file_path, encoding="latin-1")
+                df = pd.read_csv(file_path, encoding="utf-8")
             except UnicodeDecodeError:
-                df = pd.read_csv(file_path, encoding="cp1252")
+                try:
+                    df = pd.read_csv(file_path, encoding="latin-1")
+                except UnicodeDecodeError:
+                    df = pd.read_csv(file_path, encoding="cp1252")
 
-        if len(question):
-            df = df.applymap(lambda x: x.lower() if isinstance(x, str) else x)
+            if len(question):
+                df = df.applymap(lambda x: x.lower() if isinstance(x, str) else x)
 
-        original_columns = df.columns.tolist()
-        cleaned_columns = [self._clean_column_name(col) for col in original_columns]
+            original_columns = df.columns.tolist()
+            cleaned_columns = [self._clean_column_name(col) for col in original_columns]
 
-        seen_columns = {}
-        final_columns = []
-        for col in cleaned_columns:
-            if col in seen_columns:
-                seen_columns[col] += 1
-                final_columns.append(f"{col}_{seen_columns[col]}")
-            else:
-                seen_columns[col] = 0
-                final_columns.append(col)
+            seen_columns = {}
+            final_columns = []
+            for col in cleaned_columns:
+                if col in seen_columns:
+                    seen_columns[col] += 1
+                    final_columns.append(f"{col}_{seen_columns[col]}")
+                else:
+                    seen_columns[col] = 0
+                    final_columns.append(col)
 
-        df.columns = final_columns
+            df.columns = final_columns
 
-        for col in df.columns:
-            df[col] = df[col].apply(self._clean_data_value)
+            for col in df.columns:
+                df[col] = df[col].apply(self._clean_data_value)
 
-        for col in df.columns:
-            if df[col].dtype == "object":
-                numeric_series = pd.to_numeric(df[col], errors="ignore")
-                if not numeric_series.equals(df[col]):
-                    non_null_count = df[col].count()
-                    if non_null_count > 0:
-                        numeric_count = pd.to_numeric(df[col], errors="coerce").count()
-                        if numeric_count / non_null_count > 0.8:  # 80% numeric
-                            df[col] = pd.to_numeric(df[col], errors="coerce")
-                            logger.info(f"Converted column '{col}' to numeric")
+            for col in df.columns:
+                if df[col].dtype == "object":
+                    numeric_series = pd.to_numeric(df[col], errors="ignore")
+                    if not numeric_series.equals(df[col]):
+                        non_null_count = df[col].count()
+                        if non_null_count > 0:
+                            numeric_count = pd.to_numeric(
+                                df[col], errors="coerce"
+                            ).count()
+                            if numeric_count / non_null_count > 0.8:  # 80% numeric
+                                df[col] = pd.to_numeric(df[col], errors="coerce")
+                                logger.info(f"Converted column '{col}' to numeric")
 
-        initial_shape = df.shape
-        df = df.dropna(how="all")
-        df = df.loc[:, df.notna().any()]
+            initial_shape = df.shape
+            df = df.dropna(how="all")
+            df = df.loc[:, df.notna().any()]
 
-        if df.shape != initial_shape:
-            logger.info(f"Removed empty rows/columns. New shape: {df.shape}")
+            if df.shape != initial_shape:
+                logger.info(f"Removed empty rows/columns. New shape: {df.shape}")
 
-        import tempfile
+            import tempfile
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False, encoding="utf-8"
-        ) as temp_file:
-            df.to_csv(temp_file.name, index=False)
-            temp_csv_path = temp_file.name
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".csv", delete=False, encoding="utf-8"
+            ) as temp_file:
+                df.to_csv(temp_file.name, index=False)
+                temp_csv_path = temp_file.name
 
-        conn = self._get_db_connection()
+            conn = self._get_db_connection()
 
-        sql = f"""
-        CREATE OR REPLACE TABLE {table_name} AS 
-        SELECT * FROM read_csv_auto('{temp_csv_path}', 
-            header=true,
-            ignore_errors=true,
-            null_padding=true
-        )
-        """
+            sql = f"""
+            CREATE OR REPLACE TABLE {table_name} AS 
+            SELECT * FROM read_csv_auto('{temp_csv_path}', 
+                header=true,
+                ignore_errors=true,
+                null_padding=true
+            )
+            """
 
-        conn.execute(sql)
-        logger.info(f"Successfully loaded CSV {file_path} into table {table_name}")
-        return True
+            conn.execute(sql)
+            logger.info(f"Successfully loaded CSV {file_path} into table {table_name}")
+            return True
 
-        # except Exception as e:
-        #     logger.error(f"Error loading CSV to DuckDB: {str(e)}")
-        #     return False
+        except Exception as e:
+            logger.error(f"Error loading CSV to DuckDB: {str(e)}")
+            return False
 
     def _get_table_schema(self, table_name: str) -> Optional[str]:
         try:
@@ -357,124 +343,122 @@ class NLSQLClientService:
             return None
 
     def _execute_sql_on_data(self, sql: str):
-        """Execute SQL query on loaded data"""
-        # try:
-        conn = self._get_db_connection()
-        result = conn.execute(sql).fetchall()
-        columns = [desc[0] for desc in conn.description]
+        try:
+            conn = self._get_db_connection()
+            result = conn.execute(sql).fetchall()
+            columns = [desc[0] for desc in conn.description]
 
-        data = []
-        for row in result:
-            data.append(dict(zip(columns, row)))
-        return SQLExecutionResult(
-            success=True, data=data, columns=columns, row_count=len(data), sql=sql
-        )
+            data = []
+            for row in result:
+                data.append(dict(zip(columns, row)))
+            return SQLExecutionResult(
+                success=True, data=data, columns=columns, row_count=len(data), sql=sql
+            )
 
-        # except Exception as e:
-        #     logger.error(f"Error executing SQL: {str(e)}")
-        #     return SQLExecutionResult(
-        #         success=False, error=f"SQL execution error: {str(e)}", sql=sql
-        #     )
+        except Exception as e:
+            logger.error(f"Error executing SQL: {str(e)}")
+            return SQLExecutionResult(
+                success=False, error=f"SQL execution error: {str(e)}", sql=sql
+            )
 
     def generate_and_execute_sql(
         self, question: str, data_item_id: str, table_name: str
     ) -> SQLExecutionResult:
-        # try:
-        data_item_id = decode_paper_id(data_item_id)
-        data_item = DataItem.objects.filter(id=data_item_id).first()
-        if not data_item:
+        try:
+            data_item_id = decode_paper_id(data_item_id)
+            data_item = DataItem.objects.filter(id=data_item_id).first()
+            if not data_item:
+                return SQLExecutionResult(
+                    success=False,
+                    question=question,
+                    error="No data items found in database",
+                    row_count=0,
+                )
+
+            # Check if data_item has source_file
+            if not hasattr(data_item, "source_file") or not data_item.source_file:
+                return SQLExecutionResult(
+                    success=False,
+                    question=question,
+                    error="Data item has no source file",
+                )
+            # Get file path
+            file_path = self._get_file_path(data_item.source_file)
+            if not file_path:
+                return SQLExecutionResult(
+                    success=False,
+                    question=question,
+                    error="Could not access source file",
+                )
+            # Check if file exists and is CSV
+            if not os.path.exists(file_path):
+                return SQLExecutionResult(
+                    success=False,
+                    question=question,
+                    error=f"File not found: {file_path}",
+                )
+
+            if not file_path.lower().endswith(".csv"):
+                return SQLExecutionResult(
+                    success=False,
+                    question=question,
+                    error="Source file must be a CSV file",
+                )
+
+            # Load CSV into DuckDB
+            if not self._load_csv_to_duckdb(file_path, table_name, question):
+                return SQLExecutionResult(
+                    success=False, question=question, error="Failed to load CSV data"
+                )
+
+            # Get table schema for better SQL generation
+            schema = self._get_table_schema(table_name)
+
+            # Generate SQL using the NL-SQL service
+            if len(question.strip()) == 0:
+                generation_result = SQLGenerationResult(
+                    success=True,
+                    sql=f"SELECT * FROM {table_name};",
+                    question="",
+                    error=None,
+                )
+            else:
+                generation_result = self.generate_sql(question, schema)
+
+            if not generation_result.success:
+                return SQLExecutionResult(
+                    success=False, question=question, error=generation_result.error
+                )
+
+            # Replace generic table names with our actual table name
+            sql = generation_result.sql
+            if sql:
+                # Replace common table placeholders with our table name
+                replacements = [
+                    "table_name",
+                    "your_table",
+                    "data",
+                    "users",
+                    "products",
+                    "sales",
+                ]
+                for placeholder in replacements:
+                    sql = sql.replace(placeholder, table_name)
+
+            # Execute SQL on the loaded data
+            execution_result = self._execute_sql_on_data(sql)
+            execution_result.question = question
+            execution_result.confidence = generation_result.confidence
+
+            return execution_result
+
+        except Exception as e:
+            logger.error(f"Error in generate_and_execute_sql: {str(e)}")
             return SQLExecutionResult(
-                success=False,
-                question=question,
-                error="No data items found in database",
-                row_count=0,
+                success=False, question=question, error=f"Unexpected error: {str(e)}"
             )
-
-        # Check if data_item has source_file
-        if not hasattr(data_item, "source_file") or not data_item.source_file:
-            return SQLExecutionResult(
-                success=False,
-                question=question,
-                error="Data item has no source file",
-            )
-        # Get file path
-        file_path = self._get_file_path(data_item.source_file)
-        if not file_path:
-            return SQLExecutionResult(
-                success=False,
-                question=question,
-                error="Could not access source file",
-            )
-        # Check if file exists and is CSV
-        if not os.path.exists(file_path):
-            return SQLExecutionResult(
-                success=False,
-                question=question,
-                error=f"File not found: {file_path}",
-            )
-
-        if not file_path.lower().endswith(".csv"):
-            return SQLExecutionResult(
-                success=False,
-                question=question,
-                error="Source file must be a CSV file",
-            )
-
-        # Load CSV into DuckDB
-        if not self._load_csv_to_duckdb(file_path, table_name, question):
-            return SQLExecutionResult(
-                success=False, question=question, error="Failed to load CSV data"
-            )
-
-        # Get table schema for better SQL generation
-        schema = self._get_table_schema(table_name)
-
-        # Generate SQL using the NL-SQL service
-        if len(question.strip()) == 0:
-            generation_result = SQLGenerationResult(
-                success=True,
-                sql=f"SELECT * FROM {table_name};",
-                question="",
-                error=None,
-            )
-        else:
-            generation_result = self.generate_sql(question, schema)
-
-        if not generation_result.success:
-            return SQLExecutionResult(
-                success=False, question=question, error=generation_result.error
-            )
-
-        # Replace generic table names with our actual table name
-        sql = generation_result.sql
-        if sql:
-            # Replace common table placeholders with our table name
-            replacements = [
-                "table_name",
-                "your_table",
-                "data",
-                "users",
-                "products",
-                "sales",
-            ]
-            for placeholder in replacements:
-                sql = sql.replace(placeholder, table_name)
-
-        # Execute SQL on the loaded data
-        execution_result = self._execute_sql_on_data(sql)
-        execution_result.question = question
-        execution_result.confidence = generation_result.confidence
-
-        return execution_result
-
-        # except Exception as e:
-        #     logger.error(f"Error in generate_and_execute_sql: {str(e)}")
-        #     return SQLExecutionResult(
-        #         success=False, question=question, error=f"Unexpected error: {str(e)}"
-        #     )
 
     def close_connection(self):
-        """Close DuckDB connection"""
         if self.db_conn:
             self.db_conn.close()
             self.db_conn = None

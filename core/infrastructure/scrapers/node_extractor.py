@@ -81,12 +81,6 @@ class NodeExtractor:
                         + "/download/"
                         + item["title"]
                     )
-                    # url = (
-                    #     "http://localhost/data/baimuratov-2024-2/"
-                    #     + item["title"]
-                    # )
-                    # print(url)
-                    # print(item)
                     json_links[item["title"]] = url
 
             return json_links

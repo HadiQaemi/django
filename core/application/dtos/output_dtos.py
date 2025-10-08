@@ -1,9 +1,3 @@
-"""
-Output Data Transfer Objects for the REBORN API.
-
-These DTOs are used to transfer data from the application services to the API layer.
-"""
-
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -151,8 +145,6 @@ class PaperOutputDTO(BaseModel):
     updated_at: Optional[datetime] = None
 
     class Config:
-        """Pydantic configuration."""
-
         json_encoders = {datetime: lambda v: v.isoformat()}
 
 

@@ -1,7 +1,3 @@
-"""
-Production settings for the REBORN API project.
-"""
-
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 from .base import *

@@ -61,7 +61,6 @@ class WeaviateSearchEngine:
             return False
 
     def _ensure_schema(self) -> None:
-        """Ensure required schema classes exist in Weaviate with proper configuration."""
         if self.client is None or not self.client.is_connected():
             logger.warning("Cannot ensure schema - no active Weaviate connection")
             return

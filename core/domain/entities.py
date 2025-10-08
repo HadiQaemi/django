@@ -7,8 +7,6 @@ from core.application.dtos.output_dtos import ShortScholarityOutputDTO
 
 @dataclass
 class Author:
-    """Author of a research paper or contribution."""
-
     id: Optional[str] = None
     given_name: Optional[str] = None
     family_name: Optional[str] = None
@@ -20,7 +18,6 @@ class Author:
 
     @property
     def full_name(self) -> str:
-        """Get the author's full name."""
         return f"{self.given_name} {self.family_name}"
 
     def formatted_orcid(self):
@@ -30,8 +27,6 @@ class Author:
 
 @dataclass
 class Journal:
-    """Academic journal where a paper was published."""
-
     id: str
     label: str
     publisher: Optional[Dict[str, Any]] = None
@@ -41,8 +36,6 @@ class Journal:
 
 @dataclass
 class Conference:
-    """Academic conference where a paper was presented."""
-
     id: str
     label: str
     publisher: Optional[Dict[str, Any]] = None
@@ -50,8 +43,6 @@ class Conference:
 
 @dataclass
 class Concept:
-    """Research concept or keyword."""
-
     id: str
     label: str
     concept_id: Optional[str] = None
@@ -60,8 +51,6 @@ class Concept:
 
 @dataclass
 class ResearchField:
-    """Field of research for a paper."""
-
     id: str
     label: str
     related_identifier: Optional[str] = None
@@ -70,8 +59,6 @@ class ResearchField:
 
 @dataclass
 class Notation:
-    """Notation for a statement."""
-
     id: str
     label: str
     concept: Optional[Concept] = None
@@ -79,8 +66,6 @@ class Notation:
 
 @dataclass
 class Statement:
-    """Statement or claim made in a paper."""
-
     id: str
     label: str
     # content: Dict[str, Any]
@@ -99,8 +84,6 @@ class Statement:
 
 @dataclass
 class Contribution:
-    """Contribution to a research paper."""
-
     id: str
     title: str
     author: List[Author]
@@ -114,7 +97,6 @@ class Contribution:
 
 @dataclass
 class Article:
-
     id: str
     name: str
     authors: List[Author]

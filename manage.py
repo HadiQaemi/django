@@ -3,8 +3,6 @@ import sys
 
 
 def main():
-    """Run administrative tasks."""
-    # Set the correct settings module
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
     try:
         from django.core.management import execute_from_command_line
