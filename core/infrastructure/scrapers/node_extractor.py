@@ -50,9 +50,21 @@ class NodeExtractor:
             logger.error(f"Failed to fetch HTML: {str(e)}")
             raise Exception(f"Failed to fetch HTML: {str(e)}")
 
-    def get_file_content_and_type(self, url, max_size_mb=20):
+    def get_file_content_and_type(
+        self, url, max_size_mb=20, allowed_domain="service.tib.eu"
+    ):
         parsed_url = urlparse(url)
         filename = os.path.basename(parsed_url.path)
+        if not parsed_url.netloc.endswith(allowed_domain):
+            print(f"Blocked download from unauthorized domain: {parsed_url.netloc}")
+            print(f"Only downloads from {allowed_domain} are allowed")
+            return filename, None, None, False, 0
+
+        if parsed_url.scheme != "https":
+            print(f"Blocked non-HTTPS URL: {url}")
+            print("Only HTTPS URLs are allowed")
+            return filename, None, None, False, 0
+
         mime_type, _ = mimetypes.guess_type(filename)
 
         if not mime_type:
