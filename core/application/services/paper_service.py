@@ -1220,6 +1220,29 @@ class PaperServiceImpl(PaperServiceInterface):
                 success=False, message=f"Failed to extract paper: {str(e)}"
             )
 
+    def delete_article(self, article_id: str) -> CommonResponseDTO:
+        try:
+            success = self.paper_repository.delete_article(article_id)
+
+            if success:
+                # cache.delete_pattern("all_papers_*")
+                # cache.delete_pattern("latest_articles_*")
+                # cache.delete_pattern(f"article_{article_id}_*")
+
+                return CommonResponseDTO(
+                    success=True, message=f"Article {article_id} deleted successfully"
+                )
+            else:
+                return CommonResponseDTO(
+                    success=False, message=f"Article {article_id} not found"
+                )
+
+        except Exception as e:
+            logger.error(f"Error in delete_article service: {str(e)}")
+            return CommonResponseDTO(
+                success=False, message=f"Failed to delete article: {str(e)}"
+            )
+
     def delete_database(self) -> CommonResponseDTO:
         """Delete the database."""
         try:

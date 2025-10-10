@@ -9,6 +9,7 @@ from django.contrib.postgres.search import SearchVectorField, SearchVector
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.contenttypes.models import ContentType
 from django.dispatch import receiver
+from django.db import transaction
 
 from polymorphic.models import PolymorphicModel
 from core.infrastructure.repositories.sql_repos_helper import (
@@ -819,6 +820,54 @@ class Article(TimeStampedModel):
             GinIndex(fields=["search_vector"]),
             models.Index(fields=["name"]),
         ]
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            self.authors.clear()
+            self.research_fields.clear()
+            self.concepts.clear()
+            self.related_datasets.clear()
+            self.related_scholarly_articles.clear()
+
+            statements = self.statements.all()
+            for statement in statements:
+                statement.authors.clear()
+                statement.concepts.clear()
+                statement.components.clear()
+                statement.implement_statements.all().delete()
+                statement.has_part_statements.all().delete()
+                data_types = statement.data_type_statement.all()
+                for data_type in data_types:
+                    if hasattr(data_type, "targets"):
+                        data_type.targets.clear()
+                data_types.delete()
+
+            statements.delete()
+
+            if self.ro_crate:
+                try:
+                    self.ro_crate.delete(save=False)
+                except Exception as e:
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Error deleting ro_crate file for Article {self.id}: {e}"
+                    )
+
+            super().delete(*args, **kwargs)
+
+    def delete_with_file_cleanup(self):
+        with transaction.atomic():
+            for statement in self.statements.all():
+                for implement in statement.implement_statements.all():
+                    if implement.source_code:
+                        try:
+                            implement.source_code.delete(save=False)
+                        except Exception:
+                            pass
+
+            self.delete()
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

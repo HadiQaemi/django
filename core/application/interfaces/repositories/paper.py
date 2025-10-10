@@ -61,3 +61,7 @@ class PaperRepository(ABC):
         self, paper_data: Dict[str, Any], json_files: Dict[str, str]
     ) -> bool:
         pass
+
+    @abstractmethod
+    def delete_article(self, article_id: str) -> bool:
+        pass

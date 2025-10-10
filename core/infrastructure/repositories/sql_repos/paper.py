@@ -2052,6 +2052,21 @@ class SQLPaperRepository(PaperRepository):
     #     logger.error(f"Error in add_article: {str(e)}")
     #     raise DatabaseError(f"Failed to add article: {str(e)}")
 
+    def delete_article(self, article_id: str) -> bool:
+        try:
+            article = ArticleModel.objects.get(article_id=article_id)
+            article.delete()
+            logger.info(f"Successfully deleted article: {article_id}")
+            return True
+
+        except ArticleModel.DoesNotExist:
+            logger.error(f"Article not found: {article_id}")
+            return False
+
+        except Exception as e:
+            logger.error(f"Error deleting article {article_id}: {str(e)}")
+            return False
+
     def _convert_article_to_paper(self, article: ArticleModel) -> Article:
         authors = []
         for author in article.authors.all():

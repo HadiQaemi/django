@@ -669,6 +669,81 @@ class PaperViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+    @swagger_auto_schema(
+        operation_description="Delete an article by ID",
+        manual_parameters=[
+            openapi.Parameter(
+                "article_id",
+                openapi.IN_PATH,
+                description="Article ID to delete",
+                type=openapi.TYPE_STRING,
+                required=True,
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description="Article deleted successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Article ABC123 deleted successfully",
+                    }
+                },
+            ),
+            404: openapi.Response(
+                description="Article not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Article ABC123 not found",
+                    }
+                },
+            ),
+            500: openapi.Response(
+                description="Internal server error",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Failed to delete article: error details",
+                    }
+                },
+            ),
+        },
+    )
+    @action(detail=False, methods=["delete"], url_path="delete/(?P<article_id>[^/.]+)")
+    def delete_article(self, request, article_id=None):
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(",")[0].strip()
+        else:
+            ip = request.META.get("REMOTE_ADDR")
+        if not (ip == "127.0.0.1" or ip == "10.114.149.127" or ip == "10.114.149.153"):
+            return Response(
+                {"error": f"Forbidden from {ip}"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            result = self.paper_service.delete_article(article_id)
+
+            if result.success:
+                return Response(
+                    {"success": result.success},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {"success": result.success},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        except Exception as e:
+            logger.error(f"Error in delete_article endpoint: {str(e)}")
+            return Response(
+                {"success": False, "message": f"Failed to delete article: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
     @action(detail=False, methods=["post"])
     def add_article_with_url(self, request: Request) -> Response:
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")

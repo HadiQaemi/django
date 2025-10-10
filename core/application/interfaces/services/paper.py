@@ -93,7 +93,6 @@ class PaperService(ABC):
         page_size: int = 10,
         search_type: str = "keyword",
         resource_type: str = "loom",
-
         year_range: Any = None,
         authors: Optional[List[str]] = None,
         scientific_venues: Optional[List[str]] = None,
@@ -140,4 +139,8 @@ class PaperService(ABC):
 
     @abstractmethod
     def delete_database(self) -> CommonResponseDTO:
+        pass
+
+    @abstractmethod
+    def delete_article(self, article_id: str) -> CommonResponseDTO:
         pass
