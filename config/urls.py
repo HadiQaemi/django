@@ -11,9 +11,9 @@ from core.presentation.api.v1.views import custom_serve_media
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="REBORN API",
+        title="TIB Knowledge Loom API",
         default_version="v1",
-        description="API for the REBORN research data platform",
+        description="API for the TIB Knowledge Loom research data platform",
         contact=openapi.Contact(email="contact@example.com"),
         license=openapi.License(name="MIT License"),
     ),

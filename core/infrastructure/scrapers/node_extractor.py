@@ -12,8 +12,9 @@ from urllib.parse import urlparse
 from django.core.files.base import ContentFile
 
 logger = logging.getLogger(__name__)
-mimetypes.add_type('application/x-python', '.py')
-mimetypes.add_type('text/x-r', '.r')
+mimetypes.add_type("application/x-python", ".py")
+mimetypes.add_type("text/x-r", ".r")
+
 
 class NodeExtractor:
     def __init__(self):
@@ -49,18 +50,79 @@ class NodeExtractor:
             logger.error(f"Failed to fetch HTML: {str(e)}")
             raise Exception(f"Failed to fetch HTML: {str(e)}")
 
-    def get_file_content_and_type(self, url):
+    def get_file_content_and_type(self, url, max_size_mb=20):
         parsed_url = urlparse(url)
         filename = os.path.basename(parsed_url.path)
         mime_type, _ = mimetypes.guess_type(filename)
-        if mime_type:
-            response = requests.get(url)
+
+        if not mime_type:
+            if filename.endswith(".zip"):
+                mime_type = "application/zip"
+            elif filename.endswith(".csv"):
+                mime_type = "text/csv"
+            elif filename.endswith(".json"):
+                mime_type = "application/json"
+            else:
+                mime_type = "application/octet-stream"
+
+        max_size_bytes = max_size_mb * 1024 * 1024
+
+        try:
+            head_response = requests.head(url, allow_redirects=True, timeout=10)
+            content_length = head_response.headers.get("Content-Length")
+
+            if content_length:
+                file_size = int(content_length)
+                file_size_mb = file_size / (1024 * 1024)
+
+                if file_size > max_size_bytes:
+                    # File is too large, return metadata only
+                    print(
+                        f"File {filename} is {file_size_mb:.2f}MB, exceeds {max_size_mb}MB limit"
+                    )
+                    return filename, None, mime_type, True, file_size_mb
+        except Exception as e:
+            print(f"Could not check file size via HEAD request: {e}")
+
+        try:
+            response = requests.get(url, stream=True, timeout=30)
             if response.status_code != 200:
                 raise Exception(f"Failed to download file from URL: {url}")
 
-            content_file = ContentFile(response.content, name=filename)
-            return filename, content_file, mime_type
-        return filename, None, mime_type
+            content_length = response.headers.get("Content-Length")
+            if content_length:
+                file_size = int(content_length)
+                file_size_mb = file_size / (1024 * 1024)
+
+                if file_size > max_size_bytes:
+                    print(
+                        f"File {filename} is {file_size_mb:.2f}MB, exceeds {max_size_mb}MB limit"
+                    )
+                    return filename, None, mime_type, True, file_size_mb
+
+            downloaded_size = 0
+            chunks = []
+
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    downloaded_size += len(chunk)
+                    if downloaded_size > max_size_bytes:
+                        file_size_mb = downloaded_size / (1024 * 1024)
+                        print(
+                            f"File {filename} exceeded {max_size_mb}MB limit during download ({file_size_mb:.2f}MB)"
+                        )
+                        return filename, None, mime_type, True, file_size_mb
+                    chunks.append(chunk)
+
+            content = b"".join(chunks)
+            file_size_mb = downloaded_size / (1024 * 1024)
+            content_file = ContentFile(content, name=filename)
+            print(f"Successfully downloaded {filename} ({file_size_mb:.2f}MB)")
+            return filename, content_file, mime_type, False, file_size_mb
+
+        except Exception as e:
+            print(f"Error downloading file {filename}: {e}")
+            raise
 
     def all_json_files(self) -> Dict[str, str]:
         if not self.soup:

@@ -74,7 +74,6 @@ logger = logging.getLogger(__name__)
 
 
 class SQLPaperRepository(PaperRepository):
-
     def __init__(self, type_registry_client: TypeRegistryClient):
         self.type_registry_client = type_registry_client
         self.scraper = NodeExtractor()
@@ -1047,10 +1046,11 @@ class SQLPaperRepository(PaperRepository):
             article.authors.add(
                 authors_id[author["@id"]], through_defaults={"order": idx + 1}
             )
-        filename, content_file, mime_type = self.scraper.get_file_content_and_type(
-            json_files["ro-crate-metadata.json"]
+        filename, content_file, mime_type, is_oversized, file_size_mb = (
+            self.scraper.get_file_content_and_type(json_files["ro-crate-metadata.json"])
         )
-        article.ro_crate.save(filename, content_file, save=True)
+        if not is_oversized and content_file is not None:
+            article.ro_crate.save(filename, content_file, save=True)
         article.research_fields.set(research_fields)
 
         for idx, concept in enumerate(concepts_id):
@@ -1092,10 +1092,13 @@ class SQLPaperRepository(PaperRepository):
                     "encodingFormat": statement_item["encodingFormat"],
                 },
             )
-            filename, content_file, mime_type = self.scraper.get_file_content_and_type(
-                json_files[statement_item.get("name", "")]
+            filename, content_file, mime_type, is_oversized, file_size_mb = (
+                self.scraper.get_file_content_and_type(
+                    json_files[statement_item.get("name", "")]
+                )
             )
-            statement.json_ld.save(filename, content_file, save=True)
+            if not is_oversized and content_file is not None:
+                statement.json_ld.save(filename, content_file, save=True)
             if not created:
                 statement.implement_statements.all().delete()
                 statement.has_part_statements.all().delete()
@@ -1184,22 +1187,26 @@ class SQLPaperRepository(PaperRepository):
                                 "url": statement_content[p],
                             },
                         )
-                        filename, content_file, mime_type = (
-                            self.scraper.get_file_content_and_type(statement_content[p])
-                        )
-
-                        if mime_type:
-                            processed_content_file = (
-                                process_source_code_content_flexible(
-                                    content_file,
-                                    filename,
-                                    article_id=article_id,
+                        (
+                            filename,
+                            content_file,
+                            mime_type,
+                            is_oversized,
+                            file_size_mb,
+                        ) = self.scraper.get_file_content_and_type(statement_content[p])
+                        if not is_oversized and content_file is not None:
+                            if mime_type:
+                                processed_content_file = (
+                                    process_source_code_content_flexible(
+                                        content_file,
+                                        filename,
+                                        article_id=article_id,
+                                    )
                                 )
-                            )
 
-                            implement.source_code.save(
-                                filename, processed_content_file, save=True
-                            )
+                                implement.source_code.save(
+                                    filename, processed_content_file, save=True
+                                )
                     elif p.endswith("#has_part"):
                         has_parts = statement_content[p]
                         if isinstance(statement_content[p], dict):
@@ -1342,10 +1349,14 @@ class SQLPaperRepository(PaperRepository):
                                                     "source_url",
                                                 )
                                             )
-                                            filename, content_file, mime_type = (
-                                                self.scraper.get_file_content_and_type(
-                                                    has_expression_source_url
-                                                )
+                                            (
+                                                filename,
+                                                content_file,
+                                                mime_type,
+                                                is_oversized,
+                                                file_size_mb,
+                                            ) = self.scraper.get_file_content_and_type(
+                                                has_expression_source_url
                                             )
 
                                             figure, created = (
@@ -1359,9 +1370,13 @@ class SQLPaperRepository(PaperRepository):
                                                     },
                                                 )
                                             )
-                                            figure.source_image.save(
-                                                filename, content_file, save=True
-                                            )
+                                            if (
+                                                not is_oversized
+                                                and content_file is not None
+                                            ):
+                                                figure.source_image.save(
+                                                    filename, content_file, save=True
+                                                )
                                             has_expressions.append(figure.id)
                                         data_item, created = (
                                             DataItemModel.objects.update_or_create(
@@ -1381,15 +1396,25 @@ class SQLPaperRepository(PaperRepository):
                                             )
                                         )
                                         if has_output_source_url:
-                                            filename, content_file, mime_type = (
-                                                self.scraper.get_file_content_and_type(
-                                                    has_output_source_url
-                                                )
+                                            (
+                                                filename,
+                                                content_file,
+                                                mime_type,
+                                                is_oversized,
+                                                file_size_mb,
+                                            ) = self.scraper.get_file_content_and_type(
+                                                has_output_source_url
                                             )
-                                            if mime_type:
-                                                data_item.source_file.save(
-                                                    filename, content_file, save=True
-                                                )
+                                            if (
+                                                not is_oversized
+                                                and content_file is not None
+                                            ):
+                                                if mime_type:
+                                                    data_item.source_file.save(
+                                                        filename,
+                                                        content_file,
+                                                        save=True,
+                                                    )
                                         if has_expressions:
                                             data_item.has_expression.set(
                                                 has_expressions
@@ -1533,15 +1558,25 @@ class SQLPaperRepository(PaperRepository):
                                             )
                                         )
                                         if has_input_source_url:
-                                            filename, content_file, mime_type = (
-                                                self.scraper.get_file_content_and_type(
-                                                    has_input_source_url
-                                                )
+                                            (
+                                                filename,
+                                                content_file,
+                                                mime_type,
+                                                is_oversized,
+                                                file_size_mb,
+                                            ) = self.scraper.get_file_content_and_type(
+                                                has_input_source_url
                                             )
-                                            if mime_type:
-                                                data_item.source_file.save(
-                                                    filename, content_file, save=True
-                                                )
+                                            if (
+                                                not is_oversized
+                                                and content_file is not None
+                                            ):
+                                                if mime_type:
+                                                    data_item.source_file.save(
+                                                        filename,
+                                                        content_file,
+                                                        save=True,
+                                                    )
                                         if has_expressions:
                                             data_item.has_expression.set(
                                                 has_expressions

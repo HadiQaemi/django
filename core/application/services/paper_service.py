@@ -42,7 +42,6 @@ logger = logging.getLogger(__name__)
 
 
 class PaperServiceImpl(PaperServiceInterface):
-
     def __init__(
         self,
         paper_repository: PaperRepository,
@@ -1199,7 +1198,6 @@ class PaperServiceImpl(PaperServiceInterface):
             raise DatabaseError(f"Failed to retrieve latest journals: {str(e)}")
 
     def extract_paper(self, url_dto: ScraperUrlInputDTO) -> CommonResponseDTO:
-        # """Extract a paper from a URL."""
         try:
             url = str(url_dto.url)
             self.scraper.set_url(url)
